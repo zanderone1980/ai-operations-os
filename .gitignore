@@ -1,0 +1,11 @@
+node_modules/
+dist/
+*.js.map
+*.d.ts.map
+.turbo/
+.env
+.env.local
+.env.production
+*.log
+.DS_Store
+coverage/

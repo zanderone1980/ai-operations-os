@@ -1,0 +1,20 @@
+{
+  "name": "@ai-ops/codebot-adapter",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@ai-ops/shared-types": "*"
+  },
+  "optionalDependencies": {
+    "codebot-ai": "^2.7.7"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  }
+}

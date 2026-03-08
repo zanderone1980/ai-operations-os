@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Operations OS</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <div class="header-content">
+      <h1>AI Operations OS</h1>
+      <span class="status-badge" id="status-badge">Connecting...</span>
+    </div>
+  </header>
+
+  <nav class="tab-bar">
+    <button class="tab active" data-tab="approvals">Approvals</button>
+    <button class="tab" data-tab="tasks">Tasks</button>
+    <button class="tab" data-tab="workflows">Workflows</button>
+    <button class="tab" data-tab="activity">Activity</button>
+  </nav>
+
+  <main>
+    <!-- Approvals Panel -->
+    <section id="panel-approvals" class="panel active">
+      <div class="panel-header">
+        <h2>Pending Approvals</h2>
+        <span class="count" id="approval-count">0</span>
+      </div>
+      <div id="approval-list" class="card-list">
+        <div class="empty-state">No pending approvals</div>
+      </div>
+    </section>
+
+    <!-- Tasks Panel -->
+    <section id="panel-tasks" class="panel">
+      <div class="panel-header">
+        <h2>Tasks</h2>
+        <button class="btn btn-sm" id="new-task-btn">+ New Task</button>
+      </div>
+      <div id="task-list" class="card-list">
+        <div class="empty-state">No tasks yet</div>
+      </div>
+    </section>
+
+    <!-- Workflows Panel -->
+    <section id="panel-workflows" class="panel">
+      <div class="panel-header">
+        <h2>Workflow Runs</h2>
+      </div>
+      <div id="workflow-list" class="card-list">
+        <div class="empty-state">No workflow runs</div>
+      </div>
+    </section>
+
+    <!-- Activity Panel -->
+    <section id="panel-activity" class="panel">
+      <div class="panel-header">
+        <h2>Activity Feed</h2>
+      </div>
+      <div id="activity-log" class="activity-log">
+        <div class="empty-state">No activity</div>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

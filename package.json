@@ -1,0 +1,27 @@
+{
+  "name": "ai-operations-os",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI Operations OS — Autonomous business workflow orchestration with safety enforcement",
+  "author": "Alex Pinkevich <alex@zanderpinkdesign.com>",
+  "license": "MIT",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "lint": "turbo lint",
+    "test": "turbo test",
+    "clean": "turbo clean && rm -rf node_modules"
+  },
+  "devDependencies": {
+    "turbo": "^2.4.0",
+    "typescript": "^5.7.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "packageManager": "npm@10.0.0"
+}

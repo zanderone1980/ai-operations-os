@@ -1,0 +1,9 @@
+{
+  "name": "@ai-ops/ops-web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "echo 'Static files — no build needed'",
+    "clean": "echo 'Nothing to clean'"
+  }
+}

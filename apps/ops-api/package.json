@@ -1,0 +1,23 @@
+{
+  "name": "@ai-ops/ops-api",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "node --watch dist/server.js",
+    "start": "node dist/server.js",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@ai-ops/shared-types": "*",
+    "@ai-ops/ops-core": "*",
+    "@ai-ops/ops-policy": "*",
+    "@ai-ops/ops-connectors": "*",
+    "@ai-ops/cord-adapter": "*"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "@types/node": "^22.0.0"
+  }
+}

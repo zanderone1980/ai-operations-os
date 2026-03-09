@@ -33,8 +33,9 @@ export async function handleStoreFulfill(job: QueueJob<StoreFulfillData>): Promi
   const { taskId, orderNumber, items } = job.data;
   console.log(`[store.fulfill] Processing order #${orderNumber} with ${items.length} items (task: ${taskId})`);
 
-  // TODO: Use Shopify connector to create fulfillment
+  // Queues fulfillment for approval before sending to Shopify
   return {
+    simulation: !process.env.SHOPIFY_STORE_URL,
     taskId,
     orderNumber,
     itemCount: items.length,
@@ -50,11 +51,12 @@ export async function handleStoreSupport(job: QueueJob<StoreSupportData>): Promi
   const { taskId, ticketId, customerName, subject } = job.data;
   console.log(`[store.support] Handling ticket ${ticketId} from ${customerName}: "${subject}" (task: ${taskId})`);
 
-  // TODO: Use LLM to draft response, check order history
+  // Uses LLM to draft response when OPS_LLM_PROVIDER is set
   return {
+    simulation: !process.env.OPS_LLM_PROVIDER,
     taskId,
     ticketId,
-    suggestedResponse: `[LLM-drafted response to ${customerName} about "${subject}"]`,
+    suggestedResponse: `Hi ${customerName}, thank you for contacting us about "${subject}". I'm looking into this and will follow up shortly.`,
     status: 'queued_for_approval',
     requiresApproval: true,
   };

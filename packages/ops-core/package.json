@@ -14,5 +14,14 @@
   },
   "devDependencies": {
     "typescript": "^5.7.0"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zanderone1980/ai-operations-os.git",
+    "directory": "packages/ops-core"
+  },
+  "bugs": {
+    "url": "https://github.com/zanderone1980/ai-operations-os/issues"
+  },
+  "author": "Alex Pinkevich <alex@zanderpinkdesign.com>"
 }

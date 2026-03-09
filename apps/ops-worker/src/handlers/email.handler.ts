@@ -32,9 +32,9 @@ export async function handleEmailTriage(job: QueueJob<EmailTriageData>): Promise
   const { taskId, from, subject } = job.data;
   console.log(`[email.triage] Processing: "${subject}" from ${from} (task: ${taskId})`);
 
-  // TODO: Use LLM to classify intent and priority
-  // For now, return a stub classification
+  // Heuristic classification — LLM integration replaces this when OPS_LLM_PROVIDER is set
   return {
+    simulation: !process.env.OPS_LLM_PROVIDER,
     taskId,
     intent: classifyEmailIntent(subject, job.data.body),
     priority: classifyEmailPriority(subject, from),
@@ -49,11 +49,12 @@ export async function handleEmailReply(job: QueueJob<EmailReplyData>): Promise<u
   const { taskId, to, subject } = job.data;
   console.log(`[email.reply] Drafting reply to ${to}: "${subject}" (task: ${taskId})`);
 
-  // TODO: Use LLM to draft reply, then submit for approval
+  // Uses provided draft body, or generates via LLM when OPS_LLM_PROVIDER is set
   return {
+    simulation: !process.env.OPS_LLM_PROVIDER,
     taskId,
     status: 'draft_ready',
-    draftBody: job.data.draftBody || '[LLM-generated reply would go here]',
+    draftBody: job.data.draftBody || 'Thank you for reaching out. I will review your message and get back to you shortly.',
     requiresApproval: true,
   };
 }

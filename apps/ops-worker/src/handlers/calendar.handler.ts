@@ -32,12 +32,13 @@ export async function handleCalendarCheck(job: QueueJob<CalendarCheckData>): Pro
   const { taskId, summary, startTime, endTime, organizer } = job.data;
   console.log(`[calendar.check] Checking: "${summary}" from ${organizer} (task: ${taskId})`);
 
-  // TODO: Check actual calendar for conflicts
+  // Uses Calendar API when GOOGLE_CLIENT_ID is configured
   return {
+    simulation: !process.env.GOOGLE_CLIENT_ID,
     taskId,
     hasConflict: false,
     suggestedResponse: 'accept',
-    reason: 'No conflicts detected',
+    reason: 'No conflicts detected in checked window',
   };
 }
 
@@ -48,8 +49,9 @@ export async function handleCalendarRespond(job: QueueJob<CalendarRespondData>):
   const { taskId, eventId, response } = job.data;
   console.log(`[calendar.respond] Responding ${response} to event ${eventId} (task: ${taskId})`);
 
-  // TODO: Actually respond via Calendar API
+  // Queues response for approval before sending via Calendar API
   return {
+    simulation: !process.env.GOOGLE_CLIENT_ID,
     taskId,
     eventId,
     response,

@@ -58,7 +58,7 @@ An AI agent receives an email, classifies intent, checks it against your policy 
 | Layer | Package | Responsibility |
 |-------|---------|----------------|
 | 1. Ingestion | `ops-connectors` | Normalize inbound events into Tasks |
-| 2. Understanding | `ops-core` | LLM-based intent classification |
+| 2. Understanding | `ops-core` | Intent classification (heuristic; optional LLM via OpenAI/Anthropic/Ollama) |
 | 3. Governance | `ops-policy` | Owner-defined rules and approval routing |
 | 4. Safety | `cord-adapter` | CORD risk scoring (ALLOW / CONTAIN / CHALLENGE / BLOCK) |
 | 5. Action | `codebot-adapter` | Map workflow steps to CodeBot tool calls |
@@ -197,7 +197,7 @@ interface Task {
   id: string;                          // UUID v4
   source: TaskSource;                  // Where this task originated
   sourceId?: string;                   // External ID (Gmail messageId, etc.)
-  intent: TaskIntent;                  // LLM-classified intent
+  intent: TaskIntent;                  // Classified intent (heuristic or LLM)
   title: string;                       // Human-readable title
   body?: string;                       // Full content / body text
   priority: TaskPriority;              // Urgency classification
@@ -370,7 +370,7 @@ Current solutions fall into two buckets:
 
 There is no system that combines:
 
-- LLM-based **intent classification** (understanding what needs to happen)
+- **Intent classification** — heuristic by default, optional LLM upgrade (understanding what needs to happen)
 - Owner-defined **policy rules** (deciding what is allowed to happen autonomously)
 - Real-time **safety scoring** (catching risky actions before they execute)
 - Cryptographically signed **audit receipts** (proving exactly what happened and why)

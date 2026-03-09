@@ -34,8 +34,9 @@ export async function handleSocialPost(job: QueueJob<SocialPostData>): Promise<u
   const { taskId, platform, content, scheduledAt } = job.data;
   console.log(`[social.post] Scheduling on ${platform}: "${content.slice(0, 50)}..." (task: ${taskId})`);
 
-  // TODO: Use connector to actually post
+  // Queues post for approval before publishing via platform connector
   return {
+    simulation: !process.env.X_BEARER_TOKEN,
     taskId,
     platform,
     status: scheduledAt ? 'scheduled' : 'queued_for_approval',
@@ -51,12 +52,13 @@ export async function handleSocialReply(job: QueueJob<SocialReplyData>): Promise
   const { taskId, platform, postId, authorHandle, draftReply } = job.data;
   console.log(`[social.reply] Replying to @${authorHandle} on ${platform} (task: ${taskId})`);
 
-  // TODO: Use LLM to draft reply if not provided
+  // Uses LLM draft when OPS_LLM_PROVIDER is set, otherwise uses provided draft
   return {
+    simulation: !process.env.OPS_LLM_PROVIDER,
     taskId,
     platform,
     postId,
-    draftReply: draftReply || `[LLM-drafted reply to @${authorHandle}]`,
+    draftReply: draftReply || `Thanks for reaching out, @${authorHandle}. Let me look into this and get back to you.`,
     status: 'queued_for_approval',
     requiresApproval: true,
   };

@@ -15,7 +15,8 @@
     "@ai-ops/ops-policy": "*",
     "@ai-ops/ops-connectors": "*",
     "@ai-ops/cord-adapter": "*",
-    "@ai-ops/ops-worker": "*"
+    "@ai-ops/ops-worker": "*",
+    "@ai-ops/ops-storage": "*"
   },
   "devDependencies": {
     "typescript": "^5.7.0",

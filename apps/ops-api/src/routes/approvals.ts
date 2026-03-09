@@ -11,11 +11,8 @@ import type { Approval, ApprovalDecision } from '@ai-ops/shared-types';
 import { createApproval } from '@ai-ops/shared-types';
 import { pathToRoute, sendJson, sendError } from '../server';
 import type { Route } from '../server';
+import { stores } from '../storage';
 import type * as http from 'http';
-
-// ── In-memory store ──────────────────────────────────────────────────────────
-
-const approvals = new Map<string, Approval>();
 
 // SSE subscribers for real-time updates
 const sseClients = new Set<http.ServerResponse>();
@@ -37,28 +34,25 @@ function broadcastApproval(approval: Approval): void {
 /** List pending approvals */
 async function listApprovals(ctx: any): Promise<void> {
   const { res, query } = ctx;
-  let result = Array.from(approvals.values());
+  let result: Approval[];
 
   // By default, show only pending (undecided) approvals
   if (query.status === 'all') {
-    // Show all
+    result = stores.approvals.listAll({ risk: query.risk });
   } else if (query.status === 'decided') {
-    result = result.filter((a) => a.decision !== undefined);
+    // Get all and filter to decided ones
+    result = stores.approvals.listAll({ risk: query.risk }).filter((a: Approval) => a.decision !== undefined);
   } else {
-    result = result.filter((a) => a.decision === undefined);
+    result = stores.approvals.listPending();
+    // Apply risk filter on pending if needed
+    if (query.risk) {
+      result = result.filter((a) => a.risk === query.risk);
+    }
   }
-
-  // Filter by risk
-  if (query.risk) {
-    result = result.filter((a) => a.risk === query.risk);
-  }
-
-  // Sort by requestedAt descending
-  result.sort((a, b) => new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime());
 
   sendJson(res, 200, {
     approvals: result,
-    pending: result.filter((a) => !a.decision).length,
+    pending: stores.approvals.countPending(),
     total: result.length,
   });
 }
@@ -66,7 +60,7 @@ async function listApprovals(ctx: any): Promise<void> {
 /** Get a specific approval */
 async function getApproval(ctx: any): Promise<void> {
   const { res, params } = ctx;
-  const approval = approvals.get(params.id);
+  const approval = stores.approvals.get(params.id);
   if (!approval) {
     sendError(res, 404, `Approval not found: ${params.id}`);
     return;
@@ -77,7 +71,7 @@ async function getApproval(ctx: any): Promise<void> {
 /** Submit a decision on an approval */
 async function decideApproval(ctx: any): Promise<void> {
   const { res, params, body } = ctx;
-  const approval = approvals.get(params.id);
+  const approval = stores.approvals.get(params.id);
   if (!approval) {
     sendError(res, 404, `Approval not found: ${params.id}`);
     return;
@@ -94,15 +88,15 @@ async function decideApproval(ctx: any): Promise<void> {
     return;
   }
 
-  approval.decision = decision;
-  approval.decidedBy = (body.decidedBy as string) || 'user';
-  approval.decidedAt = new Date().toISOString();
+  stores.approvals.decide(
+    params.id,
+    decision,
+    (body.decidedBy as string) || 'user',
+    decision === 'modified' ? (body.modifications as Record<string, unknown>) : undefined,
+  );
 
-  if (decision === 'modified' && body.modifications) {
-    approval.modifications = body.modifications as Record<string, unknown>;
-  }
-
-  sendJson(res, 200, approval);
+  const updated = stores.approvals.get(params.id);
+  sendJson(res, 200, updated);
 }
 
 /** SSE stream of new approval requests */
@@ -138,7 +132,7 @@ export function requestApproval(
   preview: string,
 ): Approval {
   const approval = createApproval(actionId, taskId, risk, reason, preview);
-  approvals.set(approval.id, approval);
+  stores.approvals.save(approval);
   broadcastApproval(approval);
   return approval;
 }
@@ -152,7 +146,7 @@ export async function waitForDecision(
 ): Promise<Approval | null> {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
-    const approval = approvals.get(approvalId);
+    const approval = stores.approvals.get(approvalId);
     if (approval?.decision) return approval;
     await new Promise((r) => setTimeout(r, 500));
   }

@@ -8,53 +8,36 @@
  * DELETE /api/tasks/:id      Delete a task (soft — marks as failed)
  */
 
-import type { Task, TaskSource, TaskIntent, TaskPriority, TaskStatus } from '@ai-ops/shared-types';
+import type { Task, TaskSource, TaskIntent, TaskPriority } from '@ai-ops/shared-types';
 import { createTask } from '@ai-ops/shared-types';
 import { pathToRoute, sendJson, sendError } from '../server';
 import type { Route } from '../server';
-
-// ── In-memory store (replaced by persistent store in production) ─────────────
-
-const tasks = new Map<string, Task>();
+import { stores } from '../storage';
 
 // ── Route handlers ───────────────────────────────────────────────────────────
 
 /** List tasks with optional filtering */
-async function listTasks(ctx: Parameters<typeof sendJson extends (res: infer R, ...args: any[]) => any ? never : never>[0] extends never ? any : any): Promise<void> {
+async function listTasks(ctx: any): Promise<void> {
   const { res, query } = ctx;
-  let result = Array.from(tasks.values());
 
-  // Filter by status
-  if (query.status) {
-    result = result.filter((t) => t.status === query.status);
-  }
-
-  // Filter by source
-  if (query.source) {
-    result = result.filter((t) => t.source === query.source);
-  }
-
-  // Filter by intent
-  if (query.intent) {
-    result = result.filter((t) => t.intent === query.intent);
-  }
-
-  // Filter by priority
-  if (query.priority) {
-    result = result.filter((t) => t.priority === query.priority);
-  }
-
-  // Sort by updatedAt descending
-  result.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-
-  // Pagination
   const limit = parseInt(query.limit || '50', 10);
   const offset = parseInt(query.offset || '0', 10);
-  const paged = result.slice(offset, offset + limit);
+
+  const filter = {
+    status: query.status,
+    source: query.source,
+    intent: query.intent,
+    priority: query.priority,
+    limit,
+    offset,
+  };
+
+  const result = stores.tasks.list(filter);
+  const total = stores.tasks.count(filter);
 
   sendJson(res, 200, {
-    tasks: paged,
-    total: result.length,
+    tasks: result,
+    total,
     limit,
     offset,
   });
@@ -63,7 +46,7 @@ async function listTasks(ctx: Parameters<typeof sendJson extends (res: infer R, 
 /** Get a single task by ID */
 async function getTask(ctx: any): Promise<void> {
   const { res, params } = ctx;
-  const task = tasks.get(params.id);
+  const task = stores.tasks.get(params.id);
   if (!task) {
     sendError(res, 404, `Task not found: ${params.id}`);
     return;
@@ -92,15 +75,16 @@ async function createTaskHandler(ctx: any): Promise<void> {
     metadata: (body.metadata as Record<string, unknown>) || {},
   });
 
-  tasks.set(task.id, task);
+  stores.tasks.save(task);
   sendJson(res, 201, task);
 }
 
 /** Update a task */
 async function updateTask(ctx: any): Promise<void> {
   const { res, params, body } = ctx;
-  const task = tasks.get(params.id);
-  if (!task) {
+
+  const existing = stores.tasks.get(params.id);
+  if (!existing) {
     sendError(res, 404, `Task not found: ${params.id}`);
     return;
   }
@@ -110,28 +94,28 @@ async function updateTask(ctx: any): Promise<void> {
     'owner', 'dueAt', 'metadata',
   ] as const;
 
+  const updates: Partial<Task> = {};
   for (const field of allowedFields) {
     if (body[field] !== undefined) {
-      (task as any)[field] = body[field];
+      (updates as any)[field] = body[field];
     }
   }
 
-  task.updatedAt = new Date().toISOString();
-  tasks.set(task.id, task);
-  sendJson(res, 200, task);
+  const updated = stores.tasks.update(params.id, updates);
+  sendJson(res, 200, updated);
 }
 
 /** Delete (soft-delete) a task */
 async function deleteTask(ctx: any): Promise<void> {
   const { res, params } = ctx;
-  const task = tasks.get(params.id);
-  if (!task) {
+
+  const existing = stores.tasks.get(params.id);
+  if (!existing) {
     sendError(res, 404, `Task not found: ${params.id}`);
     return;
   }
 
-  task.status = 'failed';
-  task.updatedAt = new Date().toISOString();
+  stores.tasks.update(params.id, { status: 'failed' });
   sendJson(res, 200, { deleted: true, id: params.id });
 }
 

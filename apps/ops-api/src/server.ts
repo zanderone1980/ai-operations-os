@@ -8,11 +8,15 @@
  */
 
 import * as http from 'http';
+import { stores } from './storage';
 import { taskRoutes } from './routes/tasks';
 import { workflowRoutes } from './routes/workflows';
 import { approvalRoutes } from './routes/approvals';
 import { webhookRoutes } from './routes/webhooks';
 import { pipelineRoutes } from './routes/pipeline';
+import { oauthRoutes } from './routes/oauth';
+
+export { stores };
 
 const PORT = parseInt(process.env.OPS_PORT || '3100', 10);
 const HOST = process.env.OPS_HOST || '0.0.0.0';
@@ -46,6 +50,7 @@ const routes: Route[] = [
   ...approvalRoutes,
   ...webhookRoutes,
   ...pipelineRoutes,
+  ...oauthRoutes,
 ];
 
 /**

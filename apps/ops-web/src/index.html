@@ -37,8 +37,44 @@
     <section id="panel-tasks" class="panel">
       <div class="panel-header">
         <h2>Tasks</h2>
-        <button class="btn btn-sm" id="new-task-btn">+ New Task</button>
+        <div class="panel-header-actions">
+          <button class="btn btn-sm btn-accent" id="run-pipeline-btn">Run Pipeline</button>
+          <button class="btn btn-sm" id="new-task-btn">+ New Task</button>
+        </div>
       </div>
+
+      <!-- New Task Form (hidden by default) -->
+      <div id="new-task-form" class="new-task-form hidden">
+        <div class="form-card">
+          <div class="form-header">
+            <h3>Create New Task</h3>
+            <button class="btn btn-sm btn-close" id="close-task-form">&times;</button>
+          </div>
+          <div class="form-group">
+            <label for="task-source">Source</label>
+            <select id="task-source">
+              <option value="manual">Manual</option>
+              <option value="email">Email</option>
+              <option value="calendar">Calendar</option>
+              <option value="social">Social</option>
+              <option value="store">Store</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="task-title">Title</label>
+            <input type="text" id="task-title" placeholder="Task title..." />
+          </div>
+          <div class="form-group">
+            <label for="task-body">Body</label>
+            <textarea id="task-body" rows="3" placeholder="Task details (optional)..."></textarea>
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-accent" id="submit-task-btn">Create Task</button>
+            <button class="btn btn-modify" id="cancel-task-btn">Cancel</button>
+          </div>
+        </div>
+      </div>
+
       <div id="task-list" class="card-list">
         <div class="empty-state">No tasks yet</div>
       </div>
@@ -63,7 +99,26 @@
         <div class="empty-state">No activity</div>
       </div>
     </section>
+    <!-- Pipeline Live Feed (shown when pipeline runs) -->
+    <div id="pipeline-feed" class="pipeline-feed hidden">
+      <div class="pipeline-feed-header">
+        <h3>Pipeline Live Feed</h3>
+        <button class="btn btn-sm btn-close" id="close-pipeline-feed">&times;</button>
+      </div>
+      <div id="pipeline-events" class="pipeline-events"></div>
+    </div>
   </main>
+
+  <!-- Simulation Results Modal -->
+  <div id="sim-modal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Pipeline Simulation</h3>
+        <button class="btn btn-sm btn-close" id="close-sim-modal">&times;</button>
+      </div>
+      <div id="sim-results" class="sim-results"></div>
+    </div>
+  </div>
 
   <script src="app.js"></script>
 </body>

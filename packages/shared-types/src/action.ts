@@ -1,3 +1,5 @@
+import { randomUUID } from './uuid';
+
 /**
  * Action — A single executed operation.
  *
@@ -53,7 +55,7 @@ export function createAction(
   input: Record<string, unknown>,
 ): Action {
   return {
-    id: crypto.randomUUID(),
+    id: randomUUID(),
     runId,
     stepId,
     connector,

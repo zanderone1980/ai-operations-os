@@ -1,3 +1,5 @@
+import { randomUUID } from './uuid';
+
 /**
  * WorkflowRun + WorkflowStep — Execution tracking for multi-step automations.
  *
@@ -84,12 +86,12 @@ export function createWorkflowRun(
   steps: Omit<WorkflowStep, 'id' | 'status'>[],
 ): WorkflowRun {
   return {
-    id: crypto.randomUUID(),
+    id: randomUUID(),
     taskId,
     workflowType,
     steps: steps.map((s) => ({
       ...s,
-      id: crypto.randomUUID(),
+      id: randomUUID(),
       status: 'pending' as const,
     })),
     state: 'queued',

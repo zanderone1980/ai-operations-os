@@ -1,3 +1,5 @@
+import { randomUUID } from './uuid';
+
 /**
  * Approval — Human-in-the-loop gate.
  *
@@ -59,7 +61,7 @@ export function createApproval(
   ttlMs?: number | null,
 ): Approval {
   return {
-    id: crypto.randomUUID(),
+    id: randomUUID(),
     actionId,
     taskId,
     risk,

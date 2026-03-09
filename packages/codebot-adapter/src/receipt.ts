@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+
 /**
  * ReceiptBuilder — Builds hash-chained action receipts during execution.
  *
@@ -109,7 +111,7 @@ export class ReceiptBuilder {
 
     for (const step of this.steps) {
       const partial = {
-        id: crypto.randomUUID(),
+        id: randomUUID(),
         actionId: step.actionId,
         policyVersion: step.policyVersion,
         cordDecision: step.cordDecision,

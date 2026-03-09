@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+
 /**
  * CodeBotAdapter — Maps workflow steps to CodeBot tool calls.
  *
@@ -101,7 +103,7 @@ function generateSimulatedOutput(
   if (op === 'send' || op === 'reply' || op === 'forward') {
     return {
       ...base,
-      messageId: `sim-msg-${crypto.randomUUID().slice(0, 8)}`,
+      messageId: `sim-msg-${randomUUID().slice(0, 8)}`,
       status: 'sent',
       to: step.input.to ?? step.input.recipient ?? 'unknown@example.com',
       threadId: step.input.threadId ?? null,
@@ -138,7 +140,7 @@ function generateSimulatedOutput(
   if (op === 'create_event' || op === 'update_event') {
     return {
       ...base,
-      eventId: `sim-evt-${crypto.randomUUID().slice(0, 8)}`,
+      eventId: `sim-evt-${randomUUID().slice(0, 8)}`,
       status: op === 'create_event' ? 'created' : 'updated',
       title: (step.input.title as string) ?? (step.input.subject as string) ?? 'Simulated Event',
       start: step.input.start ?? new Date().toISOString(),
@@ -148,7 +150,7 @@ function generateSimulatedOutput(
   if (op === 'cancel_event') {
     return {
       ...base,
-      eventId: (step.input.eventId as string) ?? `sim-evt-${crypto.randomUUID().slice(0, 8)}`,
+      eventId: (step.input.eventId as string) ?? `sim-evt-${randomUUID().slice(0, 8)}`,
       status: 'cancelled',
     };
   }
@@ -157,7 +159,7 @@ function generateSimulatedOutput(
   if (op === 'post' || op === 'tweet') {
     return {
       ...base,
-      postId: `sim-post-${crypto.randomUUID().slice(0, 8)}`,
+      postId: `sim-post-${randomUUID().slice(0, 8)}`,
       status: 'published',
       url: `https://${step.connector}.example.com/post/sim-${Date.now()}`,
     };
@@ -176,7 +178,7 @@ function generateSimulatedOutput(
   if (op === 'refund' || op === 'charge' || op === 'transfer') {
     return {
       ...base,
-      transactionId: `sim-txn-${crypto.randomUUID().slice(0, 8)}`,
+      transactionId: `sim-txn-${randomUUID().slice(0, 8)}`,
       status: 'processed',
       amount: step.input.amount ?? 0,
       currency: step.input.currency ?? 'USD',

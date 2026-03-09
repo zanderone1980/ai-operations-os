@@ -1,3 +1,5 @@
+import { randomUUID } from './uuid';
+
 /**
  * Task — The universal work item.
  *
@@ -73,7 +75,7 @@ export interface Task {
 export function createTask(partial: Partial<Task> & Pick<Task, 'source' | 'title'>): Task {
   const now = new Date().toISOString();
   return {
-    id: crypto.randomUUID(),
+    id: randomUUID(),
     intent: 'unknown',
     body: undefined,
     priority: 'normal',

@@ -5,9 +5,6 @@ module.exports = {
   testEnvironment: 'node',
   roots: ['<rootDir>/src'],
   testMatch: ['**/__tests__/**/*.test.ts', '**/*.test.ts'],
-  // The pipeline route transitively imports ops-worker which starts background
-  // timers (job queue polling, scheduler). Force exit to clean up.
-  forceExit: true,
   moduleNameMapper: {
     '^@ai-ops/shared-types$': '<rootDir>/../../packages/shared-types/src',
     '^@ai-ops/ops-core$': '<rootDir>/../../packages/ops-core/src',

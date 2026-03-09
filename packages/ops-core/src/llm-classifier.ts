@@ -42,6 +42,7 @@ const VALID_INTENTS: readonly TaskIntent[] = [
   'schedule',
   'post',
   'fulfill',
+  'refund',
   'escalate',
   'ignore',
   'unknown',
@@ -57,6 +58,7 @@ Given a text description of a task or incoming event, classify it into exactly o
 - schedule  — The task involves scheduling, meetings, calendar events, or appointments.
 - post      — The task involves posting, publishing, or sharing content on social media.
 - fulfill   — The task involves fulfilling, shipping, or processing an order.
+- refund    — The task involves refunding, returning, or reimbursing a payment.
 - escalate  — The task is urgent, requires help, or needs to be escalated to a manager.
 - ignore    — The task is spam, junk, or promotional and should be ignored.
 - unknown   — The task does not clearly fit any of the above categories.

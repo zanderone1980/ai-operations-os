@@ -1,0 +1,41 @@
+# AI Operations OS — Docker Compose
+# Usage: docker compose up --build
+
+services:
+  ops-api:
+    build: .
+    ports:
+      - "${OPS_PORT:-3100}:3100"
+    environment:
+      - OPS_PORT=3100
+      - OPS_HOST=0.0.0.0
+      - OPS_DB_PATH=/data/ai-ops.db
+      - CORD_HMAC_KEY=${CORD_HMAC_KEY:-ai-ops-dev-key}
+      - POLICY_VERSION=${POLICY_VERSION:-v1}
+      # Google OAuth
+      - GMAIL_CLIENT_ID=${GMAIL_CLIENT_ID:-}
+      - GMAIL_CLIENT_SECRET=${GMAIL_CLIENT_SECRET:-}
+      - GMAIL_REDIRECT_URI=${GMAIL_REDIRECT_URI:-http://localhost:3100/api/oauth/google/callback}
+      # X / Twitter
+      - X_API_KEY=${X_API_KEY:-}
+      - X_USER_ID=${X_USER_ID:-}
+      # Shopify
+      - SHOPIFY_STORE_URL=${SHOPIFY_STORE_URL:-}
+      - SHOPIFY_ACCESS_TOKEN=${SHOPIFY_ACCESS_TOKEN:-}
+      # LLM
+      - OPS_LLM_PROVIDER=${OPS_LLM_PROVIDER:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - OLLAMA_URL=${OLLAMA_URL:-}
+    volumes:
+      - ai-ops-data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3100/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  ai-ops-data:

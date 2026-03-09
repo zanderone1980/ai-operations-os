@@ -45,7 +45,7 @@ export const TaskSchema = {
     },
     intent: {
       type: 'string' as const,
-      enum: ['reply', 'schedule', 'post', 'fulfill', 'escalate', 'ignore', 'unknown'],
+      enum: ['reply', 'schedule', 'post', 'fulfill', 'refund', 'escalate', 'ignore', 'unknown'],
       description: 'LLM-classified intent — what should be done with this task',
     },
     title: {

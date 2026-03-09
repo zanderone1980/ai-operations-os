@@ -19,3 +19,7 @@ export { ShopifyConnector } from './shopify';
 
 // Registry
 export { ConnectorRegistry } from './registry';
+
+// Resilient fetch (retry + rate limiting)
+export { resilientFetch, RateLimiter } from './resilient-fetch';
+export type { ResilientFetchOptions, FetchAttemptResult, RateLimiterOptions } from './resilient-fetch';

@@ -39,6 +39,10 @@ const KEYWORD_TABLE: readonly IntentKeywords[] = [
     keywords: ['ship', 'fulfill', 'order', 'process', 'deliver'],
   },
   {
+    intent: 'refund',
+    keywords: ['refund', 'return', 'chargeback', 'reimburse', 'credit back'],
+  },
+  {
     intent: 'ignore',
     keywords: ['spam', 'unsubscribe', 'junk', 'promotional'],
   },

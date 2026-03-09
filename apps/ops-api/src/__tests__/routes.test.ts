@@ -41,6 +41,14 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+  // Stop the ops-worker background timers (queue polling + scheduler)
+  // that get started as a side effect of importing the pipeline routes.
+  try {
+    const worker = await import('@ai-ops/ops-worker') as any;
+    if (worker.queue) worker.queue.stop();
+    if (worker.scheduler) worker.scheduler.stop();
+  } catch { /* worker may not be loaded */ }
+
   await new Promise<void>((resolve, reject) => {
     server.close((err) => (err ? reject(err) : resolve()));
   });
@@ -460,5 +468,91 @@ describe('Webhook Routes', () => {
     expect(status).toBe(200);
     expect(data.received).toBe(true);
     expect(data).toHaveProperty('taskId');
+  });
+});
+
+// ── Calendar Routes ─────────────────────────────────────────────────────────
+
+describe('Calendar Routes', () => {
+  test('GET /api/calendar/events without OAuth returns 401', async () => {
+    const { status, data } = await api('GET', '/api/calendar/events');
+    expect(status).toBe(401);
+    expect(data).toHaveProperty('error');
+  });
+
+  test('POST /api/calendar/create without OAuth returns 401', async () => {
+    const { status, data } = await api('POST', '/api/calendar/create', {
+      summary: 'Test event',
+      start: '2026-03-10T10:00:00Z',
+      end: '2026-03-10T11:00:00Z',
+    });
+    expect(status).toBe(401);
+    expect(data).toHaveProperty('error');
+  });
+});
+
+// ── X/Twitter Routes ────────────────────────────────────────────────────────
+
+describe('X/Twitter Routes', () => {
+  test('GET /api/x/timeline without API key returns 401', async () => {
+    const { status, data } = await api('GET', '/api/x/timeline');
+    expect(status).toBe(401);
+    expect(data).toHaveProperty('error');
+  });
+
+  test('POST /api/x/post without API key returns 401', async () => {
+    const { status, data } = await api('POST', '/api/x/post', {
+      text: 'Test tweet',
+    });
+    expect(status).toBe(401);
+    expect(data).toHaveProperty('error');
+  });
+
+  test('POST /api/x/reply without API key returns 401', async () => {
+    const { status, data } = await api('POST', '/api/x/reply', {
+      text: 'Test reply',
+      tweetId: 'tweet-123',
+    });
+    expect(status).toBe(401);
+    expect(data).toHaveProperty('error');
+  });
+
+  test('POST /api/x/dm without API key returns 401', async () => {
+    const { status, data } = await api('POST', '/api/x/dm', {
+      participantId: 'user-123',
+      text: 'Hello there',
+    });
+    expect(status).toBe(401);
+    expect(data).toHaveProperty('error');
+  });
+});
+
+// ── Shopify Routes ──────────────────────────────────────────────────────────
+
+describe('Shopify Routes', () => {
+  test('GET /api/shopify/orders without credentials returns 401', async () => {
+    const { status, data } = await api('GET', '/api/shopify/orders');
+    expect(status).toBe(401);
+    expect(data).toHaveProperty('error');
+  });
+
+  test('GET /api/shopify/products without credentials returns 401', async () => {
+    const { status, data } = await api('GET', '/api/shopify/products');
+    expect(status).toBe(401);
+    expect(data).toHaveProperty('error');
+  });
+
+  test('GET /api/shopify/customers without credentials returns 401', async () => {
+    const { status, data } = await api('GET', '/api/shopify/customers');
+    expect(status).toBe(401);
+    expect(data).toHaveProperty('error');
+  });
+
+  test('POST /api/shopify/process without credentials returns 401', async () => {
+    const { status, data } = await api('POST', '/api/shopify/process', {
+      orderId: 'order-123',
+    });
+    expect(status).toBe(401);
+    expect(data).toHaveProperty('error');
   });
 });

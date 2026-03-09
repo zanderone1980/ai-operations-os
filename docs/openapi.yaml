@@ -1,0 +1,1994 @@
+openapi: 3.1.0
+info:
+  title: AI Operations OS API
+  description: >
+    HTTP/SSE API for the AI Operations OS — an autonomous operations platform
+    that ingests events from email, calendar, social, and e-commerce channels,
+    classifies intent, evaluates policy and CORD safety gates, routes through
+    human-in-the-loop approvals, executes via connectors, and produces
+    cryptographically chained action receipts.
+  version: 0.1.0
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:3100
+    description: Local development server
+
+tags:
+  - name: Health
+    description: Liveness and readiness probes
+  - name: Tasks
+    description: CRUD for the universal Task work-item model
+  - name: Approvals
+    description: Human-in-the-loop approval inbox and SSE stream
+  - name: Workflows
+    description: Trigger, monitor, pause, and resume multi-step workflow runs
+  - name: Pipeline
+    description: End-to-end pipeline execution and simulation
+  - name: Gmail
+    description: Gmail inbox access and full email processing pipeline
+  - name: Calendar
+    description: Google Calendar events and availability (placeholder)
+  - name: X
+    description: X/Twitter timeline, posting, replies, and direct messages (placeholder)
+  - name: Shopify
+    description: Shopify orders, products, customers, and order processing pipeline
+  - name: Webhooks
+    description: Inbound webhook receivers for external service push notifications
+  - name: OAuth
+    description: OAuth2 flows and connector authentication status
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Paths
+# ──────────────────────────────────────────────────────────────────────────────
+
+paths:
+
+  # ── Health ────────────────────────────────────────────────────────────────
+
+  /health:
+    get:
+      operationId: getHealth
+      tags: [Health]
+      summary: Health check
+      description: Returns server status, version, and uptime in seconds.
+      responses:
+        '200':
+          description: Server is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /api/health:
+    get:
+      operationId: getApiHealth
+      tags: [Health]
+      summary: Health check (prefixed)
+      description: Alias for /health under the /api prefix.
+      responses:
+        '200':
+          description: Server is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  # ── Tasks ─────────────────────────────────────────────────────────────────
+
+  /api/tasks:
+    get:
+      operationId: listTasks
+      tags: [Tasks]
+      summary: List tasks
+      description: >
+        Returns a paginated list of tasks with optional filtering by status,
+        source, intent, and priority.
+      parameters:
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/TaskStatus'
+        - name: source
+          in: query
+          schema:
+            $ref: '#/components/schemas/TaskSource'
+        - name: intent
+          in: query
+          schema:
+            $ref: '#/components/schemas/TaskIntent'
+        - name: priority
+          in: query
+          schema:
+            $ref: '#/components/schemas/TaskPriority'
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Paginated task list
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [tasks, total, limit, offset]
+                properties:
+                  tasks:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Task'
+                  total:
+                    type: integer
+                  limit:
+                    type: integer
+                  offset:
+                    type: integer
+
+    post:
+      operationId: createTask
+      tags: [Tasks]
+      summary: Create a task
+      description: Creates a new task. Fields `source` and `title` are required.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [source, title]
+              properties:
+                source:
+                  $ref: '#/components/schemas/TaskSource'
+                title:
+                  type: string
+                body:
+                  type: string
+                intent:
+                  $ref: '#/components/schemas/TaskIntent'
+                priority:
+                  $ref: '#/components/schemas/TaskPriority'
+                sourceId:
+                  type: string
+                owner:
+                  type: string
+                dueAt:
+                  type: string
+                  format: date-time
+                metadata:
+                  type: object
+                  additionalProperties: true
+      responses:
+        '201':
+          description: Task created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/tasks/{id}:
+    parameters:
+      - $ref: '#/components/parameters/ResourceId'
+
+    get:
+      operationId: getTask
+      tags: [Tasks]
+      summary: Get a task
+      description: Returns a single task by its UUID.
+      responses:
+        '200':
+          description: Task found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      operationId: updateTask
+      tags: [Tasks]
+      summary: Update a task
+      description: >
+        Partially updates a task. Allowed fields: intent, title, body,
+        priority, status, owner, dueAt, metadata.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                intent:
+                  $ref: '#/components/schemas/TaskIntent'
+                title:
+                  type: string
+                body:
+                  type: string
+                priority:
+                  $ref: '#/components/schemas/TaskPriority'
+                status:
+                  $ref: '#/components/schemas/TaskStatus'
+                owner:
+                  type: string
+                dueAt:
+                  type: string
+                  format: date-time
+                metadata:
+                  type: object
+                  additionalProperties: true
+      responses:
+        '200':
+          description: Task updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      operationId: deleteTask
+      tags: [Tasks]
+      summary: Delete a task (soft)
+      description: Soft-deletes a task by setting its status to `failed`.
+      responses:
+        '200':
+          description: Task soft-deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [deleted, id]
+                properties:
+                  deleted:
+                    type: boolean
+                    const: true
+                  id:
+                    type: string
+                    format: uuid
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ── Approvals ─────────────────────────────────────────────────────────────
+
+  /api/approvals:
+    get:
+      operationId: listApprovals
+      tags: [Approvals]
+      summary: List approvals
+      description: >
+        Returns approvals. By default only pending (undecided) approvals are
+        returned. Use `status=all` to include decided ones or `status=decided`
+        for only decided.
+      parameters:
+        - name: status
+          in: query
+          description: Filter by lifecycle status
+          schema:
+            type: string
+            enum: [pending, decided, all]
+            default: pending
+        - name: risk
+          in: query
+          description: Filter by risk level
+          schema:
+            $ref: '#/components/schemas/RiskLevel'
+      responses:
+        '200':
+          description: Approval list
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [approvals, pending, total]
+                properties:
+                  approvals:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Approval'
+                  pending:
+                    type: integer
+                    description: Total number of pending approvals
+                  total:
+                    type: integer
+
+  /api/approvals/stream:
+    get:
+      operationId: streamApprovals
+      tags: [Approvals]
+      summary: SSE stream of approval requests
+      description: >
+        Opens a Server-Sent Events stream. Emits a `connected` event on
+        open and broadcasts new approval requests as they arrive.
+      responses:
+        '200':
+          description: SSE event stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+
+  /api/approvals/{id}:
+    parameters:
+      - $ref: '#/components/parameters/ResourceId'
+
+    get:
+      operationId: getApproval
+      tags: [Approvals]
+      summary: Get an approval
+      description: Returns a single approval request by its UUID.
+      responses:
+        '200':
+          description: Approval found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Approval'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/approvals/{id}/decide:
+    parameters:
+      - $ref: '#/components/parameters/ResourceId'
+
+    post:
+      operationId: decideApproval
+      tags: [Approvals]
+      summary: Submit an approval decision
+      description: >
+        Records a human decision (approved, denied, or modified) on a
+        pending approval. Returns 400 if already decided.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [decision]
+              properties:
+                decision:
+                  $ref: '#/components/schemas/ApprovalDecision'
+                decidedBy:
+                  type: string
+                  default: user
+                modifications:
+                  type: object
+                  additionalProperties: true
+                  description: Required when decision is `modified`
+      responses:
+        '200':
+          description: Decision recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Approval'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ── Workflows ─────────────────────────────────────────────────────────────
+
+  /api/workflows:
+    post:
+      operationId: triggerWorkflow
+      tags: [Workflows]
+      summary: Trigger a workflow run
+      description: >
+        Creates and queues a new workflow run for a given task. Optionally
+        provide explicit steps; otherwise the workflow engine generates them.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [taskId, workflowType]
+              properties:
+                taskId:
+                  type: string
+                  format: uuid
+                workflowType:
+                  type: string
+                  description: "Template name, e.g. email-reply, calendar-accept, social-post"
+                steps:
+                  type: array
+                  items:
+                    type: object
+                    required: [connector, operation]
+                    properties:
+                      connector:
+                        type: string
+                      operation:
+                        type: string
+                      input:
+                        type: object
+                        additionalProperties: true
+      responses:
+        '201':
+          description: Workflow run created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowRun'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+    get:
+      operationId: listWorkflows
+      tags: [Workflows]
+      summary: List workflow runs
+      description: Returns recent workflow runs with optional filters.
+      parameters:
+        - name: taskId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: state
+          in: query
+          schema:
+            $ref: '#/components/schemas/WorkflowState'
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Workflow run list
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [runs, total]
+                properties:
+                  runs:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/WorkflowRun'
+                  total:
+                    type: integer
+
+  /api/workflows/{id}:
+    parameters:
+      - $ref: '#/components/parameters/ResourceId'
+
+    get:
+      operationId: getWorkflow
+      tags: [Workflows]
+      summary: Get a workflow run
+      description: Returns a single workflow run by its UUID, including all steps.
+      responses:
+        '200':
+          description: Workflow run found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowRun'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/workflows/{id}/pause:
+    parameters:
+      - $ref: '#/components/parameters/ResourceId'
+
+    post:
+      operationId: pauseWorkflow
+      tags: [Workflows]
+      summary: Pause a running workflow
+      description: >
+        Transitions a workflow from `running` to `paused`. Returns 400
+        if the workflow is not currently running.
+      responses:
+        '200':
+          description: Workflow paused
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowRun'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/workflows/{id}/resume:
+    parameters:
+      - $ref: '#/components/parameters/ResourceId'
+
+    post:
+      operationId: resumeWorkflow
+      tags: [Workflows]
+      summary: Resume a paused workflow
+      description: >
+        Transitions a workflow from `paused` to `running`. Returns 400
+        if the workflow is not currently paused.
+      responses:
+        '200':
+          description: Workflow resumed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowRun'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ── Pipeline ──────────────────────────────────────────────────────────────
+
+  /api/pipeline/run:
+    post:
+      operationId: runPipeline
+      tags: [Pipeline]
+      summary: Run the full pipeline (SSE)
+      description: >
+        Triggers the end-to-end pipeline for an inbound event and returns
+        an SSE stream of pipeline stage events: intent classification,
+        policy evaluation, CORD safety check, approval requests, connector
+        execution, and a final `done` event.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [source]
+              properties:
+                source:
+                  $ref: '#/components/schemas/TaskSource'
+                event:
+                  type: object
+                  additionalProperties: true
+                  description: Source-specific event payload
+      responses:
+        '200':
+          description: SSE event stream of pipeline stages
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/pipeline/simulate:
+    post:
+      operationId: simulatePipeline
+      tags: [Pipeline]
+      summary: Simulate the pipeline (dry-run)
+      description: >
+        Runs the pipeline in simulation mode without executing any
+        connector actions. Returns predicted steps with policy and safety
+        decisions.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [source]
+              properties:
+                source:
+                  $ref: '#/components/schemas/TaskSource'
+                title:
+                  type: string
+                subject:
+                  type: string
+                body:
+                  type: string
+      responses:
+        '200':
+          description: Simulation result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PipelineSimulationResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  # ── Gmail ─────────────────────────────────────────────────────────────────
+
+  /api/gmail/inbox:
+    get:
+      operationId: listGmailInbox
+      tags: [Gmail]
+      summary: List inbox messages
+      description: >
+        Returns messages from the Gmail inbox. Requires a connected
+        Google OAuth token.
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: label
+          in: query
+          schema:
+            type: string
+            default: INBOX
+        - name: query
+          in: query
+          description: Gmail search query (e.g. `is:unread`)
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Inbox messages
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+
+  /api/gmail/message/{id}:
+    parameters:
+      - $ref: '#/components/parameters/ResourceId'
+
+    get:
+      operationId: getGmailMessage
+      tags: [Gmail]
+      summary: Read a specific message
+      description: Returns the full content of a single Gmail message by ID.
+      responses:
+        '200':
+          description: Message content
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+
+  /api/gmail/process:
+    post:
+      operationId: processGmailMessage
+      tags: [Gmail]
+      summary: Process a message through the full pipeline
+      description: >
+        Runs a specific Gmail message through the full pipeline: read,
+        classify intent, evaluate policy, evaluate CORD safety, approval
+        gate, execute reply, and build receipt chain.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [messageId]
+              properties:
+                messageId:
+                  type: string
+                autoApprove:
+                  type: boolean
+                  default: false
+      responses:
+        '200':
+          description: Pipeline result with receipt chain
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PipelineResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+
+  /api/gmail/process/latest:
+    post:
+      operationId: processGmailLatest
+      tags: [Gmail]
+      summary: Process the most recent unread message
+      description: >
+        Fetches the latest unread message from the inbox and runs it
+        through the full processing pipeline.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                autoApprove:
+                  type: boolean
+                  default: false
+      responses:
+        '200':
+          description: Pipeline result or no-message indicator
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/PipelineResult'
+                  - type: object
+                    properties:
+                      message:
+                        type: string
+                        const: No unread messages in inbox
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+
+  # ── Calendar (placeholder) ────────────────────────────────────────────────
+
+  /api/calendar/events:
+    get:
+      operationId: listCalendarEvents
+      tags: [Calendar]
+      summary: List calendar events
+      description: >
+        Returns upcoming calendar events. Placeholder — implementation
+        pending from Calendar agent.
+      parameters:
+        - name: timeMin
+          in: query
+          description: Lower bound (ISO 8601) for event start time
+          schema:
+            type: string
+            format: date-time
+        - name: timeMax
+          in: query
+          description: Upper bound (ISO 8601) for event start time
+          schema:
+            type: string
+            format: date-time
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 25
+      responses:
+        '200':
+          description: Calendar events
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/calendar/create:
+    post:
+      operationId: createCalendarEvent
+      tags: [Calendar]
+      summary: Create a calendar event
+      description: >
+        Creates a new event on the connected Google Calendar. Placeholder
+        — implementation pending from Calendar agent.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [summary, start, end]
+              properties:
+                summary:
+                  type: string
+                description:
+                  type: string
+                start:
+                  type: string
+                  format: date-time
+                end:
+                  type: string
+                  format: date-time
+                attendees:
+                  type: array
+                  items:
+                    type: string
+                    format: email
+                location:
+                  type: string
+      responses:
+        '201':
+          description: Event created
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/calendar/availability:
+    post:
+      operationId: checkCalendarAvailability
+      tags: [Calendar]
+      summary: Check calendar availability
+      description: >
+        Checks free/busy status for one or more calendars in a given
+        time range. Placeholder — implementation pending from Calendar agent.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [timeMin, timeMax]
+              properties:
+                timeMin:
+                  type: string
+                  format: date-time
+                timeMax:
+                  type: string
+                  format: date-time
+                calendars:
+                  type: array
+                  items:
+                    type: string
+                    format: email
+      responses:
+        '200':
+          description: Availability result
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ── X / Twitter (placeholder) ─────────────────────────────────────────────
+
+  /api/x/timeline:
+    get:
+      operationId: getXTimeline
+      tags: [X]
+      summary: Get timeline
+      description: >
+        Returns the authenticated user's home timeline. Placeholder —
+        implementation pending from X agent.
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Timeline posts
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/x/post:
+    post:
+      operationId: createXPost
+      tags: [X]
+      summary: Create a post
+      description: >
+        Publishes a new post (tweet) to X. Placeholder — implementation
+        pending from X agent.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text:
+                  type: string
+                  maxLength: 280
+                mediaIds:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '201':
+          description: Post created
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/x/reply:
+    post:
+      operationId: createXReply
+      tags: [X]
+      summary: Reply to a post
+      description: >
+        Posts a reply to an existing X post. Placeholder — implementation
+        pending from X agent.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [inReplyToId, text]
+              properties:
+                inReplyToId:
+                  type: string
+                text:
+                  type: string
+                  maxLength: 280
+      responses:
+        '201':
+          description: Reply posted
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/x/dm:
+    get:
+      operationId: listXDirectMessages
+      tags: [X]
+      summary: List direct messages
+      description: >
+        Returns recent direct messages. Placeholder — implementation
+        pending from X agent.
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Direct messages
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      operationId: sendXDirectMessage
+      tags: [X]
+      summary: Send a direct message
+      description: >
+        Sends a direct message to another X user. Placeholder —
+        implementation pending from X agent.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [recipientId, text]
+              properties:
+                recipientId:
+                  type: string
+                text:
+                  type: string
+      responses:
+        '201':
+          description: Direct message sent
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ── Shopify ───────────────────────────────────────────────────────────────
+
+  /api/shopify/orders:
+    get:
+      operationId: listShopifyOrders
+      tags: [Shopify]
+      summary: List orders
+      description: >
+        Returns Shopify orders with optional filters. Requires
+        SHOPIFY_STORE_URL and SHOPIFY_ACCESS_TOKEN environment variables.
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            default: open
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: since_id
+          in: query
+          schema:
+            type: string
+        - name: created_at_min
+          in: query
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Order list
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+
+  /api/shopify/orders/{id}:
+    parameters:
+      - $ref: '#/components/parameters/ResourceId'
+
+    get:
+      operationId: getShopifyOrder
+      tags: [Shopify]
+      summary: Get a specific order
+      description: Returns full details for a single Shopify order.
+      responses:
+        '200':
+          description: Order details
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+
+  /api/shopify/products:
+    get:
+      operationId: listShopifyProducts
+      tags: [Shopify]
+      summary: List products
+      description: Returns the store product catalog with optional filters.
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: collection_id
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Product list
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+
+  /api/shopify/customers:
+    get:
+      operationId: listShopifyCustomers
+      tags: [Shopify]
+      summary: List or search customers
+      description: Returns customers with optional search query.
+      parameters:
+        - name: query
+          in: query
+          description: Search string for filtering customers
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: Customer list
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+
+  /api/shopify/process:
+    post:
+      operationId: processShopifyOrder
+      tags: [Shopify]
+      summary: Process an order through the full pipeline
+      description: >
+        Runs a Shopify order through the complete pipeline: fetch order,
+        classify intent, evaluate policy, evaluate CORD safety, approval
+        gate, execute action, and build receipt chain.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [orderId]
+              properties:
+                orderId:
+                  type: string
+                autoApprove:
+                  type: boolean
+                  default: false
+      responses:
+        '200':
+          description: Pipeline result with receipt chain
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PipelineResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+
+  # ── Webhooks ──────────────────────────────────────────────────────────────
+
+  /api/webhooks/gmail:
+    post:
+      operationId: webhookGmail
+      tags: [Webhooks]
+      summary: Gmail push notification
+      description: >
+        Receives a Gmail push notification and creates a task from
+        the event payload.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                messageId:
+                  type: string
+                subject:
+                  type: string
+                snippet:
+                  type: string
+              additionalProperties: true
+      responses:
+        '200':
+          description: Webhook received and task created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookResponse'
+
+  /api/webhooks/calendar:
+    post:
+      operationId: webhookCalendar
+      tags: [Webhooks]
+      summary: Google Calendar push notification
+      description: >
+        Receives a Calendar push notification and creates a task
+        with intent `schedule`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                eventId:
+                  type: string
+                summary:
+                  type: string
+                description:
+                  type: string
+              additionalProperties: true
+      responses:
+        '200':
+          description: Webhook received and task created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookResponse'
+
+  /api/webhooks/shopify:
+    post:
+      operationId: webhookShopify
+      tags: [Webhooks]
+      summary: Shopify webhook
+      description: >
+        Receives a Shopify webhook event (e.g. order creation) and
+        creates a task with intent `fulfill`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: string
+                order_number:
+                  type: string
+              additionalProperties: true
+      responses:
+        '200':
+          description: Webhook received and task created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookResponse'
+
+  /api/webhooks/stripe:
+    post:
+      operationId: webhookStripe
+      tags: [Webhooks]
+      summary: Stripe webhook
+      description: >
+        Receives a Stripe webhook event and creates a task from
+        the event payload.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: string
+                type:
+                  type: string
+              additionalProperties: true
+      responses:
+        '200':
+          description: Webhook received and task created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookResponse'
+
+  /api/webhooks/generic:
+    post:
+      operationId: webhookGeneric
+      tags: [Webhooks]
+      summary: Generic webhook
+      description: >
+        Receives a generic webhook event from any custom integration
+        and creates a task.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                source:
+                  $ref: '#/components/schemas/TaskSource'
+                title:
+                  type: string
+                body:
+                  type: string
+              additionalProperties: true
+      responses:
+        '200':
+          description: Webhook received and task created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookResponse'
+
+  # ── OAuth ─────────────────────────────────────────────────────────────────
+
+  /api/oauth/google/url:
+    get:
+      operationId: getGoogleAuthUrl
+      tags: [OAuth]
+      summary: Get Google OAuth authorization URL
+      description: >
+        Returns the Google OAuth2 authorization URL that the user
+        should open in a browser to grant Gmail and Calendar access.
+      parameters:
+        - name: client_id
+          in: query
+          description: Google OAuth client ID (or set GOOGLE_CLIENT_ID env var)
+          schema:
+            type: string
+        - name: client_secret
+          in: query
+          description: Google OAuth client secret (or set GOOGLE_CLIENT_SECRET env var)
+          schema:
+            type: string
+        - name: redirect_uri
+          in: query
+          description: OAuth callback URL
+          schema:
+            type: string
+            default: http://localhost:3100/api/oauth/google/callback
+      responses:
+        '200':
+          description: Authorization URL and instructions
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [url, instructions]
+                properties:
+                  url:
+                    type: string
+                    format: uri
+                  instructions:
+                    type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/oauth/google/callback:
+    get:
+      operationId: handleGoogleCallback
+      tags: [OAuth]
+      summary: Google OAuth callback
+      description: >
+        Handles the OAuth2 redirect from Google. Exchanges the
+        authorization code for access and refresh tokens, then stores
+        them in `~/.ai-ops/credentials.json`. Returns an HTML success
+        page on success.
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: state
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: HTML success page confirming connection
+          content:
+            text/html:
+              schema:
+                type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/oauth/status:
+    get:
+      operationId: getOAuthStatus
+      tags: [OAuth]
+      summary: Check connector authentication status
+      description: >
+        Returns the connection status for all supported OAuth
+        connectors (Google, X/Twitter).
+      responses:
+        '200':
+          description: Connector status map
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [connectors]
+                properties:
+                  connectors:
+                    type: object
+                    properties:
+                      google:
+                        type: object
+                        properties:
+                          connected:
+                            type: boolean
+                          expiresAt:
+                            type: string
+                            format: date-time
+                          scopes:
+                            type: string
+                      x:
+                        type: object
+                        properties:
+                          connected:
+                            type: boolean
+
+  /api/oauth/google/refresh:
+    post:
+      operationId: refreshGoogleToken
+      tags: [OAuth]
+      summary: Refresh Google access token
+      description: >
+        Manually triggers a refresh of the Google OAuth2 access token
+        using the stored refresh token.
+      responses:
+        '200':
+          description: Token refreshed
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, expiresAt]
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+                  expiresAt:
+                    type: string
+                    format: date-time
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/oauth/x/token:
+    post:
+      operationId: saveXToken
+      tags: [OAuth]
+      summary: Save X/Twitter bearer token
+      description: >
+        Stores an X/Twitter bearer token in the local credential store
+        for use by the X connector.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [bearerToken]
+              properties:
+                bearerToken:
+                  type: string
+                userId:
+                  type: string
+      responses:
+        '200':
+          description: Token saved
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success]
+                properties:
+                  success:
+                    type: boolean
+                    const: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Components
+# ──────────────────────────────────────────────────────────────────────────────
+
+components:
+
+  # ── Parameters ────────────────────────────────────────────────────────────
+
+  parameters:
+    ResourceId:
+      name: id
+      in: path
+      required: true
+      description: Resource UUID
+      schema:
+        type: string
+
+  # ── Reusable Responses ────────────────────────────────────────────────────
+
+  responses:
+    BadRequest:
+      description: Invalid request — missing or malformed parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    Unauthorized:
+      description: Connector not authenticated — OAuth token missing or expired
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    BadGateway:
+      description: Upstream connector or external service error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    InternalError:
+      description: Unexpected server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  # ── Schemas ───────────────────────────────────────────────────────────────
+
+  schemas:
+
+    # ── Error ─────────────────────────────────────────────────────────────
+
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+          description: Human-readable error message
+
+    # ── Health ────────────────────────────────────────────────────────────
+
+    HealthResponse:
+      type: object
+      required: [status, version, uptime]
+      properties:
+        status:
+          type: string
+          const: ok
+        version:
+          type: string
+          example: '0.1.0'
+        uptime:
+          type: number
+          description: Server uptime in seconds
+
+    # ── Task ──────────────────────────────────────────────────────────────
+
+    TaskSource:
+      type: string
+      enum: [email, calendar, social, store, manual]
+
+    TaskIntent:
+      type: string
+      enum: [reply, schedule, post, fulfill, escalate, ignore, unknown]
+
+    TaskPriority:
+      type: string
+      enum: [urgent, high, normal, low]
+
+    TaskStatus:
+      type: string
+      enum: [pending, planned, running, awaiting_approval, completed, failed]
+
+    Task:
+      type: object
+      required: [id, source, intent, title, priority, status, createdAt, updatedAt, metadata]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier (UUID v4)
+        source:
+          $ref: '#/components/schemas/TaskSource'
+        sourceId:
+          type: string
+          description: External ID from the source system
+        intent:
+          $ref: '#/components/schemas/TaskIntent'
+        title:
+          type: string
+          description: Short human-readable title
+        body:
+          type: string
+          description: Full content or body text
+        priority:
+          $ref: '#/components/schemas/TaskPriority'
+        status:
+          $ref: '#/components/schemas/TaskStatus'
+        owner:
+          type: string
+          description: Owner or assignee identifier
+        dueAt:
+          type: string
+          format: date-time
+          description: When this task is due (ISO 8601)
+        createdAt:
+          type: string
+          format: date-time
+          description: When this task was created (ISO 8601)
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last modification timestamp (ISO 8601)
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Source-specific metadata
+
+    # ── Approval ──────────────────────────────────────────────────────────
+
+    RiskLevel:
+      type: string
+      enum: [low, medium, high, critical]
+
+    ApprovalDecision:
+      type: string
+      enum: [approved, denied, modified]
+
+    Approval:
+      type: object
+      required: [id, actionId, taskId, risk, reason, preview, requestedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Approval request identifier (UUID v4)
+        actionId:
+          type: string
+          description: The action requiring approval
+        taskId:
+          type: string
+          format: uuid
+          description: Parent task for context
+        risk:
+          $ref: '#/components/schemas/RiskLevel'
+        reason:
+          type: string
+          description: Human-readable reason why approval is needed
+        preview:
+          type: string
+          description: Preview of what the action will do
+        requestedAt:
+          type: string
+          format: date-time
+          description: When approval was requested (ISO 8601)
+        decision:
+          $ref: '#/components/schemas/ApprovalDecision'
+        decidedBy:
+          type: string
+          description: Who made the decision
+        decidedAt:
+          type: string
+          format: date-time
+          description: When the decision was made (ISO 8601)
+        modifications:
+          type: object
+          additionalProperties: true
+          description: Changes applied when decision is `modified`
+        ttlMs:
+          type:
+            - integer
+            - 'null'
+          description: Auto-deny timeout in milliseconds (null = wait forever)
+
+    # ── ActionReceipt ─────────────────────────────────────────────────────
+
+    ActionReceipt:
+      type: object
+      required:
+        - id
+        - actionId
+        - policyVersion
+        - cordDecision
+        - cordScore
+        - cordReasons
+        - input
+        - timestamp
+        - hash
+        - signature
+        - prevHash
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Receipt identifier (UUID v4)
+        actionId:
+          type: string
+          description: The action this receipt covers
+        policyVersion:
+          type: string
+          description: Policy version active during evaluation
+        cordDecision:
+          type: string
+          description: CORD safety decision
+        cordScore:
+          type: integer
+          minimum: 0
+          maximum: 99
+          description: CORD risk score (0-99)
+        cordReasons:
+          type: array
+          items:
+            type: string
+          description: CORD risk reasons
+        input:
+          type: object
+          additionalProperties: true
+          description: Sanitized input (secrets redacted)
+        output:
+          type: object
+          additionalProperties: true
+          description: Output summary
+        timestamp:
+          type: string
+          format: date-time
+          description: When this receipt was created (ISO 8601)
+        hash:
+          type: string
+          description: SHA-256 hash of receipt content
+        signature:
+          type: string
+          description: HMAC-SHA256 signature
+        prevHash:
+          type: string
+          description: Hash of the previous receipt in chain (genesis for first)
+
+    # ── Workflow ──────────────────────────────────────────────────────────
+
+    WorkflowState:
+      type: string
+      enum: [queued, running, paused, completed, failed]
+
+    StepStatus:
+      type: string
+      enum: [pending, running, completed, failed, blocked, approved]
+
+    CordDecision:
+      type: string
+      enum: [ALLOW, CONTAIN, CHALLENGE, BLOCK]
+
+    WorkflowStep:
+      type: object
+      required: [id, connector, operation, input, status]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Step identifier (UUID v4)
+        connector:
+          type: string
+          description: Which connector handles this step
+        operation:
+          type: string
+          description: "Operation to perform (e.g. send, read, create_event, post)"
+        input:
+          type: object
+          additionalProperties: true
+          description: Input data for the operation
+        output:
+          type: object
+          additionalProperties: true
+          description: Output data (populated after execution)
+        status:
+          $ref: '#/components/schemas/StepStatus'
+        cordDecision:
+          $ref: '#/components/schemas/CordDecision'
+        cordScore:
+          type: integer
+          minimum: 0
+          maximum: 99
+          description: CORD risk score (0-99)
+        error:
+          type: string
+          description: Error message if step failed
+        durationMs:
+          type: integer
+          description: Step execution duration in milliseconds
+
+    WorkflowRun:
+      type: object
+      required: [id, taskId, workflowType, steps, state, startedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Run identifier (UUID v4)
+        taskId:
+          type: string
+          format: uuid
+          description: Parent task that triggered this run
+        workflowType:
+          type: string
+          description: "Workflow template name (e.g. email-reply, calendar-accept)"
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkflowStep'
+        state:
+          $ref: '#/components/schemas/WorkflowState'
+        startedAt:
+          type: string
+          format: date-time
+          description: When this run was started (ISO 8601)
+        endedAt:
+          type: string
+          format: date-time
+          description: When this run finished (ISO 8601)
+        error:
+          type: string
+          description: Error message if run failed
+
+    # ── Pipeline ──────────────────────────────────────────────────────────
+
+    PipelineResult:
+      type: object
+      description: >
+        Result of running a message or event through the full pipeline.
+        Includes the created task, classification, policy evaluation,
+        safety check, approval status, execution result, and receipt chain.
+      properties:
+        task:
+          $ref: '#/components/schemas/Task'
+        intent:
+          type: object
+          properties:
+            intent:
+              $ref: '#/components/schemas/TaskIntent'
+            confidence:
+              type: number
+            matchedKeywords:
+              type: array
+              items:
+                type: string
+        policy:
+          type: object
+          properties:
+            autonomy:
+              type: string
+              enum: [auto, approve, deny]
+            risk:
+              $ref: '#/components/schemas/RiskLevel'
+            reason:
+              type: string
+        safety:
+          type: object
+          properties:
+            decision:
+              $ref: '#/components/schemas/CordDecision'
+            score:
+              type: integer
+              minimum: 0
+              maximum: 99
+            reasons:
+              type: array
+              items:
+                type: string
+        approval:
+          type: object
+          properties:
+            needed:
+              type: boolean
+            decision:
+              type: string
+            approvalId:
+              type: string
+              format: uuid
+        blocked:
+          type: boolean
+          description: True if the action was blocked by policy or CORD
+        reason:
+          type: string
+          description: Reason for blocking (present when blocked is true)
+        message:
+          type: string
+          description: Informational message (e.g. when approval is pending)
+        execution:
+          type: object
+          properties:
+            success:
+              type: boolean
+            data:
+              type: object
+              additionalProperties: true
+            error:
+              type: string
+            simulated:
+              type: boolean
+        receipts:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActionReceipt'
+        receiptChainValid:
+          type: boolean
+          description: Whether the receipt hash chain is intact
+
+    PipelineSimulationResult:
+      type: object
+      required: [simulation, source, intent, workflowType, steps, summary]
+      properties:
+        simulation:
+          type: boolean
+          const: true
+        source:
+          $ref: '#/components/schemas/TaskSource'
+        intent:
+          type: string
+        workflowType:
+          type: string
+        steps:
+          type: array
+          items:
+            type: object
+            required:
+              - connector
+              - operation
+              - policyDecision
+              - safetyDecision
+              - requiresApproval
+            properties:
+              connector:
+                type: string
+              operation:
+                type: string
+              policyDecision:
+                type: string
+              safetyDecision:
+                type: string
+              requiresApproval:
+                type: boolean
+        summary:
+          type: object
+          required: [totalSteps, autoSteps, approvalSteps, blockedSteps]
+          properties:
+            totalSteps:
+              type: integer
+            autoSteps:
+              type: integer
+            approvalSteps:
+              type: integer
+            blockedSteps:
+              type: integer
+
+    # ── Webhook ───────────────────────────────────────────────────────────
+
+    WebhookResponse:
+      type: object
+      required: [received, taskId]
+      properties:
+        received:
+          type: boolean
+          const: true
+        taskId:
+          type: string
+          format: uuid
+          description: ID of the task created from the webhook event

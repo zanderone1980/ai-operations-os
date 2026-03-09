@@ -14,6 +14,7 @@ export type TaskIntent =
   | 'schedule'
   | 'post'
   | 'fulfill'
+  | 'refund'
   | 'escalate'
   | 'ignore'
   | 'unknown';

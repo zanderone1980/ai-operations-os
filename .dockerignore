@@ -1,0 +1,14 @@
+node_modules
+dist
+.git
+.github
+.claude
+.env
+*.md
+!README.md
+scripts/
+**/__tests__/
+**/*.test.ts
+jest.config.js
+**/jest.config.js
+.DS_Store

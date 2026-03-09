@@ -52,6 +52,7 @@ describe('TaskSchema', () => {
       'schedule',
       'post',
       'fulfill',
+      'refund',
       'escalate',
       'ignore',
       'unknown',

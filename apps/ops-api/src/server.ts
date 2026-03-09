@@ -18,6 +18,9 @@ import { webhookRoutes } from './routes/webhooks';
 import { pipelineRoutes } from './routes/pipeline';
 import { oauthRoutes } from './routes/oauth';
 import { gmailRoutes } from './routes/gmail';
+import { shopifyRoutes } from './routes/shopify';
+import { calendarRoutes } from './routes/calendar';
+import { xTwitterRoutes } from './routes/x-twitter';
 
 export { stores };
 
@@ -55,6 +58,9 @@ const routes: Route[] = [
   ...pipelineRoutes,
   ...oauthRoutes,
   ...gmailRoutes,
+  ...shopifyRoutes,
+  ...calendarRoutes,
+  ...xTwitterRoutes,
 ];
 
 /**

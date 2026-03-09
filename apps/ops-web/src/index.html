@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,16 +9,68 @@
 <body>
   <header>
     <div class="header-content">
-      <h1>AI Operations OS</h1>
-      <span class="status-badge" id="status-badge">Connecting...</span>
+      <div class="header-left">
+        <h1>AI Operations OS</h1>
+        <span class="status-badge" id="status-badge">Connecting...</span>
+      </div>
+      <div class="header-right">
+        <!-- Connector Status Indicators -->
+        <div class="connector-status" id="connector-status">
+          <span class="connector-dot" data-connector="gmail" title="Gmail">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            <span class="connector-label">Gmail</span>
+          </span>
+          <span class="connector-dot" data-connector="calendar" title="Calendar">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span class="connector-label">Calendar</span>
+          </span>
+          <span class="connector-dot" data-connector="x" title="X / Twitter">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+            <span class="connector-label">X</span>
+          </span>
+          <span class="connector-dot" data-connector="shopify" title="Shopify">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M15.337 3.415c-.101-.501-.504-.764-.856-.764-.352 0-.705.025-.705.025l-1.108.025s-.856-.84-1.058-1.042c-.201-.201-.604-.15-.756-.101l-1.058.327c-.101-.302-.302-.604-.554-.856C8.737.526 8.032.275 7.227.275c-2.515 0-3.723 3.116-4.076 4.677l-1.71.528c-.528.164-.554.189-.604.69L0 13.91l11.225 2.112L17 14.412s-1.612-10.745-1.663-10.997zM11.477 4.26l-1.71.528c0-.05.025-.126.025-.201.201-1.008.579-1.536.957-1.863.403.327.604.831.728 1.536zm-1.863-2.264c.101 0 .201.025.302.075-.453.377-.907 1.008-1.108 2.44l-1.36.428c.277-1.21 1.008-2.943 2.166-2.943zm.579 6.59s-.453-.252-1.058-.252c-.856 0-.907.528-.907.679 0 .755 1.964 1.042 1.964 2.817 0 1.41-.881 2.289-2.09 2.289-1.435 0-2.166-.907-2.166-.907l.378-1.26s.755.654 1.385.654c.428 0 .604-.327.604-.579 0-.982-1.612-1.033-1.612-2.641 0-1.36.982-2.692 2.943-2.692.755 0 1.133.226 1.133.226l-.554 1.866z"/></svg>
+            <span class="connector-label">Shopify</span>
+          </span>
+        </div>
+        <!-- Dark Mode Toggle -->
+        <button class="theme-toggle" id="theme-toggle" title="Toggle dark/light mode" aria-label="Toggle theme">
+          <svg class="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          <svg class="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+      </div>
     </div>
   </header>
 
+  <!-- Stats Header -->
+  <div class="stats-bar">
+    <div class="stats-bar-inner">
+      <div class="stat-card">
+        <div class="stat-value" id="stat-total-tasks">0</div>
+        <div class="stat-label">Total Tasks</div>
+      </div>
+      <div class="stat-card stat-warning">
+        <div class="stat-value" id="stat-pending-approvals">0</div>
+        <div class="stat-label">Pending Approvals</div>
+      </div>
+      <div class="stat-card stat-info">
+        <div class="stat-value" id="stat-active-workflows">0</div>
+        <div class="stat-label">Active Workflows</div>
+      </div>
+      <div class="stat-card stat-success">
+        <div class="stat-value" id="stat-completed-today">0</div>
+        <div class="stat-label">Completed Today</div>
+      </div>
+    </div>
+  </div>
+
   <nav class="tab-bar">
-    <button class="tab active" data-tab="approvals">Approvals</button>
-    <button class="tab" data-tab="tasks">Tasks</button>
-    <button class="tab" data-tab="workflows">Workflows</button>
-    <button class="tab" data-tab="activity">Activity</button>
+    <div class="tab-bar-inner">
+      <button class="tab active" data-tab="approvals">Approvals</button>
+      <button class="tab" data-tab="tasks">Tasks</button>
+      <button class="tab" data-tab="workflows">Workflows</button>
+      <button class="tab" data-tab="activity">Activity</button>
+    </div>
   </nav>
 
   <main>
@@ -41,6 +93,45 @@
           <button class="btn btn-sm btn-accent" id="run-pipeline-btn">Run Pipeline</button>
           <button class="btn btn-sm" id="new-task-btn">+ New Task</button>
         </div>
+      </div>
+
+      <!-- Task Filters -->
+      <div class="task-filters" id="task-filters">
+        <div class="filter-group">
+          <label for="filter-source">Source</label>
+          <select id="filter-source">
+            <option value="">All Sources</option>
+            <option value="manual">Manual</option>
+            <option value="email">Email</option>
+            <option value="calendar">Calendar</option>
+            <option value="social">Social</option>
+            <option value="store">Store</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label for="filter-status">Status</label>
+          <select id="filter-status">
+            <option value="">All Statuses</option>
+            <option value="pending">Pending</option>
+            <option value="queued">Queued</option>
+            <option value="running">Running</option>
+            <option value="completed">Completed</option>
+            <option value="failed">Failed</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label for="filter-intent">Intent</label>
+          <select id="filter-intent">
+            <option value="">All Intents</option>
+            <option value="reply">Reply</option>
+            <option value="schedule">Schedule</option>
+            <option value="publish">Publish</option>
+            <option value="analyze">Analyze</option>
+            <option value="notify">Notify</option>
+            <option value="order">Order</option>
+          </select>
+        </div>
+        <button class="btn btn-sm btn-clear-filters" id="clear-filters-btn">Clear</button>
       </div>
 
       <!-- New Task Form (hidden by default) -->
@@ -94,11 +185,13 @@
     <section id="panel-activity" class="panel">
       <div class="panel-header">
         <h2>Activity Feed</h2>
+        <span class="activity-limit-label">Last 50 events</span>
       </div>
       <div id="activity-log" class="activity-log">
         <div class="empty-state">No activity</div>
       </div>
     </section>
+
     <!-- Pipeline Live Feed (shown when pipeline runs) -->
     <div id="pipeline-feed" class="pipeline-feed hidden">
       <div class="pipeline-feed-header">
@@ -109,6 +202,17 @@
     </div>
   </main>
 
+  <!-- Task Detail Modal -->
+  <div id="task-detail-modal" class="modal-overlay hidden">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <h3 id="task-detail-title">Task Details</h3>
+        <button class="btn btn-sm btn-close" id="close-task-detail">&times;</button>
+      </div>
+      <div id="task-detail-body" class="task-detail-body"></div>
+    </div>
+  </div>
+
   <!-- Simulation Results Modal -->
   <div id="sim-modal" class="modal-overlay hidden">
     <div class="modal">
@@ -117,6 +221,24 @@
         <button class="btn btn-sm btn-close" id="close-sim-modal">&times;</button>
       </div>
       <div id="sim-results" class="sim-results"></div>
+    </div>
+  </div>
+
+  <!-- Deny Confirmation Modal -->
+  <div id="deny-confirm-modal" class="modal-overlay hidden">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h3>Confirm Denial</h3>
+        <button class="btn btn-sm btn-close" id="close-deny-modal">&times;</button>
+      </div>
+      <div class="deny-confirm-body">
+        <p>Are you sure you want to deny this approval request?</p>
+        <p class="deny-reason-label" id="deny-reason-text"></p>
+        <div class="form-actions" style="margin-top: 16px;">
+          <button class="btn btn-deny" id="confirm-deny-btn">Yes, Deny</button>
+          <button class="btn btn-modify" id="cancel-deny-btn">Cancel</button>
+        </div>
+      </div>
     </div>
   </div>
 

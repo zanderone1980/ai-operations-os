@@ -12,16 +12,20 @@ export { WorkflowStore } from './workflow-store';
 export type { WorkflowRunFilter } from './workflow-store';
 export { ApprovalStore } from './approval-store';
 export type { ApprovalFilter } from './approval-store';
+export { UserStore } from './user-store';
+export type { User, CreateUserInput } from './user-store';
 
 import { Database } from './database';
 import { TaskStore } from './task-store';
 import { WorkflowStore } from './workflow-store';
 import { ApprovalStore } from './approval-store';
+import { UserStore } from './user-store';
 
 export interface Stores {
   tasks: TaskStore;
   workflows: WorkflowStore;
   approvals: ApprovalStore;
+  users: UserStore;
   db: Database;
 }
 
@@ -36,6 +40,7 @@ export function createStores(dbPath?: string): Stores {
     tasks: new TaskStore(db.db),
     workflows: new WorkflowStore(db.db),
     approvals: new ApprovalStore(db.db),
+    users: new UserStore(db.db),
     db,
   };
 }

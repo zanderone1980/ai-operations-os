@@ -20,6 +20,16 @@ An AI agent receives an email, classifies intent, checks it against your policy 
 
 ---
 
+## Demo
+
+<p align="center">
+  <img src="docs/demo.svg" alt="AI Operations OS — Live Demo" width="800">
+</p>
+
+> 3 scenarios running through the full pipeline: email reply, calendar scheduling, and social media post. Policy gates, CORD safety scoring, and approval flow — all live.
+
+---
+
 ## Architecture
 
 ```

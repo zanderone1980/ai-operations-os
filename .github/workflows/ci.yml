@@ -23,6 +23,8 @@ jobs:
 
       - run: npm ci
       - run: npx turbo build
+      - name: Run tests
+        run: npm test
 
   api-smoke:
     runs-on: ubuntu-latest

@@ -9,7 +9,8 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@ai-ops/shared-types": "*"
+    "@ai-ops/shared-types": "*",
+    "@ai-ops/ops-storage": "*"
   },
   "optionalDependencies": {
     "cord-engine": "^4.3.0"

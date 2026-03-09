@@ -13,10 +13,13 @@
     "build": "turbo build",
     "dev": "turbo dev",
     "lint": "turbo lint",
-    "test": "turbo test",
+    "test": "jest --config jest.config.js",
     "clean": "turbo clean && rm -rf node_modules"
   },
   "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "jest": "^30.2.0",
+    "ts-jest": "^29.4.6",
     "turbo": "^2.4.0",
     "typescript": "^5.7.0"
   },

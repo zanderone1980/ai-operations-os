@@ -3,12 +3,37 @@
  *
  * POST   /api/pipeline/run       Trigger pipeline with SSE event stream
  * POST   /api/pipeline/simulate  Dry-run pipeline (no execution)
+ *
+ * The run endpoint wires together all real packages:
+ * - IntentClassifier from ops-core
+ * - RuleEngine from ops-policy
+ * - CordSafetyGate via cord-gate middleware
+ * - ConnectorRegistry from ops-connectors
+ * - Approval flow via approvals routes
  */
 
 import type { TaskSource, Approval } from '@ai-ops/shared-types';
+import { DEFAULT_POLICY } from '@ai-ops/shared-types';
 import { runPipeline as runPipelineFn, defaultBuildWorkflow } from '@ai-ops/ops-worker';
+import { IntentClassifier } from '@ai-ops/ops-core';
+import { RuleEngine } from '@ai-ops/ops-policy';
+import { ConnectorRegistry, GmailConnector, CalendarConnector, XTwitterConnector, ShopifyConnector } from '@ai-ops/ops-connectors';
+import { evaluateAction } from '../middleware/cord-gate';
+import { requestApproval, waitForDecision } from './approvals';
 import { pathToRoute, sendJson, sendError } from '../server';
 import type { Route } from '../server';
+
+// ── Singletons ────────────────────────────────────────────────────────────────
+
+const classifier = new IntentClassifier();
+const ruleEngine = new RuleEngine(DEFAULT_POLICY);
+const registry = new ConnectorRegistry();
+
+// Register available connectors (they self-disable if credentials are missing)
+registry.register(new GmailConnector());
+registry.register(new CalendarConnector());
+registry.register(new XTwitterConnector());
+registry.register(new ShopifyConnector());
 
 /**
  * Trigger the full pipeline and stream events via SSE.
@@ -38,35 +63,47 @@ async function handleRunPipeline(ctx: any): Promise<void> {
 
   try {
     const pipeline = runPipelineFn(source, eventData, {
-      classifyIntent: (text: string) => {
-        const t = text.toLowerCase();
-        if (t.includes('reply') || t.includes('respond')) return 'reply';
-        if (t.includes('schedule') || t.includes('meeting')) return 'schedule';
-        if (t.includes('post') || t.includes('tweet')) return 'post';
-        if (t.includes('order') || t.includes('ship')) return 'fulfill';
-        return 'reply';
-      },
+      classifyIntent: (text: string) => classifier.classify(text),
 
-      evaluatePolicy: (_connector: string, operation: string) => {
-        const readOps = ['read', 'list', 'search', 'check_availability', 'get_order', 'list_events'];
-        if (readOps.includes(operation)) {
-          return { autonomy: 'auto' as const, risk: 'low' as const, reason: 'Read-only operation' };
-        }
-        return { autonomy: 'approve' as const, risk: 'medium' as const, reason: 'Write operation requires approval' };
-      },
-
-      evaluateSafety: () => {
-        return { decision: 'ALLOW' as const, score: 0, reasons: [] };
-      },
-
-      executeConnector: async (connector: string, operation: string) => {
+      evaluatePolicy: (connector: string, operation: string) => {
+        const result = ruleEngine.evaluate(connector, operation, { source });
         return {
-          success: true,
-          data: { connector, operation, executedAt: new Date().toISOString(), note: 'Stub — connector not configured' },
+          autonomy: result.autonomy,
+          risk: result.risk,
+          reason: result.reason,
         };
       },
 
+      evaluateSafety: (connector: string, operation: string, input: Record<string, unknown>) => {
+        const gate = evaluateAction(connector, operation, input);
+        return {
+          decision: gate.decision,
+          score: gate.score,
+          reasons: gate.reasons,
+        };
+      },
+
+      executeConnector: async (connector: string, operation: string, input: Record<string, unknown>) => {
+        const conn = registry.get(connector);
+        if (!conn) {
+          return {
+            success: false,
+            error: `Connector '${connector}' not registered`,
+          };
+        }
+        try {
+          const result = await conn.execute(operation, input);
+          return result;
+        } catch (err) {
+          return {
+            success: false,
+            error: err instanceof Error ? err.message : String(err),
+          };
+        }
+      },
+
       requestApproval: async (approval: Approval) => {
+        // Broadcast the approval request to SSE clients
         res.write(`data: ${JSON.stringify({
           type: 'approval_request',
           approvalId: approval.id,
@@ -74,7 +111,17 @@ async function handleRunPipeline(ctx: any): Promise<void> {
           reason: approval.reason,
           preview: approval.preview,
         })}\n\n`);
-        return 'approved' as const;
+
+        // Store the approval and wait for a decision from the dashboard
+        requestApproval(
+          approval.actionId,
+          approval.taskId,
+          approval.risk,
+          approval.reason,
+          approval.preview,
+        );
+        const decided = await waitForDecision(approval.id);
+        return (decided?.decision ?? 'approved') as 'approved' | 'denied' | 'modified';
       },
 
       buildWorkflow: defaultBuildWorkflow,

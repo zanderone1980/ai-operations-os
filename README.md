@@ -7,7 +7,7 @@
   <a href="https://github.com/zanderone1980/ai-operations-os/actions"><img src="https://img.shields.io/github/actions/workflow/status/zanderone1980/ai-operations-os/ci.yml?branch=main&style=flat-square" alt="CI"></a>
   <a href="https://www.npmjs.com/package/codebot-ai"><img src="https://img.shields.io/npm/v/codebot-ai?style=flat-square&label=codebot-ai" alt="codebot-ai on npm"></a>
   <a href="https://www.npmjs.com/package/cord-engine"><img src="https://img.shields.io/npm/v/cord-engine?style=flat-square&label=cord-engine" alt="cord-engine on npm"></a>
-  <img src="https://img.shields.io/badge/tests-210%20passing-brightgreen?style=flat-square" alt="210 Tests">
+  <img src="https://img.shields.io/badge/tests-492%20passing-brightgreen?style=flat-square" alt="492 Tests">
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="License"></a>
   <a href="https://nodejs.org"><img src="https://img.shields.io/badge/node-%3E%3D18-brightgreen?style=flat-square" alt="Node >= 18"></a>
   <a href="https://www.typescriptlang.org"><img src="https://img.shields.io/badge/TypeScript-5.7-blue?style=flat-square" alt="TypeScript"></a>
@@ -68,7 +68,7 @@ An AI agent receives an email, classifies intent, checks it against your policy 
 
 ## MVP Scope
 
-The initial release targets three connectors. More are coming, but these cover the daily operational surface area of a solo founder or small team.
+The initial release ships with four connectors covering the daily operational surface area of a solo founder or small team.
 
 ### Connectors
 
@@ -77,7 +77,7 @@ The initial release targets three connectors. More are coming, but these cover t
 | Gmail | MVP | Read, reply, draft, send |
 | Google Calendar | MVP | Create, update, cancel events |
 | X (Twitter) | MVP | Post, reply, schedule |
-| Shopify | Planned | Order fulfillment, refunds |
+| Shopify | MVP | List orders, order details, products, customers |
 
 ### Autonomy Matrix
 
@@ -333,18 +333,21 @@ interface SafetyResult {
 ```
 ai-operations-os/
 ├── apps/
-│   ├── ops-api/               # REST API server (Express)
-│   ├── ops-web/               # Web dashboard (React)
-│   └── ops-worker/            # Background job processor
+│   ├── ops-api/               # HTTP/SSE API server (30 routes, zero deps)
+│   ├── ops-web/               # Web dashboard (approval inbox, pipeline viz)
+│   └── ops-worker/            # Background job processor + pipeline engine
 │
 ├── packages/
-│   ├── shared-types/          # Task, WorkflowStep, ActionReceipt types
-│   ├── ops-core/              # Intent classifier, workflow engine
-│   ├── ops-policy/            # Policy rules, approval routing
-│   ├── ops-connectors/        # Gmail, Calendar, X connector adapters
-│   ├── ops-storage/           # Database layer (SQLite / Postgres)
-│   ├── codebot-adapter/       # Bridge to codebot-ai tool execution
+│   ├── shared-types/          # Task, WorkflowStep, ActionReceipt types + JSON Schemas
+│   ├── ops-core/              # Intent classifier (heuristic + LLM), workflow engine
+│   ├── ops-policy/            # Policy rules, autonomy levels, budget tracking
+│   ├── ops-connectors/        # Gmail, Calendar, X, Shopify connector adapters
+│   ├── ops-storage/           # SQLite database layer (WAL mode, indexed)
+│   ├── codebot-adapter/       # Bridge to codebot-ai + receipt chain builder
 │   └── cord-adapter/          # Bridge to cord-engine safety evaluation
+│
+├── scripts/
+│   └── demo.ts                # Pipeline demo script (3 scenarios + receipt chain)
 │
 ├── package.json               # Workspace root (npm workspaces + Turborepo)
 ├── turbo.json                 # Turborepo pipeline configuration

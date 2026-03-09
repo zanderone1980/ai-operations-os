@@ -17,6 +17,7 @@ import { approvalRoutes } from './routes/approvals';
 import { webhookRoutes } from './routes/webhooks';
 import { pipelineRoutes } from './routes/pipeline';
 import { oauthRoutes } from './routes/oauth';
+import { gmailRoutes } from './routes/gmail';
 
 export { stores };
 
@@ -53,6 +54,7 @@ const routes: Route[] = [
   ...webhookRoutes,
   ...pipelineRoutes,
   ...oauthRoutes,
+  ...gmailRoutes,
 ];
 
 /**

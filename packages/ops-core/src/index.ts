@@ -33,6 +33,10 @@ export type {
 export { IntentClassifier } from './intent';
 export type { ClassificationResult } from './intent';
 
+// LLM-backed intent classifier
+export { LLMIntentClassifier } from './llm-classifier';
+export type { LLMClassificationResult } from './llm-classifier';
+
 // Task store
 export { TaskStore } from './store';
 export type { TaskFilter } from './store';

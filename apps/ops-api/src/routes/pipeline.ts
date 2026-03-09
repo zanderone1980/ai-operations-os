@@ -15,7 +15,7 @@
 import type { TaskSource, Approval } from '@ai-ops/shared-types';
 import { DEFAULT_POLICY } from '@ai-ops/shared-types';
 import { runPipeline as runPipelineFn, defaultBuildWorkflow } from '@ai-ops/ops-worker';
-import { IntentClassifier } from '@ai-ops/ops-core';
+import { LLMIntentClassifier } from '@ai-ops/ops-core';
 import { RuleEngine } from '@ai-ops/ops-policy';
 import { ConnectorRegistry, GmailConnector, CalendarConnector, XTwitterConnector, ShopifyConnector } from '@ai-ops/ops-connectors';
 import { evaluateAction } from '../middleware/cord-gate';
@@ -25,7 +25,7 @@ import type { Route } from '../server';
 
 // ── Singletons ────────────────────────────────────────────────────────────────
 
-const classifier = new IntentClassifier();
+const classifier = new LLMIntentClassifier();
 const ruleEngine = new RuleEngine(DEFAULT_POLICY);
 const registry = new ConnectorRegistry();
 

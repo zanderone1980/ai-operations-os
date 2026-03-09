@@ -51,8 +51,8 @@ export interface PipelineEvent {
 }
 
 export interface PipelineConfig {
-  /** Classify intent from text */
-  classifyIntent: (text: string) => TaskIntent;
+  /** Classify intent from text (sync or async) */
+  classifyIntent: (text: string) => TaskIntent | Promise<TaskIntent>;
 
   /** Evaluate policy for a connector + operation */
   evaluatePolicy: (connector: string, operation: string, context?: Record<string, unknown>) => {
@@ -108,7 +108,7 @@ export async function* runPipeline(
 
   // ── 2. Classify Intent ───────────────────────────────────────────
   const intentText = `${task.title} ${task.body || ''}`;
-  task.intent = config.classifyIntent(intentText);
+  task.intent = await config.classifyIntent(intentText);
   task.status = 'planned';
 
   yield {

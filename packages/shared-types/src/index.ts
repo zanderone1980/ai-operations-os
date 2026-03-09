@@ -31,3 +31,13 @@ export {
 // Policy
 export type { PolicyRule, PolicyConfig, AutonomyLevel } from './policy';
 export { DEFAULT_POLICY } from './policy';
+
+// JSON Schemas
+export {
+  TaskSchema,
+  ApprovalSchema,
+  ActionReceiptSchema,
+  WorkflowRunSchema,
+  WorkflowStepSchema,
+  SCHEMAS,
+} from './schemas';

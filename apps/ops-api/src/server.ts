@@ -8,6 +8,8 @@
  */
 
 import * as http from 'http';
+import * as fs from 'fs';
+import * as nodePath from 'path';
 import { stores } from './storage';
 import { taskRoutes } from './routes/tasks';
 import { workflowRoutes } from './routes/workflows';
@@ -165,6 +167,35 @@ const server = http.createServer(async (req, res) => {
       sendError(res, 500, 'Internal server error');
     }
     return;
+  }
+
+  // Static file serving for dashboard (ops-web)
+  if (method === 'GET') {
+    const webDir = nodePath.resolve(__dirname, '../../ops-web/src');
+    const filePath = path === '/' ? '/index.html' : path;
+    const fullPath = nodePath.join(webDir, filePath);
+
+    // Prevent directory traversal
+    if (fullPath.startsWith(webDir) && fs.existsSync(fullPath)) {
+      const ext = nodePath.extname(fullPath);
+      const mimeTypes: Record<string, string> = {
+        '.html': 'text/html',
+        '.js': 'application/javascript',
+        '.css': 'text/css',
+        '.json': 'application/json',
+        '.svg': 'image/svg+xml',
+        '.png': 'image/png',
+      };
+      const contentType = mimeTypes[ext] || 'application/octet-stream';
+      const content = fs.readFileSync(fullPath);
+      res.writeHead(200, {
+        'Content-Type': contentType,
+        'Content-Length': content.length,
+        'Access-Control-Allow-Origin': '*',
+      });
+      res.end(content);
+      return;
+    }
   }
 
   // 404

@@ -224,6 +224,33 @@ export class Database {
         reason TEXT NOT NULL,
         created_at TEXT NOT NULL
       );
+
+      -- ── SPARK Awareness Layer ─────────────────────────────────
+
+      CREATE TABLE IF NOT EXISTS spark_insights (
+        id TEXT PRIMARY KEY,
+        category TEXT NOT NULL,
+        pattern TEXT NOT NULL,
+        summary TEXT NOT NULL,
+        evidence_json TEXT NOT NULL DEFAULT '{}',
+        impact REAL NOT NULL,
+        created_at TEXT NOT NULL
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_spark_insights_category ON spark_insights(category);
+      CREATE INDEX IF NOT EXISTS idx_spark_insights_pattern ON spark_insights(pattern);
+      CREATE INDEX IF NOT EXISTS idx_spark_insights_created_at ON spark_insights(created_at);
+      CREATE INDEX IF NOT EXISTS idx_spark_insights_impact ON spark_insights(impact);
+
+      CREATE TABLE IF NOT EXISTS spark_beliefs (
+        category TEXT PRIMARY KEY,
+        trust_level TEXT NOT NULL,
+        stability REAL NOT NULL,
+        calibration REAL NOT NULL,
+        narrative TEXT NOT NULL,
+        evidence_json TEXT NOT NULL DEFAULT '{}',
+        updated_at TEXT NOT NULL
+      );
     `);
   }
 

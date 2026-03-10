@@ -15,7 +15,7 @@ export type { ApprovalFilter } from './approval-store';
 export { UserStore } from './user-store';
 export type { User, CreateUserInput } from './user-store';
 export { SparkStore } from './spark-store';
-export type { SparkEpisodeFilter, SparkPredictionFilter } from './spark-store';
+export type { SparkEpisodeFilter, SparkPredictionFilter, SparkInsightFilter } from './spark-store';
 
 import { Database } from './database';
 import { TaskStore } from './task-store';

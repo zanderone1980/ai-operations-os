@@ -9,18 +9,23 @@
  * POST   /api/spark/snapshot         Create manual weight snapshot
  * POST   /api/spark/rollback         Restore a weight snapshot
  * GET    /api/spark/snapshots        List available snapshots
+ * GET    /api/spark/awareness        Full awareness self-report
+ * GET    /api/spark/beliefs          Current beliefs per category
+ * GET    /api/spark/insights         Recent learning insights
  */
 
 import type { SparkCategory } from '@ai-ops/shared-types';
 import { pathToRoute, sendJson, sendError } from '../server';
 import type { Route } from '../server';
 import { stores } from '../storage';
-import { WeightManager } from '@ai-ops/spark-engine';
+import { WeightManager, AwarenessCore, MemoryCore } from '@ai-ops/spark-engine';
 import { ALL_CATEGORIES } from '@ai-ops/spark-engine';
 
 // ── Singletons ────────────────────────────────────────────────────────────────
 
 const weightManager = new WeightManager(stores.spark);
+const awarenessCore = new AwarenessCore(stores.spark);
+const memoryCore = new MemoryCore(stores.spark);
 
 // ── Route handlers ───────────────────────────────────────────────────────────
 
@@ -178,6 +183,51 @@ async function listSnapshots(ctx: any): Promise<void> {
   });
 }
 
+// ── Awareness ───────────────────────────────────────────────────────────────
+
+/** Get full awareness self-report */
+async function getAwareness(ctx: any): Promise<void> {
+  const { res } = ctx;
+
+  weightManager.initialize();
+  const report = awarenessCore.report();
+
+  sendJson(res, 200, report);
+}
+
+/** Get current beliefs per category */
+async function getBeliefs(ctx: any): Promise<void> {
+  const { res, query } = ctx;
+
+  weightManager.initialize();
+  const category = query.category || undefined;
+
+  if (category) {
+    const belief = awarenessCore.assess(category as SparkCategory);
+    sendJson(res, 200, { beliefs: { [category]: belief } });
+  } else {
+    const beliefs = awarenessCore.assessAll();
+    sendJson(res, 200, { beliefs });
+  }
+}
+
+/** Get recent insights with optional filters */
+async function getInsights(ctx: any): Promise<void> {
+  const { res, query } = ctx;
+
+  const limit = parseInt(query.limit || '50', 10);
+  const category = query.category || undefined;
+  const pattern = query.pattern || undefined;
+  const minImpact = query.minImpact ? parseFloat(query.minImpact) : undefined;
+
+  const insights = stores.spark.listInsights({ category, pattern, limit, minImpact });
+
+  sendJson(res, 200, {
+    insights,
+    total: insights.length,
+  });
+}
+
 // ── Export routes ────────────────────────────────────────────────────────────
 
 export { weightManager };
@@ -191,4 +241,7 @@ export const sparkRoutes: Route[] = [
   pathToRoute('POST', '/api/spark/snapshot', createSnapshot),
   pathToRoute('POST', '/api/spark/rollback', rollbackSnapshot),
   pathToRoute('GET', '/api/spark/snapshots', listSnapshots),
+  pathToRoute('GET', '/api/spark/awareness', getAwareness),
+  pathToRoute('GET', '/api/spark/beliefs', getBeliefs),
+  pathToRoute('GET', '/api/spark/insights', getInsights),
 ];

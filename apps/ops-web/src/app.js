@@ -1766,11 +1766,12 @@
 
   async function loadSparkData() {
     try {
-      const [weightsRes, episodesRes, predictionsRes, statsRes] = await Promise.all([
+      const [weightsRes, episodesRes, predictionsRes, statsRes, awarenessRes] = await Promise.all([
         fetch(`${API}/spark/weights`).catch(() => null),
         fetch(`${API}/spark/episodes?limit=20`).catch(() => null),
         fetch(`${API}/spark/predictions?limit=20`).catch(() => null),
         fetch(`${API}/spark/stats`).catch(() => null),
+        fetch(`${API}/spark/awareness`).catch(() => null),
       ]);
 
       if (statsRes && statsRes.ok) {
@@ -1802,6 +1803,13 @@
       if (predictionsRes && predictionsRes.ok) {
         const data = await predictionsRes.json();
         renderSparkPredictions(data.predictions || data || []);
+      }
+
+      if (awarenessRes && awarenessRes.ok) {
+        const report = await awarenessRes.json();
+        renderBeliefs(report.beliefs || {});
+        renderInsights(report.insights || []);
+        renderAlerts(report.alerts || {});
       }
     } catch (err) {
       console.warn('SPARK data load failed:', err);
@@ -1892,6 +1900,116 @@
         </div>
       `;
     }).join('');
+  }
+
+  function renderBeliefs(beliefs) {
+    const grid = document.getElementById('spark-beliefs-grid');
+    if (!grid) return;
+
+    const entries = Object.values(beliefs);
+    if (!entries || entries.length === 0) {
+      grid.innerHTML = '<div class="empty-state">No beliefs yet — run the pipeline to generate awareness data</div>';
+      return;
+    }
+
+    const sentinel = ['destructive', 'financial'];
+
+    grid.innerHTML = entries.map(b => {
+      const isSentinel = sentinel.includes(b.category);
+      const trendIcon = b.evidence.recentTrend === 'improving' ? '↗' :
+                        b.evidence.recentTrend === 'degrading' ? '↘' :
+                        b.evidence.recentTrend === 'oscillating' ? '↔' : '→';
+      const trendClass = `spark-trend-${b.evidence.recentTrend || 'stable'}`;
+
+      return `
+        <div class="spark-belief-card">
+          <div class="spark-belief-header">
+            <span class="spark-weight-category">${b.category}</span>
+            <span class="spark-trust-badge ${b.trustLevel}">${b.trustLevel}</span>
+          </div>
+          <div class="spark-belief-narrative">${b.narrative}</div>
+          <div class="spark-belief-metrics">
+            <span title="Accuracy">${(b.evidence.accuracy * 100).toFixed(0)}% acc</span>
+            <span title="Stability">${(b.stability * 100).toFixed(0)}% stab</span>
+            <span title="Calibration">${(b.calibration * 100).toFixed(0)}% cal</span>
+            <span class="${trendClass}" title="Trend">${trendIcon} ${b.evidence.recentTrend || 'stable'}</span>
+          </div>
+          ${isSentinel ? '<div class="spark-weight-sentinel-badge" style="margin-top:4px;font-size:0.6rem;">SENTINEL</div>' : ''}
+        </div>
+      `;
+    }).join('');
+  }
+
+  function renderInsights(insights) {
+    const list = document.getElementById('spark-insights-list');
+    if (!list) return;
+
+    if (!insights || insights.length === 0) {
+      list.innerHTML = '<div class="empty-state">No insights yet — patterns emerge after enough learning episodes</div>';
+      return;
+    }
+
+    const patternIcons = {
+      streak: '📈',
+      oscillation: '↔️',
+      convergence: '🎯',
+      anomaly: '⚡',
+      milestone: '🏆',
+    };
+
+    list.innerHTML = insights.map(ins => {
+      const icon = patternIcons[ins.pattern] || '💡';
+      const impactPercent = (ins.impact * 100).toFixed(0);
+
+      return `
+        <div class="spark-insight-card">
+          <div class="spark-insight-icon">${icon}</div>
+          <div class="spark-insight-content">
+            <div class="spark-insight-summary">${ins.summary}</div>
+            <div class="spark-insight-meta">
+              ${ins.pattern} · ${ins.category} · ${new Date(ins.createdAt).toLocaleString()}
+            </div>
+          </div>
+          <div class="spark-impact-bar" title="Impact: ${impactPercent}%">
+            <div class="spark-impact-fill" style="width: ${Math.max(5, impactPercent)}%"></div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function renderAlerts(alerts) {
+    const container = document.getElementById('spark-alerts-container');
+    if (!container) return;
+
+    const badges = [];
+
+    if (alerts.oscillating && alerts.oscillating.length > 0) {
+      badges.push(...alerts.oscillating.map(c =>
+        `<span class="spark-alert-badge oscillating" title="Oscillating weight">${c}: oscillating</span>`
+      ));
+    }
+    if (alerts.lowConfidence && alerts.lowConfidence.length > 0) {
+      badges.push(...alerts.lowConfidence.map(c =>
+        `<span class="spark-alert-badge low-confidence" title="Low calibration">${c}: low confidence</span>`
+      ));
+    }
+    if (alerts.nearingBounds && alerts.nearingBounds.length > 0) {
+      badges.push(...alerts.nearingBounds.map(c =>
+        `<span class="spark-alert-badge nearing-bounds" title="Near weight bounds">${c}: nearing bounds</span>`
+      ));
+    }
+    if (alerts.sentinelActive && alerts.sentinelActive.length > 0) {
+      badges.push(...alerts.sentinelActive.map(c =>
+        `<span class="spark-alert-badge sentinel" title="SENTINEL elevated">${c}: SENTINEL active</span>`
+      ));
+    }
+
+    if (badges.length === 0) {
+      container.innerHTML = '<span style="color:var(--muted);font-size:0.75rem;">No active alerts</span>';
+    } else {
+      container.innerHTML = badges.join('');
+    }
   }
 
   // SPARK event handlers

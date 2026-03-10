@@ -12,6 +12,9 @@ import type {
   SparkWeightEntry,
   SparkCategory,
   WeightHistoryEntry,
+  Insight,
+  InsightPattern,
+  Belief,
 } from '@ai-ops/shared-types';
 
 export interface SparkEpisodeFilter {
@@ -24,6 +27,13 @@ export interface SparkPredictionFilter {
   runId?: string;
   category?: string;
   limit?: number;
+}
+
+export interface SparkInsightFilter {
+  category?: string;
+  pattern?: InsightPattern;
+  limit?: number;
+  minImpact?: number;
 }
 
 export class SparkStore {
@@ -53,6 +63,15 @@ export class SparkStore {
 
   // Snapshot statements
   private readonly insertSnapshot: BetterSqlite3.Statement;
+
+  // Insight statements
+  private readonly insertInsight: BetterSqlite3.Statement;
+  private readonly getInsightById: BetterSqlite3.Statement;
+
+  // Belief statements
+  private readonly upsertBelief: BetterSqlite3.Statement;
+  private readonly getBeliefByCategory: BetterSqlite3.Statement;
+  private readonly getAllBeliefsStmt: BetterSqlite3.Statement;
 
   constructor(db: BetterSqlite3.Database) {
     this.db = db;
@@ -117,6 +136,27 @@ export class SparkStore {
       INSERT INTO spark_snapshots (id, weights_json, reason, created_at)
       VALUES (@id, @weightsJson, @reason, @createdAt)
     `);
+
+    // ── Insights ────────────────────────────────────────────
+    this.insertInsight = this.db.prepare(`
+      INSERT INTO spark_insights
+        (id, category, pattern, summary, evidence_json, impact, created_at)
+      VALUES
+        (@id, @category, @pattern, @summary, @evidenceJson, @impact, @createdAt)
+    `);
+
+    this.getInsightById = this.db.prepare('SELECT * FROM spark_insights WHERE id = ?');
+
+    // ── Beliefs ─────────────────────────────────────────────
+    this.upsertBelief = this.db.prepare(`
+      INSERT OR REPLACE INTO spark_beliefs
+        (category, trust_level, stability, calibration, narrative, evidence_json, updated_at)
+      VALUES
+        (@category, @trustLevel, @stability, @calibration, @narrative, @evidenceJson, @updatedAt)
+    `);
+
+    this.getBeliefByCategory = this.db.prepare('SELECT * FROM spark_beliefs WHERE category = ?');
+    this.getAllBeliefsStmt = this.db.prepare('SELECT * FROM spark_beliefs ORDER BY category');
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -440,6 +480,103 @@ export class SparkStore {
       snapshotId: row.snapshot_id,
       reason: row.reason,
       createdAt: row.created_at,
+    };
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // Insights
+  // ═══════════════════════════════════════════════════════════════
+
+  saveInsight(insight: Insight): void {
+    this.insertInsight.run({
+      id: insight.id,
+      category: insight.category,
+      pattern: insight.pattern,
+      summary: insight.summary,
+      evidenceJson: JSON.stringify(insight.evidence),
+      impact: insight.impact,
+      createdAt: insight.createdAt,
+    });
+  }
+
+  getInsight(id: string): Insight | undefined {
+    const row = this.getInsightById.get(id) as any;
+    return row ? this.rowToInsight(row) : undefined;
+  }
+
+  listInsights(filter?: SparkInsightFilter): Insight[] {
+    let sql = 'SELECT * FROM spark_insights WHERE 1=1';
+    const params: any[] = [];
+
+    if (filter?.category) {
+      sql += ' AND category = ?';
+      params.push(filter.category);
+    }
+    if (filter?.pattern) {
+      sql += ' AND pattern = ?';
+      params.push(filter.pattern);
+    }
+    if (filter?.minImpact !== undefined) {
+      sql += ' AND impact >= ?';
+      params.push(filter.minImpact);
+    }
+    sql += ' ORDER BY created_at DESC';
+    if (filter?.limit) {
+      sql += ' LIMIT ?';
+      params.push(filter.limit);
+    }
+
+    const rows = this.db.prepare(sql).all(...params) as any[];
+    return rows.map(r => this.rowToInsight(r));
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // Beliefs
+  // ═══════════════════════════════════════════════════════════════
+
+  saveBelief(belief: Belief): void {
+    this.upsertBelief.run({
+      category: belief.category,
+      trustLevel: belief.trustLevel,
+      stability: belief.stability,
+      calibration: belief.calibration,
+      narrative: belief.narrative,
+      evidenceJson: JSON.stringify(belief.evidence),
+      updatedAt: belief.updatedAt,
+    });
+  }
+
+  getBelief(category: SparkCategory): Belief | undefined {
+    const row = this.getBeliefByCategory.get(category) as any;
+    return row ? this.rowToBelief(row) : undefined;
+  }
+
+  getAllBeliefs(): Belief[] {
+    const rows = this.getAllBeliefsStmt.all() as any[];
+    return rows.map(r => this.rowToBelief(r));
+  }
+
+  private rowToInsight(row: any): Insight {
+    return {
+      id: row.id,
+      category: row.category,
+      pattern: row.pattern,
+      summary: row.summary,
+      evidence: JSON.parse(row.evidence_json || '{}'),
+      impact: row.impact,
+      createdAt: row.created_at,
+    };
+  }
+
+  private rowToBelief(row: any): Belief {
+    return {
+      category: row.category,
+      trustLevel: row.trust_level,
+      stability: row.stability,
+      calibration: row.calibration,
+      narrative: row.narrative,
+      evidence: JSON.parse(row.evidence_json || '{}'),
+      updatedAt: row.updated_at,
     };
   }
 }

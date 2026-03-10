@@ -43,6 +43,12 @@ export type {
   SparkWeightEntry,
   SparkWeights,
   WeightHistoryEntry,
+  InsightPattern,
+  Insight,
+  TrustLevel,
+  TrendDirection,
+  Belief,
+  AwarenessReport,
 } from './spark';
 export { SENTINEL_CATEGORIES } from './spark';
 

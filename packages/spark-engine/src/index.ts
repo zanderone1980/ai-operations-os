@@ -2,7 +2,7 @@
  * @ai-ops/spark-engine — Self-Perpetuating Adaptive Reasoning Kernel.
  *
  * Closed feedback loop that wraps CORD safety scoring with
- * predict -> act -> measure -> learn.
+ * predict -> act -> measure -> learn -> consolidate -> assess.
  *
  * Exports:
  * - Predictor:           Generates risk predictions before step execution.
@@ -10,6 +10,9 @@
  * - LearningCore:        Compares predictions against outcomes and adjusts weights.
  * - WeightManager:       Manages weight state, initialization, and snapshots.
  * - AdaptiveSafetyGate:  CORD evaluation with learned weight adjustments.
+ * - MemoryCore:          Detects episode patterns and generates insights.
+ * - AwarenessCore:       Maintains structured beliefs and self-assessment reports.
+ * - SparkOrchestrator:   Composes all engines into a single facade.
  * - operationToCategory: Maps operation names to CORD tool categories.
  * - Constants:           EMA_ALPHA, MAX_DEVIATION_PERCENT, etc.
  */
@@ -27,6 +30,11 @@ export type {
   SafetyResult,
   CordSafetyGateInterface,
 } from './adaptive-safety-gate';
+
+// ── Memory & Awareness ──────────────────────────────────────────
+export { MemoryCore } from './memory-core';
+export { AwarenessCore } from './awareness-core';
+export { SparkOrchestrator } from './orchestrator';
 
 // ── Constants ─────────────────────────────────────────────────────
 export {

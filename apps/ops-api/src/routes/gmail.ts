@@ -23,7 +23,7 @@ import {
 import type { TaskSource, CordDecision } from '@ai-ops/shared-types';
 import { ReceiptBuilder } from '@ai-ops/codebot-adapter';
 import { evaluateAction } from '../middleware/cord-gate';
-import { sparkPredict, sparkLearn } from '../middleware/spark-lifecycle';
+import { sparkPredict, sparkLearn, registerPendingApproval } from '../middleware/spark-lifecycle';
 import { requestApproval } from './approvals';
 import { pathToRoute, sendJson, sendError } from '../server';
 import type { Route } from '../server';
@@ -201,6 +201,17 @@ async function processMessage(ctx: any): Promise<void> {
   };
 
   if (isBlocked) {
+    // SPARK learns from blocked actions (action failed to proceed)
+    const blockResult = sparkLearn({
+      stepId: messageId,
+      connector: 'gmail',
+      operation: classification.intent || 'read',
+      cordScore: replySafety.score,
+      cordDecision: replySafety.decision as CordDecision,
+      success: false,
+      durationMs: Date.now() - execStart,
+    });
+
     sendJson(res, 200, {
       task,
       intent: classification,
@@ -215,6 +226,11 @@ async function processMessage(ctx: any): Promise<void> {
         ? `Policy denied: ${policyResult.reason}`
         : `CORD blocked: ${replySafety.reasons.join(', ')}`,
       receipts: receiptBuilder.finalize(HMAC_KEY),
+      spark: blockResult ? {
+        prediction: sparkPrediction,
+        episode: blockResult.episode,
+        insights: blockResult.insights,
+      } : { prediction: sparkPrediction },
     });
     return;
   }
@@ -237,6 +253,15 @@ async function processMessage(ctx: any): Promise<void> {
       approvalId: approval.id,
     };
 
+    // Register SPARK context so approval decision can trigger learning
+    registerPendingApproval(approval.id, {
+      stepId: messageId,
+      connector: 'gmail',
+      operation: classification.intent || 'read',
+      cordScore: replySafety.score,
+      cordDecision: replySafety.decision as CordDecision,
+    });
+
     sendJson(res, 200, {
       task,
       intent: classification,
@@ -249,6 +274,7 @@ async function processMessage(ctx: any): Promise<void> {
       approval: approvalResult,
       message: 'Approval required. Decide at POST /api/approvals/:id/decide',
       receipts: receiptBuilder.finalize(HMAC_KEY),
+      spark: { prediction: sparkPrediction },
     });
     return;
   }

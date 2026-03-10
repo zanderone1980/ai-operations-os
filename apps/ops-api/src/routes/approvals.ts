@@ -12,6 +12,7 @@ import { createApproval } from '@ai-ops/shared-types';
 import { pathToRoute, sendJson, sendError } from '../server';
 import type { Route } from '../server';
 import { stores } from '../storage';
+import { resolvePendingApproval } from '../middleware/spark-lifecycle';
 import type * as http from 'http';
 
 // SSE subscribers for real-time updates
@@ -95,8 +96,19 @@ async function decideApproval(ctx: any): Promise<void> {
     decision === 'modified' ? (body.modifications as Record<string, unknown>) : undefined,
   );
 
+  // ── SPARK: Learn from approval outcome ──
+  // If this approval has a pending SPARK context, close the loop
+  const sparkResult = resolvePendingApproval(params.id, decision);
+
   const updated = stores.approvals.get(params.id);
-  sendJson(res, 200, updated);
+  sendJson(res, 200, {
+    ...updated,
+    spark: sparkResult ? {
+      episode: sparkResult.episode,
+      insights: sparkResult.insights,
+      learned: true,
+    } : undefined,
+  });
 }
 
 /** SSE stream of new approval requests */

@@ -25,7 +25,7 @@ import {
 import type { TaskSource, CordDecision } from '@ai-ops/shared-types';
 import { ReceiptBuilder } from '@ai-ops/codebot-adapter';
 import { evaluateAction } from '../middleware/cord-gate';
-import { sparkPredict, sparkLearn } from '../middleware/spark-lifecycle';
+import { sparkPredict, sparkLearn, registerPendingApproval } from '../middleware/spark-lifecycle';
 import { requestApproval } from './approvals';
 import { pathToRoute, sendJson, sendError } from '../server';
 import type { Route } from '../server';
@@ -155,20 +155,23 @@ async function postTweet(ctx: any): Promise<void> {
 
   // ── Step 4: Check if blocked ─────────────────────────────────────
   if (isBlocked) {
+    const blockResult = sparkLearn({
+      stepId: task.id, connector: 'x-twitter', operation: 'post',
+      cordScore: postSafety.score, cordDecision: postSafety.decision as CordDecision,
+      success: false, durationMs: Date.now() - execStart,
+    });
+
     sendJson(res, 200, {
       task,
       intent: classification,
       policy: policyResult,
-      safety: {
-        decision: postSafety.decision,
-        score: postSafety.score,
-        reasons: postSafety.reasons,
-      },
+      safety: { decision: postSafety.decision, score: postSafety.score, reasons: postSafety.reasons },
       blocked: true,
       reason: policyResult.autonomy === 'deny'
         ? `Policy denied: ${policyResult.reason}`
         : `CORD blocked: ${postSafety.reasons.join(', ')}`,
       receipts: receiptBuilder.finalize(HMAC_KEY),
+      spark: blockResult ? { prediction: sparkPrediction, episode: blockResult.episode, insights: blockResult.insights } : { prediction: sparkPrediction },
     });
     return;
   }
@@ -185,22 +188,20 @@ async function postTweet(ctx: any): Promise<void> {
       `Tweet: ${text.slice(0, 140)}`,
     );
 
+    registerPendingApproval(approval.id, {
+      stepId: task.id, connector: 'x-twitter', operation: 'post',
+      cordScore: postSafety.score, cordDecision: postSafety.decision as CordDecision,
+    });
+
     sendJson(res, 200, {
       task,
       intent: classification,
       policy: policyResult,
-      safety: {
-        decision: postSafety.decision,
-        score: postSafety.score,
-        reasons: postSafety.reasons,
-      },
-      approval: {
-        needed: true,
-        decision: 'pending',
-        approvalId: approval.id,
-      },
+      safety: { decision: postSafety.decision, score: postSafety.score, reasons: postSafety.reasons },
+      approval: { needed: true, decision: 'pending', approvalId: approval.id },
       message: 'Approval required. Decide at POST /api/approvals/:id/decide',
       receipts: receiptBuilder.finalize(HMAC_KEY),
+      spark: { prediction: sparkPrediction },
     });
     return;
   }
@@ -335,20 +336,23 @@ async function replyToTweet(ctx: any): Promise<void> {
 
   // ── Step 4: Check if blocked ─────────────────────────────────────
   if (isBlocked) {
+    const blockResult = sparkLearn({
+      stepId: task.id, connector: 'x-twitter', operation: 'reply',
+      cordScore: replySafety.score, cordDecision: replySafety.decision as CordDecision,
+      success: false, durationMs: Date.now() - execStart,
+    });
+
     sendJson(res, 200, {
       task,
       intent: classification,
       policy: policyResult,
-      safety: {
-        decision: replySafety.decision,
-        score: replySafety.score,
-        reasons: replySafety.reasons,
-      },
+      safety: { decision: replySafety.decision, score: replySafety.score, reasons: replySafety.reasons },
       blocked: true,
       reason: policyResult.autonomy === 'deny'
         ? `Policy denied: ${policyResult.reason}`
         : `CORD blocked: ${replySafety.reasons.join(', ')}`,
       receipts: receiptBuilder.finalize(HMAC_KEY),
+      spark: blockResult ? { prediction: sparkPrediction, episode: blockResult.episode, insights: blockResult.insights } : { prediction: sparkPrediction },
     });
     return;
   }
@@ -365,22 +369,20 @@ async function replyToTweet(ctx: any): Promise<void> {
       `Reply to tweet ${tweetId}: ${text.slice(0, 140)}`,
     );
 
+    registerPendingApproval(approval.id, {
+      stepId: task.id, connector: 'x-twitter', operation: 'reply',
+      cordScore: replySafety.score, cordDecision: replySafety.decision as CordDecision,
+    });
+
     sendJson(res, 200, {
       task,
       intent: classification,
       policy: policyResult,
-      safety: {
-        decision: replySafety.decision,
-        score: replySafety.score,
-        reasons: replySafety.reasons,
-      },
-      approval: {
-        needed: true,
-        decision: 'pending',
-        approvalId: approval.id,
-      },
+      safety: { decision: replySafety.decision, score: replySafety.score, reasons: replySafety.reasons },
+      approval: { needed: true, decision: 'pending', approvalId: approval.id },
       message: 'Approval required. Decide at POST /api/approvals/:id/decide',
       receipts: receiptBuilder.finalize(HMAC_KEY),
+      spark: { prediction: sparkPrediction },
     });
     return;
   }
@@ -515,20 +517,23 @@ async function sendDm(ctx: any): Promise<void> {
 
   // ── Step 4: Check if blocked ─────────────────────────────────────
   if (isBlocked) {
+    const blockResult = sparkLearn({
+      stepId: task.id, connector: 'x-twitter', operation: 'dm_send',
+      cordScore: dmSafety.score, cordDecision: dmSafety.decision as CordDecision,
+      success: false, durationMs: Date.now() - execStart,
+    });
+
     sendJson(res, 200, {
       task,
       intent: classification,
       policy: policyResult,
-      safety: {
-        decision: dmSafety.decision,
-        score: dmSafety.score,
-        reasons: dmSafety.reasons,
-      },
+      safety: { decision: dmSafety.decision, score: dmSafety.score, reasons: dmSafety.reasons },
       blocked: true,
       reason: policyResult.autonomy === 'deny'
         ? `Policy denied: ${policyResult.reason}`
         : `CORD blocked: ${dmSafety.reasons.join(', ')}`,
       receipts: receiptBuilder.finalize(HMAC_KEY),
+      spark: blockResult ? { prediction: sparkPrediction, episode: blockResult.episode, insights: blockResult.insights } : { prediction: sparkPrediction },
     });
     return;
   }
@@ -545,22 +550,20 @@ async function sendDm(ctx: any): Promise<void> {
       `DM to ${participantId}: ${text.slice(0, 140)}`,
     );
 
+    registerPendingApproval(approval.id, {
+      stepId: task.id, connector: 'x-twitter', operation: 'dm_send',
+      cordScore: dmSafety.score, cordDecision: dmSafety.decision as CordDecision,
+    });
+
     sendJson(res, 200, {
       task,
       intent: classification,
       policy: policyResult,
-      safety: {
-        decision: dmSafety.decision,
-        score: dmSafety.score,
-        reasons: dmSafety.reasons,
-      },
-      approval: {
-        needed: true,
-        decision: 'pending',
-        approvalId: approval.id,
-      },
+      safety: { decision: dmSafety.decision, score: dmSafety.score, reasons: dmSafety.reasons },
+      approval: { needed: true, decision: 'pending', approvalId: approval.id },
       message: 'Approval required. Decide at POST /api/approvals/:id/decide',
       receipts: receiptBuilder.finalize(HMAC_KEY),
+      spark: { prediction: sparkPrediction },
     });
     return;
   }

@@ -70,6 +70,7 @@
       <button class="tab" data-tab="tasks">Tasks</button>
       <button class="tab" data-tab="workflows">Workflows</button>
       <button class="tab" data-tab="activity">Activity</button>
+      <button class="tab" data-tab="analytics">Analytics</button>
     </div>
   </nav>
 
@@ -190,7 +191,50 @@
       <div id="activity-log" class="activity-log">
         <div class="empty-state">No activity</div>
       </div>
+
+      <!-- Receipt Explorer -->
+      <div class="receipt-explorer" id="receipt-explorer">
+        <div class="receipt-explorer-header">
+          <h3>Receipt Chain Explorer</h3>
+          <div class="receipt-explorer-actions">
+            <button class="btn btn-sm btn-modify" id="verify-chain-btn">Verify Chain</button>
+            <button class="btn btn-sm btn-accent" id="export-receipts-btn">Export JSON</button>
+          </div>
+        </div>
+        <div id="chain-verification-result" class="chain-verification-result hidden"></div>
+        <div id="receipt-chain" class="receipt-chain">
+          <div class="empty-state">No receipts loaded</div>
+        </div>
+      </div>
     </section>
+
+    <!-- Analytics Panel -->
+    <section id="panel-analytics" class="panel">
+      <div class="panel-header">
+        <h2>Analytics</h2>
+        <span class="activity-limit-label">Based on current data</span>
+      </div>
+      <div class="analytics-grid">
+        <div class="analytics-card analytics-card-wide">
+          <h3 class="analytics-card-title">Task Distribution by Source</h3>
+          <div id="chart-task-distribution" class="chart-container"></div>
+        </div>
+        <div class="analytics-card">
+          <h3 class="analytics-card-title">Intent Breakdown</h3>
+          <div id="chart-intent-breakdown" class="chart-container chart-container-square"></div>
+        </div>
+        <div class="analytics-card">
+          <h3 class="analytics-card-title">Approval Rate</h3>
+          <div id="chart-approval-rate" class="chart-container chart-container-square"></div>
+        </div>
+        <div class="analytics-card analytics-card-wide">
+          <h3 class="analytics-card-title">Tasks Created (Last 7 Days)</h3>
+          <div id="chart-timeline" class="chart-container"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Receipt Explorer (inside Activity panel, appended by JS) -->
 
     <!-- Pipeline Live Feed (shown when pipeline runs) -->
     <div id="pipeline-feed" class="pipeline-feed hidden">
@@ -223,6 +267,34 @@
       <div id="sim-results" class="sim-results"></div>
     </div>
   </div>
+
+  <!-- CORD Explainer Modal -->
+  <div id="cord-modal" class="modal-overlay hidden">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <h3>CORD Safety Evaluation</h3>
+        <button class="btn btn-sm btn-close" id="close-cord-modal">&times;</button>
+      </div>
+      <div id="cord-modal-body" class="cord-modal-body"></div>
+    </div>
+  </div>
+
+  <!-- Pipeline Live View Modal -->
+  <div id="pipeline-live-modal" class="modal-overlay hidden">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <h3>Pipeline Execution</h3>
+        <button class="btn btn-sm btn-close" id="close-pipeline-live-modal">&times;</button>
+      </div>
+      <div id="pipeline-live-body" class="pipeline-live-body">
+        <div class="pipeline-stages" id="pipeline-stages"></div>
+        <div class="pipeline-live-log" id="pipeline-live-log"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="toast-container"></div>
 
   <!-- Deny Confirmation Modal -->
   <div id="deny-confirm-modal" class="modal-overlay hidden">

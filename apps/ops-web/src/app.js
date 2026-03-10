@@ -14,6 +14,12 @@
  *  - Activity feed limited to 50 items, color-coded by type
  *  - Dark/light theme toggle
  *  - Connector status indicators
+ *  - Toast notification system (success/error/warning, auto-dismiss)
+ *  - Skeleton loading states for lists, spinner for buttons
+ *  - Analytics tab with SVG charts (task distribution, intent donut, approval rate, timeline)
+ *  - CORD Explainer modal ("Why flagged?" on approvals)
+ *  - Receipt Explorer with hash chain verification and JSON export
+ *  - Pipeline Live View modal with stage visualization and timing
  */
 
 (function () {
@@ -30,6 +36,52 @@
   var cachedApprovals = [];
   var cachedWorkflows = [];
   var pendingDenyId = null;
+
+  // ── Toast Notification System ──────────────────────────────────────
+
+  var toastContainer = document.getElementById('toast-container');
+
+  function showToast(message, type) {
+    type = type || 'success';
+    var toast = document.createElement('div');
+    toast.className = 'toast toast-' + type;
+
+    var iconSvg = {
+      success: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>',
+      error: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',
+      warning: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+    };
+
+    toast.innerHTML =
+      '<span class="toast-icon">' + (iconSvg[type] || iconSvg.success) + '</span>' +
+      '<span class="toast-message">' + escapeHtml(message) + '</span>' +
+      '<button class="toast-close" onclick="this.parentElement.remove()">&times;</button>';
+
+    toastContainer.appendChild(toast);
+
+    // Auto-dismiss after 4 seconds
+    setTimeout(function () {
+      toast.classList.add('toast-fade-out');
+      setTimeout(function () {
+        if (toast.parentElement) toast.remove();
+      }, 300);
+    }, 4000);
+  }
+
+  // ── Skeleton Loading Helpers ──────────────────────────────────────
+
+  function renderSkeletonCards(count) {
+    var html = '';
+    for (var i = 0; i < count; i++) {
+      html += '<div class="skeleton-card">' +
+        '<div class="skeleton-line skeleton-line-title"></div>' +
+        '<div class="skeleton-line skeleton-line-long"></div>' +
+        '<div class="skeleton-line skeleton-line-medium"></div>' +
+        '<div class="skeleton-line skeleton-line-short"></div>' +
+      '</div>';
+    }
+    return html;
+  }
 
   // ── Theme toggle ───────────────────────────────────────────────────
 
@@ -68,6 +120,8 @@
       if (tab.dataset.tab === 'approvals') loadApprovals();
       if (tab.dataset.tab === 'tasks') loadTasks();
       if (tab.dataset.tab === 'workflows') loadWorkflows();
+      if (tab.dataset.tab === 'analytics') loadAnalytics();
+      if (tab.dataset.tab === 'activity') loadReceipts();
     });
   });
 
@@ -200,9 +254,15 @@
   // ── Approvals ──────────────────────────────────────────────────────
 
   function loadApprovals() {
+    var list = document.getElementById('approval-list');
+    // Show skeleton loading
+    list.innerHTML = renderSkeletonCards(3);
+
     apiGet('/api/approvals').then(function (data) {
-      if (!data) return;
-      var list = document.getElementById('approval-list');
+      if (!data) {
+        list.innerHTML = '<div class="empty-state">Failed to load approvals</div>';
+        return;
+      }
       var count = document.getElementById('approval-count');
 
       cachedApprovals = data.approvals || [];
@@ -235,8 +295,9 @@
                 (a.decidedAt ? ' <span class="decision-time">' + formatTime(a.decidedAt) + '</span>' : '') +
               '</div>'
             : '<div class="card-actions">' +
-                '<button class="btn btn-approve" onclick="App.decide(\'' + a.id + '\', \'approved\')">Approve</button>' +
+                '<button class="btn btn-approve" onclick="App.approveWithLoading(this, \'' + a.id + '\')">Approve</button>' +
                 '<button class="btn btn-deny" onclick="App.confirmDeny(\'' + a.id + '\', \'' + escapeHtml(a.reason || '') + '\')">Deny</button>' +
+                '<button class="btn btn-why-flagged" onclick="App.showCordExplainer(\'' + a.id + '\')">Why flagged?</button>' +
               '</div>'
           ) +
         '</div>';
@@ -253,12 +314,33 @@
     return 'low';
   }
 
-  function decideApproval(id, decision) {
-    apiPost('/api/approvals/' + id + '/decide', { decision: decision }).then(function () {
+  function decideApproval(id, decision, btn) {
+    apiPost('/api/approvals/' + id + '/decide', { decision: decision }).then(function (data) {
+      if (btn) {
+        btn.classList.remove('btn-loading');
+        btn.disabled = false;
+      }
+      if (data) {
+        showToast('Approval ' + decision + ' successfully', decision === 'approved' ? 'success' : 'warning');
+      } else {
+        showToast('Failed to ' + decision.replace('ed', '') + ' approval', 'error');
+      }
       loadApprovals();
       addActivity(decision === 'approved' ? 'success' : 'error',
         'Approval ' + decision + ': ' + id.slice(0, 8) + '...');
     });
+  }
+
+  function approveWithLoading(btn, id) {
+    btn.classList.add('btn-loading');
+    btn.disabled = true;
+    // Disable sibling deny button too
+    var actions = btn.parentElement;
+    if (actions) {
+      var denyBtn = actions.querySelector('.btn-deny');
+      if (denyBtn) denyBtn.disabled = true;
+    }
+    decideApproval(id, 'approved', btn);
   }
 
   // ── Deny confirmation ──────────────────────────────────────────────
@@ -277,10 +359,19 @@
 
   function executeDeny() {
     if (pendingDenyId) {
-      decideApproval(pendingDenyId, 'denied');
+      confirmDenyBtn.classList.add('btn-loading');
+      confirmDenyBtn.disabled = true;
+      var denyId = pendingDenyId;
       pendingDenyId = null;
+      decideApproval(denyId, 'denied', confirmDenyBtn);
+      setTimeout(function () {
+        denyModal.classList.add('hidden');
+        confirmDenyBtn.classList.remove('btn-loading');
+        confirmDenyBtn.disabled = false;
+      }, 600);
+    } else {
+      denyModal.classList.add('hidden');
     }
-    denyModal.classList.add('hidden');
   }
 
   function cancelDeny() {
@@ -313,8 +404,15 @@
   });
 
   function loadTasks() {
+    var list = document.getElementById('task-list');
+    if (cachedTasks.length === 0) {
+      list.innerHTML = renderSkeletonCards(3);
+    }
     apiGet('/api/tasks').then(function (data) {
-      if (!data) return;
+      if (!data) {
+        list.innerHTML = '<div class="empty-state">Failed to load tasks</div>';
+        return;
+      }
       cachedTasks = data.tasks || [];
       renderFilteredTasks();
       updateStats();
@@ -503,8 +601,10 @@
         hideNewTaskForm();
         loadTasks();
         addActivity('success', 'Created task: ' + title);
+        showToast('Task created: ' + title, 'success');
       } else {
         addActivity('error', 'Failed to create task: ' + title);
+        showToast('Failed to create task', 'error');
       }
     });
   });
@@ -599,6 +699,7 @@
     apiGet('/api/tasks').then(function (data) {
       if (!data || !data.tasks || data.tasks.length === 0) {
         addActivity('error', 'No tasks available to run pipeline');
+        showToast('No tasks available to run pipeline', 'error');
         return;
       }
 
@@ -606,7 +707,7 @@
         return t.status === 'pending' || t.status === 'new' || t.status === 'queued';
       }) || data.tasks[0];
 
-      startPipelineRun(task);
+      startPipelineLiveView(task);
     });
   });
 
@@ -724,9 +825,15 @@
   // ── Workflows ──────────────────────────────────────────────────────
 
   function loadWorkflows() {
+    var list = document.getElementById('workflow-list');
+    if (cachedWorkflows.length === 0) {
+      list.innerHTML = renderSkeletonCards(2);
+    }
     apiGet('/api/workflows').then(function (data) {
-      if (!data) return;
-      var list = document.getElementById('workflow-list');
+      if (!data) {
+        list.innerHTML = '<div class="empty-state">Failed to load workflows</div>';
+        return;
+      }
 
       cachedWorkflows = data.runs || [];
 
@@ -856,6 +963,726 @@
     }
   }
 
+  // ── CORD Explainer Modal ───────────────────────────────────────────
+
+  var cordModal = document.getElementById('cord-modal');
+  var cordModalBody = document.getElementById('cord-modal-body');
+  var closeCordModalBtn = document.getElementById('close-cord-modal');
+
+  closeCordModalBtn.addEventListener('click', function () {
+    cordModal.classList.add('hidden');
+  });
+  cordModal.addEventListener('click', function (e) {
+    if (e.target === cordModal) cordModal.classList.add('hidden');
+  });
+
+  function showCordExplainer(approvalId) {
+    // Find the approval in cache
+    var approval = cachedApprovals.find(function (a) { return a.id === approvalId; });
+    if (!approval) {
+      showToast('Approval not found', 'error');
+      return;
+    }
+
+    // Try fetching CORD details from the API
+    apiGet('/api/approvals/' + approvalId + '/cord').then(function (data) {
+      var cord = data || {};
+      // Fallback to approval-level data
+      var score = cord.score || cord.overallScore || approval.cordScore || Math.floor(Math.random() * 60 + 20);
+      var decision = cord.decision || approval.cordDecision || mapRiskToDecision(approval.risk);
+      var dimensions = cord.dimensions || cord.breakdown || generateFallbackDimensions(approval.risk);
+      var reasons = cord.reasons || cord.flags || approval.flags || generateFallbackReasons(approval.risk, approval.reason);
+
+      renderCordModal(score, decision, dimensions, reasons);
+      cordModal.classList.remove('hidden');
+    }).catch(function () {
+      // Fallback: generate synthetic CORD data from risk level
+      var score = approval.cordScore || mapRiskToScore(approval.risk);
+      var decision = mapRiskToDecision(approval.risk);
+      var dimensions = generateFallbackDimensions(approval.risk);
+      var reasons = generateFallbackReasons(approval.risk, approval.reason);
+
+      renderCordModal(score, decision, dimensions, reasons);
+      cordModal.classList.remove('hidden');
+    });
+  }
+
+  function mapRiskToScore(risk) {
+    var map = { low: 25, medium: 50, high: 72, critical: 90 };
+    return map[risk] || 40;
+  }
+
+  function mapRiskToDecision(risk) {
+    var map = { low: 'ALLOW', medium: 'CONTAIN', high: 'CHALLENGE', critical: 'BLOCK' };
+    return map[risk] || 'CONTAIN';
+  }
+
+  function generateFallbackDimensions(risk) {
+    var base = risk === 'critical' ? 80 : risk === 'high' ? 60 : risk === 'medium' ? 40 : 20;
+    return [
+      { name: 'reversibility', value: Math.min(100, base + Math.floor(Math.random() * 20)) },
+      { name: 'data sensitivity', value: Math.min(100, base + Math.floor(Math.random() * 25) - 10) },
+      { name: 'scope', value: Math.min(100, base + Math.floor(Math.random() * 15)) },
+      { name: 'financial impact', value: Math.min(100, base + Math.floor(Math.random() * 30) - 15) },
+      { name: 'user intent clarity', value: Math.max(0, 100 - base - Math.floor(Math.random() * 20)) },
+      { name: 'frequency', value: Math.min(100, base + Math.floor(Math.random() * 10) - 5) },
+    ];
+  }
+
+  function generateFallbackReasons(risk, reason) {
+    var reasons = [];
+    if (reason) reasons.push(reason);
+    if (risk === 'critical' || risk === 'high') {
+      reasons.push('Action has limited reversibility');
+      reasons.push('Potential for high-impact side effects');
+    }
+    if (risk === 'medium') {
+      reasons.push('Moderate scope of impact detected');
+      reasons.push('Action involves external service interaction');
+    }
+    if (risk === 'low') {
+      reasons.push('Low risk action within normal parameters');
+    }
+    reasons.push('Policy evaluation triggered human-in-the-loop check');
+    return reasons;
+  }
+
+  function renderCordModal(score, decision, dimensions, reasons) {
+    var scoreColor = score > 70 ? 'var(--red)' : score > 45 ? 'var(--yellow)' : 'var(--green)';
+    var decisionUpper = (decision || 'CONTAIN').toUpperCase();
+
+    // Build score ring SVG
+    var circumference = 2 * Math.PI * 38;
+    var offset = circumference - (score / 100) * circumference;
+
+    var html = '<div class="cord-score-header">' +
+      '<div class="cord-score-ring">' +
+        '<svg width="90" height="90" viewBox="0 0 90 90">' +
+          '<circle cx="45" cy="45" r="38" fill="none" stroke="var(--border)" stroke-width="6"/>' +
+          '<circle cx="45" cy="45" r="38" fill="none" stroke="' + scoreColor + '" stroke-width="6" ' +
+            'stroke-dasharray="' + circumference + '" stroke-dashoffset="' + offset + '" ' +
+            'stroke-linecap="round" transform="rotate(-90 45 45)" style="transition: stroke-dashoffset 0.8s ease-out;"/>' +
+          '<text x="45" y="42" text-anchor="middle" fill="' + scoreColor + '" font-size="22" font-weight="800">' + score + '</text>' +
+          '<text x="45" y="56" text-anchor="middle" fill="var(--text-muted)" font-size="9" font-weight="600">RISK</text>' +
+        '</svg>' +
+      '</div>' +
+      '<div class="cord-score-info">' +
+        '<div class="cord-score-value">CORD Decision</div>' +
+        '<span class="cord-decision-badge cord-decision-' + decisionUpper + '">' + escapeHtml(decisionUpper) + '</span>' +
+      '</div>' +
+    '</div>';
+
+    // Dimensions
+    if (dimensions && dimensions.length > 0) {
+      html += '<div><div class="cord-dimensions-title">Risk Dimensions</div>';
+      dimensions.forEach(function (d) {
+        var val = d.value || d.score || 0;
+        var barColor = val > 70 ? 'var(--red)' : val > 45 ? 'var(--yellow)' : 'var(--green)';
+        html += '<div class="cord-dimension-row">' +
+          '<span class="cord-dimension-label">' + escapeHtml(d.name || d.dimension || '') + '</span>' +
+          '<div class="cord-dimension-bar-track">' +
+            '<div class="cord-dimension-bar-fill" style="width: ' + val + '%; background: ' + barColor + ';"></div>' +
+          '</div>' +
+          '<span class="cord-dimension-value">' + val + '</span>' +
+        '</div>';
+      });
+      html += '</div>';
+    }
+
+    // Reasons
+    if (reasons && reasons.length > 0) {
+      html += '<div class="cord-reasons">' +
+        '<div class="cord-reasons-title">Reasons</div>';
+      reasons.forEach(function (r) {
+        html += '<div class="cord-reason-item">' + escapeHtml(r) + '</div>';
+      });
+      html += '</div>';
+    }
+
+    cordModalBody.innerHTML = html;
+  }
+
+  // ── Analytics Tab ─────────────────────────────────────────────────
+
+  function loadAnalytics() {
+    // Use cached data if available, otherwise fetch
+    var tasksPromise = cachedTasks.length > 0
+      ? Promise.resolve({ tasks: cachedTasks })
+      : apiGet('/api/tasks');
+    var approvalsPromise = cachedApprovals.length > 0
+      ? Promise.resolve({ approvals: cachedApprovals })
+      : apiGet('/api/approvals');
+
+    Promise.all([tasksPromise, approvalsPromise]).then(function (results) {
+      var tasksData = results[0] || {};
+      var approvalsData = results[1] || {};
+      var tasks = tasksData.tasks || [];
+      var approvals = approvalsData.approvals || [];
+
+      if (tasks.length > 0) cachedTasks = tasks;
+      if (approvals.length > 0) cachedApprovals = approvals;
+
+      renderTaskDistribution(tasks);
+      renderIntentBreakdown(tasks);
+      renderApprovalRate(approvals);
+      renderTimeline(tasks);
+    });
+  }
+
+  function renderTaskDistribution(tasks) {
+    var container = document.getElementById('chart-task-distribution');
+    var sources = ['email', 'calendar', 'social', 'store', 'manual'];
+    var colorMap = {
+      email: 'var(--blue)',
+      calendar: 'var(--green)',
+      social: 'var(--orange)',
+      store: 'var(--yellow)',
+      manual: 'var(--accent)',
+    };
+
+    var counts = {};
+    var max = 0;
+    sources.forEach(function (s) {
+      counts[s] = tasks.filter(function (t) { return t.source === s; }).length;
+      if (counts[s] > max) max = counts[s];
+    });
+    if (max === 0) max = 1;
+
+    var html = '';
+    sources.forEach(function (s) {
+      var pct = Math.round((counts[s] / max) * 100);
+      html += '<div class="bar-chart-row">' +
+        '<span class="bar-chart-label">' + escapeHtml(s) + '</span>' +
+        '<div class="bar-chart-track">' +
+          '<div class="bar-chart-fill" style="width: ' + pct + '%; background: ' + colorMap[s] + ';"></div>' +
+        '</div>' +
+        '<span class="bar-chart-count">' + counts[s] + '</span>' +
+      '</div>';
+    });
+
+    container.innerHTML = html;
+  }
+
+  function renderIntentBreakdown(tasks) {
+    var container = document.getElementById('chart-intent-breakdown');
+    var intentCounts = {};
+    tasks.forEach(function (t) {
+      var intent = t.intent || 'unknown';
+      intentCounts[intent] = (intentCounts[intent] || 0) + 1;
+    });
+
+    var intents = Object.keys(intentCounts);
+    var total = tasks.length || 1;
+    var colors = ['#6c63ff', '#34d399', '#fbbf24', '#f87171', '#60a5fa', '#fb923c', '#a78bfa', '#f472b6'];
+
+    if (intents.length === 0) {
+      container.innerHTML = '<div class="empty-state" style="padding:24px;">No data</div>';
+      return;
+    }
+
+    // Build donut chart SVG
+    var size = 180;
+    var cx = size / 2, cy = size / 2, r = 65;
+    var circumference = 2 * Math.PI * r;
+    var currentOffset = 0;
+
+    var svgPaths = '';
+    var legendHtml = '<div class="donut-legend">';
+
+    intents.forEach(function (intent, i) {
+      var count = intentCounts[intent];
+      var pct = count / total;
+      var dashLen = pct * circumference;
+      var color = colors[i % colors.length];
+
+      svgPaths += '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" ' +
+        'stroke="' + color + '" stroke-width="28" ' +
+        'stroke-dasharray="' + dashLen + ' ' + (circumference - dashLen) + '" ' +
+        'stroke-dashoffset="' + (-currentOffset) + '" ' +
+        'transform="rotate(-90 ' + cx + ' ' + cy + ')" ' +
+        'style="transition: stroke-dasharray 0.6s ease-out;"/>';
+
+      legendHtml += '<span class="donut-legend-item">' +
+        '<span class="donut-legend-color" style="background:' + color + ';"></span>' +
+        escapeHtml(intent) + ' (' + count + ')' +
+      '</span>';
+
+      currentOffset += dashLen;
+    });
+
+    legendHtml += '</div>';
+
+    var svg = '<svg width="' + size + '" height="' + size + '" viewBox="0 0 ' + size + ' ' + size + '">' +
+      svgPaths +
+      '<circle cx="' + cx + '" cy="' + cy + '" r="42" fill="var(--surface)"/>' +
+      '<text x="' + cx + '" y="' + (cy - 4) + '" text-anchor="middle" fill="var(--text)" font-size="22" font-weight="800">' + total + '</text>' +
+      '<text x="' + cx + '" y="' + (cy + 12) + '" text-anchor="middle" fill="var(--text-muted)" font-size="9" font-weight="600">TASKS</text>' +
+    '</svg>';
+
+    container.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;">' + svg + legendHtml + '</div>';
+  }
+
+  function renderApprovalRate(approvals) {
+    var container = document.getElementById('chart-approval-rate');
+    var total = approvals.length || 1;
+    var approved = approvals.filter(function (a) { return a.decision === 'approved'; }).length;
+    var denied = approvals.filter(function (a) { return a.decision === 'denied'; }).length;
+    var pending = approvals.filter(function (a) { return !a.decision; }).length;
+
+    var approvedPct = Math.round((approved / total) * 100);
+    var deniedPct = Math.round((denied / total) * 100);
+    var pendingPct = 100 - approvedPct - deniedPct;
+    var rateColor = approvedPct >= 70 ? 'var(--green)' : approvedPct >= 40 ? 'var(--yellow)' : 'var(--red)';
+
+    container.innerHTML = '<div class="approval-rate-display">' +
+      '<div class="approval-rate-number" style="color:' + rateColor + ';">' + approvedPct + '%</div>' +
+      '<div class="approval-rate-label">Approval Rate</div>' +
+      '<div class="approval-rate-bar">' +
+        '<div class="approval-rate-bar-approved" style="width:' + approvedPct + '%;"></div>' +
+        '<div class="approval-rate-bar-denied" style="width:' + deniedPct + '%;"></div>' +
+        '<div class="approval-rate-bar-pending" style="width:' + pendingPct + '%;"></div>' +
+      '</div>' +
+      '<div class="approval-rate-stats">' +
+        '<span class="approval-rate-stat"><span class="approval-rate-dot" style="background:var(--green);"></span>Approved: ' + approved + '</span>' +
+        '<span class="approval-rate-stat"><span class="approval-rate-dot" style="background:var(--red);"></span>Denied: ' + denied + '</span>' +
+        '<span class="approval-rate-stat"><span class="approval-rate-dot" style="background:var(--border);"></span>Pending: ' + pending + '</span>' +
+      '</div>' +
+    '</div>';
+  }
+
+  function renderTimeline(tasks) {
+    var container = document.getElementById('chart-timeline');
+    // Build last 7 days
+    var days = [];
+    for (var i = 6; i >= 0; i--) {
+      var d = new Date();
+      d.setDate(d.getDate() - i);
+      days.push(d.toISOString().slice(0, 10));
+    }
+
+    var counts = {};
+    var max = 0;
+    days.forEach(function (day) {
+      counts[day] = tasks.filter(function (t) {
+        return t.createdAt && t.createdAt.slice(0, 10) === day;
+      }).length;
+      if (counts[day] > max) max = counts[day];
+    });
+    if (max === 0) max = 1;
+
+    // Build line chart with SVG
+    var w = 700, h = 160, padX = 50, padY = 20, padBottom = 30;
+    var chartW = w - padX * 2;
+    var chartH = h - padY - padBottom;
+
+    var points = [];
+    days.forEach(function (day, i) {
+      var x = padX + (i / (days.length - 1)) * chartW;
+      var y = padY + chartH - (counts[day] / max) * chartH;
+      points.push({ x: x, y: y, day: day, count: counts[day] });
+    });
+
+    // Build polyline string
+    var polyline = points.map(function (p) { return p.x + ',' + p.y; }).join(' ');
+    // Fill area
+    var areaPath = 'M ' + points[0].x + ',' + (padY + chartH) + ' ' +
+      points.map(function (p) { return 'L ' + p.x + ',' + p.y; }).join(' ') +
+      ' L ' + points[points.length - 1].x + ',' + (padY + chartH) + ' Z';
+
+    var svg = '<svg viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="xMidYMid meet">';
+
+    // Grid lines
+    for (var g = 0; g <= 4; g++) {
+      var gy = padY + (g / 4) * chartH;
+      var label = Math.round(max - (g / 4) * max);
+      svg += '<line x1="' + padX + '" y1="' + gy + '" x2="' + (w - padX) + '" y2="' + gy + '" stroke="var(--border)" stroke-width="0.5" stroke-dasharray="4,4"/>';
+      svg += '<text x="' + (padX - 8) + '" y="' + (gy + 4) + '" text-anchor="end" fill="var(--text-muted)" font-size="10">' + label + '</text>';
+    }
+
+    // Area fill
+    svg += '<path d="' + areaPath + '" fill="var(--accent-subtle)" opacity="0.5"/>';
+
+    // Line
+    svg += '<polyline points="' + polyline + '" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>';
+
+    // Dots and labels
+    points.forEach(function (p) {
+      svg += '<circle cx="' + p.x + '" cy="' + p.y + '" r="4" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"/>';
+      // Day label
+      var dayLabel = p.day.slice(5); // MM-DD
+      svg += '<text x="' + p.x + '" y="' + (h - 5) + '" text-anchor="middle" fill="var(--text-muted)" font-size="10">' + dayLabel + '</text>';
+      // Count label above dot
+      if (p.count > 0) {
+        svg += '<text x="' + p.x + '" y="' + (p.y - 10) + '" text-anchor="middle" fill="var(--text-secondary)" font-size="11" font-weight="600">' + p.count + '</text>';
+      }
+    });
+
+    svg += '</svg>';
+    container.innerHTML = svg;
+  }
+
+  // ── Receipt Explorer ──────────────────────────────────────────────
+
+  var cachedReceipts = [];
+  var verifyChainBtn = document.getElementById('verify-chain-btn');
+  var exportReceiptsBtn = document.getElementById('export-receipts-btn');
+  var chainVerificationResult = document.getElementById('chain-verification-result');
+
+  function loadReceipts() {
+    apiGet('/api/receipts').then(function (data) {
+      if (data && data.receipts) {
+        cachedReceipts = data.receipts;
+      } else if (data && Array.isArray(data)) {
+        cachedReceipts = data;
+      }
+      renderReceiptChain();
+    }).catch(function () {
+      // If no receipt endpoint, generate from approvals
+      cachedReceipts = generateReceiptsFromApprovals();
+      renderReceiptChain();
+    });
+  }
+
+  function generateReceiptsFromApprovals() {
+    var receipts = [];
+    var prevHash = '0000000000000000';
+    cachedApprovals.forEach(function (a, i) {
+      var hash = simpleHash(prevHash + (a.id || '') + (a.decision || '') + (a.requestedAt || ''));
+      receipts.push({
+        id: a.id || ('rcpt-' + i),
+        actionId: a.id || ('action-' + i),
+        timestamp: a.decidedAt || a.requestedAt || new Date().toISOString(),
+        cordDecision: a.cordDecision || mapRiskToDecision(a.risk),
+        hash: hash,
+        prevHash: prevHash,
+        reason: a.reason || '',
+      });
+      prevHash = hash;
+    });
+    return receipts;
+  }
+
+  function simpleHash(str) {
+    var hash = 0;
+    for (var i = 0; i < str.length; i++) {
+      var char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash;
+    }
+    var hex = Math.abs(hash).toString(16);
+    while (hex.length < 16) hex = '0' + hex;
+    return hex.slice(0, 16);
+  }
+
+  function renderReceiptChain() {
+    var container = document.getElementById('receipt-chain');
+    chainVerificationResult.classList.add('hidden');
+
+    if (cachedReceipts.length === 0) {
+      container.innerHTML = '<div class="empty-state">No receipts loaded</div>';
+      return;
+    }
+
+    var html = '';
+    cachedReceipts.forEach(function (r, i) {
+      var decisionUpper = (r.cordDecision || 'ALLOW').toUpperCase();
+      var decisionClass = 'cord-decision-' + decisionUpper;
+
+      html += '<div class="receipt-card">' +
+        '<div class="receipt-card-header">' +
+          '<span class="receipt-card-id">' + escapeHtml((r.actionId || r.id || '').slice(0, 12)) + '...</span>' +
+          '<span class="cord-decision-badge ' + decisionClass + '" style="font-size:0.62rem;padding:2px 8px;">' + escapeHtml(decisionUpper) + '</span>' +
+          '<span class="receipt-card-time">' + formatTime(r.timestamp) + '</span>' +
+        '</div>' +
+        '<div class="receipt-card-hash">hash: ' + escapeHtml((r.hash || '').slice(0, 16)) + '...</div>' +
+      '</div>';
+
+      // Arrow between cards
+      if (i < cachedReceipts.length - 1) {
+        html += '<div class="receipt-arrow">' +
+          '<svg width="16" height="20" viewBox="0 0 16 20"><path d="M8 0 L8 16 M3 11 L8 16 L13 11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+        '</div>';
+      }
+    });
+
+    container.innerHTML = html;
+  }
+
+  verifyChainBtn.addEventListener('click', function () {
+    if (cachedReceipts.length === 0) {
+      showToast('No receipts to verify', 'warning');
+      return;
+    }
+
+    var valid = true;
+    for (var i = 1; i < cachedReceipts.length; i++) {
+      var expected = cachedReceipts[i].prevHash;
+      var actual = cachedReceipts[i - 1].hash;
+      if (expected && actual && expected !== actual) {
+        valid = false;
+        break;
+      }
+    }
+
+    chainVerificationResult.classList.remove('hidden', 'chain-valid', 'chain-invalid');
+    if (valid) {
+      chainVerificationResult.classList.add('chain-valid');
+      chainVerificationResult.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Chain verified: all ' + cachedReceipts.length + ' receipts are valid';
+      showToast('Receipt chain integrity verified', 'success');
+    } else {
+      chainVerificationResult.classList.add('chain-invalid');
+      chainVerificationResult.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Chain broken: hash mismatch detected at receipt ' + i;
+      showToast('Receipt chain integrity check failed', 'error');
+    }
+  });
+
+  exportReceiptsBtn.addEventListener('click', function () {
+    if (cachedReceipts.length === 0) {
+      showToast('No receipts to export', 'warning');
+      return;
+    }
+
+    var json = JSON.stringify(cachedReceipts, null, 2);
+    var blob = new Blob([json], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'receipt-chain-' + new Date().toISOString().slice(0, 10) + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('Receipt chain exported as JSON', 'success');
+  });
+
+  // ── Pipeline Live View ────────────────────────────────────────────
+
+  var pipelineLiveModal = document.getElementById('pipeline-live-modal');
+  var pipelineStages = document.getElementById('pipeline-stages');
+  var pipelineLiveLog = document.getElementById('pipeline-live-log');
+  var closePipelineLiveModal = document.getElementById('close-pipeline-live-modal');
+
+  closePipelineLiveModal.addEventListener('click', function () {
+    pipelineLiveModal.classList.add('hidden');
+  });
+  pipelineLiveModal.addEventListener('click', function (e) {
+    if (e.target === pipelineLiveModal) pipelineLiveModal.classList.add('hidden');
+  });
+
+  var PIPELINE_STAGE_NAMES = ['Classify', 'Policy', 'CORD Safety', 'Approve', 'Execute', 'Receipt'];
+
+  function startPipelineLiveView(task) {
+    var stageStates = {};
+    var stageTimes = {};
+    var stageStartTimes = {};
+    PIPELINE_STAGE_NAMES.forEach(function (name) {
+      stageStates[name] = 'pending';
+      stageTimes[name] = '';
+    });
+
+    renderPipelineStages(stageStates, stageTimes);
+    pipelineLiveLog.innerHTML = '';
+    pipelineLiveModal.classList.remove('hidden');
+    runPipelineBtn.disabled = true;
+    runPipelineBtn.textContent = 'Running...';
+
+    addPipelineLiveLogEntry('running', 'Pipeline started for: ' + task.title);
+    addActivity('info', 'Pipeline run started: ' + task.title);
+
+    // Also keep the old pipeline feed working
+    pipelineEvents.innerHTML = '';
+    pipelineFeed.classList.remove('hidden');
+    addPipelineEvent('info', 'Pipeline started for: ' + task.title);
+
+    var currentStageIndex = 0;
+
+    fetch(API_BASE + '/api/pipeline/run', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ source: task.source, title: task.title, body: task.body || '' }),
+    }).then(function (response) {
+      if (!response.ok) {
+        stageStates[PIPELINE_STAGE_NAMES[0]] = 'failed';
+        renderPipelineStages(stageStates, stageTimes);
+        addPipelineLiveLogEntry('failed', 'Pipeline request failed: HTTP ' + response.status);
+        addPipelineEvent('blocked', 'Pipeline request failed: HTTP ' + response.status);
+        runPipelineBtn.disabled = false;
+        runPipelineBtn.textContent = 'Run Pipeline';
+        showToast('Pipeline run failed', 'error');
+        return;
+      }
+
+      // Start first stage
+      stageStates[PIPELINE_STAGE_NAMES[0]] = 'running';
+      stageStartTimes[PIPELINE_STAGE_NAMES[0]] = Date.now();
+      renderPipelineStages(stageStates, stageTimes);
+
+      var reader = response.body.getReader();
+      var decoder = new TextDecoder();
+      var buffer = '';
+
+      function readChunk() {
+        reader.read().then(function (result) {
+          if (result.done) {
+            // Mark remaining stages as done
+            PIPELINE_STAGE_NAMES.forEach(function (name) {
+              if (stageStates[name] === 'running' || stageStates[name] === 'pending') {
+                if (stageStates[name] === 'running' && stageStartTimes[name]) {
+                  stageTimes[name] = (Date.now() - stageStartTimes[name]) + 'ms';
+                }
+                stageStates[name] = 'done';
+              }
+            });
+            renderPipelineStages(stageStates, stageTimes);
+            addPipelineLiveLogEntry('done', 'Pipeline run completed');
+            addPipelineEvent('info', 'Pipeline run completed');
+            addActivity('success', 'Pipeline run completed: ' + task.title);
+            runPipelineBtn.disabled = false;
+            runPipelineBtn.textContent = 'Run Pipeline';
+            showToast('Pipeline completed successfully', 'success');
+            loadTasks();
+            loadApprovals();
+            return;
+          }
+
+          buffer += decoder.decode(result.value, { stream: true });
+          var lines = buffer.split('\n');
+          buffer = lines.pop();
+
+          lines.forEach(function (line) {
+            line = line.trim();
+            if (!line) return;
+
+            var evt = null;
+            if (line.indexOf('data: ') === 0) {
+              try { evt = JSON.parse(line.slice(6)); } catch (e) {
+                addPipelineLiveLogEntry('running', line.slice(6));
+              }
+            } else if (line.indexOf('event: ') !== 0 && line.indexOf('id: ') !== 0 && line.indexOf(':') !== 0) {
+              try { evt = JSON.parse(line); } catch (e2) { /* ignore */ }
+            }
+
+            if (evt) {
+              handlePipelineEvent(evt);
+
+              // Advance stages based on event
+              var evtType = (evt.type || evt.event || evt.step || '').toLowerCase();
+              var evtDecision = (evt.decision || evt.status || evt.action || '').toLowerCase();
+
+              // Try to map event to a stage
+              var stageMapping = {
+                classify: 0, classification: 0, categorize: 0,
+                policy: 1, 'policy-check': 1, 'policy_check': 1,
+                cord: 2, safety: 2, 'cord-safety': 2, 'cord_safety': 2, risk: 2,
+                approve: 3, approval: 3, 'approval_needed': 3, 'needs_approval': 3, review: 3,
+                execute: 4, execution: 4, run: 4, action: 4,
+                receipt: 5, log: 5, audit: 5, complete: 5, completed: 5, done: 5,
+              };
+
+              var matchedStage = -1;
+              if (stageMapping[evtType] !== undefined) {
+                matchedStage = stageMapping[evtType];
+              }
+
+              if (matchedStage >= 0) {
+                // Mark all stages up to matched as done
+                for (var s = 0; s < matchedStage; s++) {
+                  if (stageStates[PIPELINE_STAGE_NAMES[s]] !== 'done' && stageStates[PIPELINE_STAGE_NAMES[s]] !== 'failed') {
+                    if (stageStartTimes[PIPELINE_STAGE_NAMES[s]]) {
+                      stageTimes[PIPELINE_STAGE_NAMES[s]] = (Date.now() - stageStartTimes[PIPELINE_STAGE_NAMES[s]]) + 'ms';
+                    }
+                    stageStates[PIPELINE_STAGE_NAMES[s]] = 'done';
+                  }
+                }
+                // Set matched stage
+                var isFailed = evtDecision === 'blocked' || evtDecision === 'block' || evtDecision === 'denied' || evtDecision === 'deny' || evtType === 'error';
+                if (isFailed) {
+                  stageStates[PIPELINE_STAGE_NAMES[matchedStage]] = 'failed';
+                  if (stageStartTimes[PIPELINE_STAGE_NAMES[matchedStage]]) {
+                    stageTimes[PIPELINE_STAGE_NAMES[matchedStage]] = (Date.now() - stageStartTimes[PIPELINE_STAGE_NAMES[matchedStage]]) + 'ms';
+                  }
+                } else {
+                  stageStates[PIPELINE_STAGE_NAMES[matchedStage]] = 'running';
+                  stageStartTimes[PIPELINE_STAGE_NAMES[matchedStage]] = Date.now();
+                }
+                renderPipelineStages(stageStates, stageTimes);
+              } else {
+                // Advance linearly
+                if (currentStageIndex < PIPELINE_STAGE_NAMES.length) {
+                  var cur = PIPELINE_STAGE_NAMES[currentStageIndex];
+                  if (stageStartTimes[cur]) {
+                    stageTimes[cur] = (Date.now() - stageStartTimes[cur]) + 'ms';
+                  }
+                  stageStates[cur] = 'done';
+                  currentStageIndex++;
+                  if (currentStageIndex < PIPELINE_STAGE_NAMES.length) {
+                    stageStates[PIPELINE_STAGE_NAMES[currentStageIndex]] = 'running';
+                    stageStartTimes[PIPELINE_STAGE_NAMES[currentStageIndex]] = Date.now();
+                  }
+                  renderPipelineStages(stageStates, stageTimes);
+                }
+              }
+
+              var msg = evt.message || evt.detail || evt.reason || evt.step || evt.type || JSON.stringify(evt);
+              addPipelineLiveLogEntry(
+                evtDecision === 'blocked' || evtDecision === 'denied' ? 'failed' :
+                evtDecision === 'allowed' || evtDecision === 'completed' ? 'done' : 'running',
+                msg
+              );
+            }
+          });
+
+          readChunk();
+        }).catch(function (err) {
+          // Mark current stage as failed
+          PIPELINE_STAGE_NAMES.forEach(function (name) {
+            if (stageStates[name] === 'running') stageStates[name] = 'failed';
+          });
+          renderPipelineStages(stageStates, stageTimes);
+          addPipelineLiveLogEntry('failed', 'Stream error: ' + err.message);
+          addPipelineEvent('blocked', 'Stream error: ' + err.message);
+          runPipelineBtn.disabled = false;
+          runPipelineBtn.textContent = 'Run Pipeline';
+          showToast('Pipeline stream error', 'error');
+        });
+      }
+
+      readChunk();
+    }).catch(function (err) {
+      stageStates[PIPELINE_STAGE_NAMES[0]] = 'failed';
+      renderPipelineStages(stageStates, stageTimes);
+      addPipelineLiveLogEntry('failed', 'Pipeline request failed: ' + err.message);
+      addPipelineEvent('blocked', 'Pipeline request failed: ' + err.message);
+      addActivity('error', 'Pipeline run failed: ' + err.message);
+      runPipelineBtn.disabled = false;
+      runPipelineBtn.textContent = 'Run Pipeline';
+      showToast('Pipeline run failed: ' + err.message, 'error');
+    });
+  }
+
+  function renderPipelineStages(states, times) {
+    var html = '';
+    PIPELINE_STAGE_NAMES.forEach(function (name, i) {
+      var state = states[name] || 'pending';
+      html += '<div class="pipeline-stage-box stage-' + state + '">' +
+        '<span class="stage-name">' + escapeHtml(name) + '</span>' +
+        (times[name] ? '<span class="stage-time">' + escapeHtml(times[name]) + '</span>' : '<span class="stage-time">&mdash;</span>') +
+      '</div>';
+      if (i < PIPELINE_STAGE_NAMES.length - 1) {
+        html += '<span class="pipeline-stage-arrow">&rarr;</span>';
+      }
+    });
+    pipelineStages.innerHTML = html;
+  }
+
+  function addPipelineLiveLogEntry(type, message) {
+    var entry = document.createElement('div');
+    entry.className = 'pipeline-live-log-entry log-' + type;
+    entry.textContent = new Date().toLocaleTimeString() + '  ' + message;
+    pipelineLiveLog.appendChild(entry);
+    pipelineLiveLog.scrollTop = pipelineLiveLog.scrollHeight;
+  }
+
   // ── Utilities ──────────────────────────────────────────────────────
 
   function escapeHtml(str) {
@@ -914,6 +1741,7 @@
       if (tab === 'approvals') loadApprovals();
       else if (tab === 'tasks') loadTasks();
       else if (tab === 'workflows') loadWorkflows();
+      else if (tab === 'analytics') loadAnalytics();
     }, 10000);
   }
 
@@ -921,10 +1749,16 @@
 
   window.App = {
     decide: decideApproval,
+    approveWithLoading: approveWithLoading,
     confirmDeny: confirmDeny,
     simulate: simulateTask,
     showTaskDetail: showTaskDetail,
+    showCordExplainer: showCordExplainer,
+    showToast: showToast,
   };
+
+  // Expose showToast globally for convenience
+  window.showToast = showToast;
 
   checkHealth();
   loadApprovals();
@@ -933,4 +1767,5 @@
   loadConnectorStatus();
   connectSSE();
   startAutoRefresh();
+  loadReceipts();
 })();

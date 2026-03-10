@@ -1,7 +1,7 @@
 {
   "name": "@ai-ops/ops-core",
   "version": "0.1.0",
-  "private": true,
+  "private": false,
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -23,5 +23,22 @@
   "bugs": {
     "url": "https://github.com/zanderone1980/ai-operations-os/issues"
   },
-  "author": "Alex Pinkevich <alex@zanderpinkdesign.com>"
+  "author": "Alex Pinkevich <alex@zanderpinkdesign.com>",
+  "license": "MIT",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org",
+    "access": "public"
+  },
+  "keywords": [
+    "ai-ops",
+    "ai-agents",
+    "workflow",
+    "automation",
+    "safety"
+  ]
 }

@@ -11,6 +11,8 @@ import * as http from 'http';
 import * as fs from 'fs';
 import * as nodePath from 'path';
 import { stores } from './storage';
+import { createLogger } from '@ai-ops/ops-core';
+import { requestLogger } from './middleware/request-logger';
 import { taskRoutes } from './routes/tasks';
 import { workflowRoutes } from './routes/workflows';
 import { approvalRoutes } from './routes/approvals';
@@ -21,6 +23,9 @@ import { gmailRoutes } from './routes/gmail';
 import { shopifyRoutes } from './routes/shopify';
 import { calendarRoutes } from './routes/calendar';
 import { xTwitterRoutes } from './routes/x-twitter';
+import { createRateLimiter } from './middleware/rate-limit';
+
+const log = createLogger('ops-api');
 
 export { stores };
 
@@ -130,9 +135,39 @@ export function sendError(res: http.ServerResponse, status: number, message: str
   sendJson(res, status, { error: message });
 }
 
+// ── Rate Limiter ─────────────────────────────────────────────────────────────
+
+const rateLimiter = createRateLimiter({
+  windowMs: 60_000,
+  maxRequests: parseInt(process.env.OPS_RATE_LIMIT || '100', 10),
+});
+
+export { rateLimiter };
+
+// ── Connection tracking ──────────────────────────────────────────────────────
+
+/** Track active connections for graceful shutdown. */
+const activeConnections = new Set<http.ServerResponse>();
+
+/** Track active SSE connections for graceful shutdown. */
+const sseConnections = new Set<http.ServerResponse>();
+
+/** Register an SSE connection for tracking. Call from SSE route handlers. */
+export function trackSSE(res: http.ServerResponse): void {
+  sseConnections.add(res);
+  res.on('close', () => sseConnections.delete(res));
+}
+
 // ── Server ───────────────────────────────────────────────────────────────────
 
 const server = http.createServer(async (req, res) => {
+  // Track active connection
+  activeConnections.add(res);
+  res.on('finish', () => activeConnections.delete(res));
+  res.on('close', () => activeConnections.delete(res));
+
+  // Run request logger middleware
+  requestLogger(req, res, () => {});
   const method = (req.method || 'GET').toUpperCase();
   const url = req.url || '/';
   const path = url.split('?')[0];
@@ -149,9 +184,60 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // Health check
+  // Health check — skip rate limiting
   if (path === '/health' || path === '/api/health') {
     sendJson(res, 200, { status: 'ok', version: '0.1.0', uptime: process.uptime() });
+    return;
+  }
+
+  // Readiness check — verifies DB connectivity
+  if (path === '/api/readiness') {
+    try {
+      const result = stores.db.db.prepare('SELECT 1 AS ok').get() as { ok: number } | undefined;
+      const dbOk = result?.ok === 1;
+      const status = dbOk ? 'ready' : 'not_ready';
+      const httpStatus = dbOk ? 200 : 503;
+      sendJson(res, httpStatus, {
+        status,
+        components: {
+          database: dbOk ? 'ok' : 'unavailable',
+        },
+      });
+    } catch (err) {
+      sendJson(res, 503, {
+        status: 'not_ready',
+        components: {
+          database: 'error',
+        },
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+    return;
+  }
+
+  // Liveness check — process health
+  if (path === '/api/liveness') {
+    const mem = process.memoryUsage();
+    sendJson(res, 200, {
+      status: 'alive',
+      uptime: process.uptime(),
+      memory: {
+        rss: mem.rss,
+        heapUsed: mem.heapUsed,
+        heapTotal: mem.heapTotal,
+        external: mem.external,
+      },
+      activeConnections: activeConnections.size,
+      sseConnections: sseConnections.size,
+    });
+    return;
+  }
+
+  // Rate limiting — applied to all non-health routes
+  const rateResult = rateLimiter.check(req);
+  rateLimiter.setHeaders(res, rateResult);
+  if (!rateResult.allowed) {
+    sendJson(res, 429, { error: 'Too many requests. Please try again later.' });
     return;
   }
 
@@ -171,7 +257,10 @@ const server = http.createServer(async (req, res) => {
       const query = parseQuery(url);
       await route.handler({ req, res, path, method, body, params, query });
     } catch (err) {
-      console.error(`[ops-api] Error in ${method} ${path}:`, err);
+      const correlationId = (req as any).correlationId as string | undefined;
+      log.error(`Error in ${method} ${path}`, {
+        error: err instanceof Error ? err.message : String(err),
+      }, correlationId);
       sendError(res, 500, 'Internal server error');
     }
     return;
@@ -211,10 +300,80 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, HOST, () => {
+  log.info('Server started', {
+    host: HOST,
+    port: PORT,
+    routes: routes.length,
+  });
   console.log(`\n  AI Operations OS — API Server`);
   console.log(`  Listening on http://${HOST}:${PORT}`);
-  console.log(`  Health: http://localhost:${PORT}/health`);
+  console.log(`  Health:    http://localhost:${PORT}/health`);
+  console.log(`  Readiness: http://localhost:${PORT}/api/readiness`);
+  console.log(`  Liveness:  http://localhost:${PORT}/api/liveness`);
   console.log(`  Routes: ${routes.length} registered\n`);
 });
+
+// ── Graceful Shutdown ────────────────────────────────────────────────────────
+
+let isShuttingDown = false;
+
+async function gracefulShutdown(signal: string): Promise<void> {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+
+  log.info('Shutdown initiated', { signal });
+
+  // 1. Stop accepting new connections
+  server.close(() => {
+    log.info('HTTP server closed — no longer accepting connections');
+  });
+
+  // 2. Close all SSE connections
+  log.info('Closing SSE connections', { count: sseConnections.size });
+  for (const sseRes of sseConnections) {
+    try {
+      sseRes.end();
+    } catch {
+      // Already closed — ignore
+    }
+  }
+  sseConnections.clear();
+
+  // 3. Wait for in-flight requests to drain (up to 10 seconds)
+  const drainTimeout = 10_000;
+  const drainStart = Date.now();
+  while (activeConnections.size > 0 && Date.now() - drainStart < drainTimeout) {
+    log.info('Draining in-flight requests', { remaining: activeConnections.size });
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+
+  if (activeConnections.size > 0) {
+    log.warn('Force-closing remaining connections', { remaining: activeConnections.size });
+    for (const connRes of activeConnections) {
+      try {
+        connRes.end();
+      } catch {
+        // Already closed — ignore
+      }
+    }
+    activeConnections.clear();
+  }
+
+  // 4. Close the SQLite database
+  try {
+    stores.db.close();
+    log.info('Database closed');
+  } catch (err) {
+    log.error('Error closing database', {
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+
+  log.info('Shutdown complete', { signal });
+  process.exit(0);
+}
+
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 
 export { server };

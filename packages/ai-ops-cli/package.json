@@ -1,0 +1,25 @@
+{
+  "name": "@ai-ops/cli",
+  "version": "0.1.0",
+  "description": "CLI for AI Operations OS",
+  "bin": { "ai-ops": "./dist/bin.js" },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@ai-ops/shared-types": "*",
+    "@ai-ops/ops-storage": "*"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zanderone1980/ai-operations-os.git",
+    "directory": "packages/ai-ops-cli"
+  },
+  "author": "Alex Pinkevich <alex@zanderpinkdesign.com>"
+}

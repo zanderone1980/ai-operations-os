@@ -40,3 +40,7 @@ export type { LLMClassificationResult } from './llm-classifier';
 // Task store
 export { TaskStore } from './store';
 export type { TaskFilter } from './store';
+
+// Structured logger
+export { createLogger } from './logger';
+export type { Logger, LogLevel, LogEntry } from './logger';

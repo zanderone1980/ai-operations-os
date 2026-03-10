@@ -2500,3 +2500,336 @@ main {
     grid-template-columns: 1fr;
   }
 }
+
+/* ── SPARK Chat ──────────────────────────────────────────────────── */
+
+.spark-chat-container {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  margin-bottom: 20px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.spark-chat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-elevated);
+}
+
+.spark-chat-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--accent);
+}
+
+.spark-chat-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.spark-chat-clear {
+  background: var(--surface-hover);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  font-size: 0.72rem;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.spark-chat-clear:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+.spark-chat-messages {
+  min-height: 180px;
+  max-height: 420px;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  scroll-behavior: smooth;
+}
+
+/* Welcome screen */
+.spark-chat-welcome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 40px 16px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.spark-chat-welcome-icon {
+  opacity: 0.6;
+}
+
+.spark-chat-welcome-text {
+  font-size: 0.82rem;
+  line-height: 1.5;
+  max-width: 360px;
+}
+
+/* Messages */
+.spark-chat-msg {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  animation: spark-msg-in 0.25s ease-out;
+}
+
+@keyframes spark-msg-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.spark-chat-msg-user {
+  flex-direction: row-reverse;
+}
+
+.spark-chat-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  text-transform: uppercase;
+}
+
+.spark-chat-avatar-user {
+  background: var(--accent-subtle);
+  color: var(--accent);
+  border: 1px solid var(--accent);
+}
+
+.spark-chat-avatar-spark {
+  background: linear-gradient(135deg, var(--accent), #9f8fff);
+  color: #fff;
+}
+
+.spark-chat-msg-content {
+  max-width: 80%;
+  min-width: 0;
+}
+
+.spark-chat-msg-text {
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 0.84rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.spark-chat-msg-user .spark-chat-msg-text {
+  background: var(--accent);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+
+.spark-chat-msg-spark .spark-chat-msg-text {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border-subtle);
+  border-bottom-left-radius: 4px;
+}
+
+/* Reasoning collapsible */
+.spark-chat-reasoning {
+  margin-top: 6px;
+}
+
+.spark-reasoning-toggle {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  cursor: pointer;
+  padding: 4px 0;
+  transition: color var(--transition);
+}
+
+.spark-reasoning-toggle:hover {
+  color: var(--accent);
+}
+
+.spark-reasoning-steps {
+  display: none;
+  margin-top: 6px;
+  padding: 8px 12px;
+  background: var(--bg);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+}
+
+.spark-chat-reasoning.expanded .spark-reasoning-steps {
+  display: block;
+}
+
+.spark-chat-reasoning.expanded .spark-reasoning-toggle {
+  color: var(--accent);
+}
+
+.spark-reasoning-step {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.spark-reasoning-step:last-child {
+  border-bottom: none;
+}
+
+.spark-reasoning-rule {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.spark-reasoning-desc {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+.spark-reasoning-conf {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+  display: inline-block;
+}
+
+/* Typing dots animation */
+.spark-typing-dots {
+  display: flex;
+  gap: 4px;
+  padding: 12px 14px;
+  background: var(--bg);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  border-bottom-left-radius: 4px;
+  width: fit-content;
+}
+
+.spark-typing-dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  animation: spark-typing 1.2s infinite;
+}
+
+.spark-typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+.spark-typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes spark-typing {
+  0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
+  30% { opacity: 1; transform: translateY(-3px); }
+}
+
+/* Suggestion chips */
+.spark-chat-suggestions {
+  display: flex;
+  gap: 6px;
+  padding: 8px 16px;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.spark-suggestion-chip {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  padding: 5px 12px;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+
+.spark-suggestion-chip:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-subtle);
+}
+
+/* Input row */
+.spark-chat-input-row {
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-elevated);
+}
+
+.spark-chat-input {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 14px;
+  color: var(--text);
+  font-size: 0.84rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color var(--transition);
+}
+
+.spark-chat-input::placeholder {
+  color: var(--text-muted);
+}
+
+.spark-chat-input:focus {
+  border-color: var(--accent);
+}
+
+.spark-chat-send {
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.spark-chat-send:disabled {
+  opacity: 0.4;
+}
+
+@media (max-width: 640px) {
+  .spark-chat-messages {
+    max-height: 320px;
+  }
+  .spark-chat-msg-content {
+    max-width: 90%;
+  }
+}

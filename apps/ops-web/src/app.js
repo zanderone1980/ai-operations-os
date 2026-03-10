@@ -1767,11 +1767,11 @@
   async function loadSparkData() {
     try {
       const [weightsRes, episodesRes, predictionsRes, statsRes, awarenessRes] = await Promise.all([
-        fetch(`${API}/spark/weights`).catch(() => null),
-        fetch(`${API}/spark/episodes?limit=20`).catch(() => null),
-        fetch(`${API}/spark/predictions?limit=20`).catch(() => null),
-        fetch(`${API}/spark/stats`).catch(() => null),
-        fetch(`${API}/spark/awareness`).catch(() => null),
+        fetch(API_BASE + '/api/spark/weights').catch(() => null),
+        fetch(API_BASE + '/api/spark/episodes?limit=20').catch(() => null),
+        fetch(API_BASE + '/api/spark/predictions?limit=20').catch(() => null),
+        fetch(API_BASE + '/api/spark/stats').catch(() => null),
+        fetch(API_BASE + '/api/spark/awareness').catch(() => null),
       ]);
 
       if (statsRes && statsRes.ok) {
@@ -2016,7 +2016,7 @@
   document.getElementById('spark-refresh-btn')?.addEventListener('click', loadSparkData);
   document.getElementById('spark-snapshot-btn')?.addEventListener('click', async () => {
     try {
-      const res = await fetch(`${API}/spark/snapshot`, {
+      const res = await fetch(API_BASE + '/api/spark/snapshot', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ reason: 'Manual dashboard snapshot' }),
@@ -2038,6 +2038,154 @@
       if (tab.dataset.tab === 'spark') loadSparkData();
     });
   });
+
+  // ── SPARK Chat ────────────────────────────────────────────────────
+
+  var sparkConversationId = null;
+  var sparkChatMessages = document.getElementById('spark-chat-messages');
+  var sparkChatInput = document.getElementById('spark-chat-input');
+  var sparkChatSend = document.getElementById('spark-chat-send');
+  var sparkChatClear = document.getElementById('spark-chat-clear');
+  var sparkChatSuggestions = document.getElementById('spark-chat-suggestions');
+
+  function appendSparkMessage(role, text, reasoning, suggestions) {
+    // Remove welcome screen if present
+    var welcome = sparkChatMessages.querySelector('.spark-chat-welcome');
+    if (welcome) welcome.remove();
+
+    var msgDiv = document.createElement('div');
+    msgDiv.className = 'spark-chat-msg spark-chat-msg-' + role;
+
+    var avatarHtml = role === 'user'
+      ? '<div class="spark-chat-avatar spark-chat-avatar-user">You</div>'
+      : '<div class="spark-chat-avatar spark-chat-avatar-spark">S</div>';
+
+    var contentHtml = '<div class="spark-chat-msg-content">' +
+      '<div class="spark-chat-msg-text">' + escapeHtml(text) + '</div>';
+
+    // Add reasoning evidence for SPARK messages
+    if (role === 'spark' && reasoning && reasoning.length > 0) {
+      contentHtml += '<div class="spark-chat-reasoning">' +
+        '<button class="spark-reasoning-toggle" onclick="this.parentElement.classList.toggle(\'expanded\')">Show reasoning (' + reasoning.length + ' steps)</button>' +
+        '<div class="spark-reasoning-steps">';
+
+      reasoning.forEach(function (step) {
+        var confPercent = step.confidence ? (step.confidence * 100).toFixed(0) + '%' : '';
+        contentHtml += '<div class="spark-reasoning-step">' +
+          '<div class="spark-reasoning-rule">' + escapeHtml(step.ruleId || '') + '</div>' +
+          '<div class="spark-reasoning-desc">' + escapeHtml(step.description || '') + '</div>' +
+          (confPercent ? '<span class="spark-reasoning-conf">' + confPercent + ' confidence</span>' : '') +
+        '</div>';
+      });
+
+      contentHtml += '</div></div>';
+    }
+
+    contentHtml += '</div>';
+
+    msgDiv.innerHTML = avatarHtml + contentHtml;
+    sparkChatMessages.appendChild(msgDiv);
+
+    // Update suggestions
+    if (role === 'spark' && suggestions && suggestions.length > 0) {
+      sparkChatSuggestions.innerHTML = suggestions.map(function (s) {
+        return '<button class="spark-suggestion-chip" onclick="App.sparkSuggest(this)">' + escapeHtml(s) + '</button>';
+      }).join('');
+    }
+
+    // Scroll to bottom
+    sparkChatMessages.scrollTop = sparkChatMessages.scrollHeight;
+  }
+
+  function appendSparkTyping() {
+    var typingDiv = document.createElement('div');
+    typingDiv.className = 'spark-chat-msg spark-chat-msg-spark spark-chat-typing';
+    typingDiv.innerHTML =
+      '<div class="spark-chat-avatar spark-chat-avatar-spark">S</div>' +
+      '<div class="spark-chat-msg-content">' +
+        '<div class="spark-typing-dots"><span></span><span></span><span></span></div>' +
+      '</div>';
+    sparkChatMessages.appendChild(typingDiv);
+    sparkChatMessages.scrollTop = sparkChatMessages.scrollHeight;
+    return typingDiv;
+  }
+
+  async function sendSparkChat(message) {
+    if (!message || !message.trim()) return;
+    message = message.trim();
+
+    // Show user message
+    appendSparkMessage('user', message);
+    sparkChatInput.value = '';
+    sparkChatSend.disabled = true;
+
+    // Show typing indicator
+    var typing = appendSparkTyping();
+
+    try {
+      var body = { message: message };
+      if (sparkConversationId) body.conversationId = sparkConversationId;
+
+      var res = await fetch(API_BASE + '/api/spark/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      typing.remove();
+
+      if (res.ok) {
+        var data = await res.json();
+        sparkConversationId = data.conversationId || sparkConversationId;
+        appendSparkMessage('spark', data.response || 'No response', data.reasoning || [], data.suggestions || []);
+      } else {
+        appendSparkMessage('spark', 'Sorry, something went wrong. SPARK could not process your request.', [], []);
+      }
+    } catch (err) {
+      typing.remove();
+      appendSparkMessage('spark', 'Connection failed. Is the API server running?', [], []);
+    }
+
+    sparkChatSend.disabled = false;
+    sparkChatInput.focus();
+  }
+
+  function sparkSuggest(btn) {
+    var text = btn.textContent || btn.innerText;
+    sendSparkChat(text);
+  }
+
+  function sparkChatReset() {
+    sparkConversationId = null;
+    sparkChatMessages.innerHTML =
+      '<div class="spark-chat-welcome">' +
+        '<div class="spark-chat-welcome-icon">' +
+          '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>' +
+        '</div>' +
+        '<div class="spark-chat-welcome-text">Ask SPARK about its learning, predictions, or cross-connector patterns.</div>' +
+      '</div>';
+    sparkChatSuggestions.innerHTML =
+      '<button class="spark-suggestion-chip" onclick="App.sparkSuggest(this)">How are you doing?</button>' +
+      '<button class="spark-suggestion-chip" onclick="App.sparkSuggest(this)">What have you learned?</button>' +
+      '<button class="spark-suggestion-chip" onclick="App.sparkSuggest(this)">What connections do you see?</button>' +
+      '<button class="spark-suggestion-chip" onclick="App.sparkSuggest(this)">What are you uncertain about?</button>';
+  }
+
+  sparkChatSend.addEventListener('click', function () {
+    sendSparkChat(sparkChatInput.value);
+  });
+
+  sparkChatInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendSparkChat(sparkChatInput.value);
+    }
+  });
+
+  sparkChatClear.addEventListener('click', sparkChatReset);
+
+  // Extend App exports
+  window.App.sparkSuggest = sparkSuggest;
 
   checkHealth();
   loadApprovals();

@@ -245,6 +245,37 @@
         </div>
       </div>
 
+      <!-- SPARK Chat Interface -->
+      <div class="spark-chat-container">
+        <div class="spark-chat-header">
+          <div class="spark-chat-header-left">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <span class="spark-chat-title">Talk to SPARK</span>
+          </div>
+          <button class="btn btn-sm spark-chat-clear" id="spark-chat-clear" title="New conversation">New Chat</button>
+        </div>
+        <div class="spark-chat-messages" id="spark-chat-messages">
+          <div class="spark-chat-welcome">
+            <div class="spark-chat-welcome-icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+            </div>
+            <div class="spark-chat-welcome-text">Ask SPARK about its learning, predictions, or cross-connector patterns.</div>
+          </div>
+        </div>
+        <div class="spark-chat-suggestions" id="spark-chat-suggestions">
+          <button class="spark-suggestion-chip" onclick="App.sparkSuggest(this)">How are you doing?</button>
+          <button class="spark-suggestion-chip" onclick="App.sparkSuggest(this)">What have you learned?</button>
+          <button class="spark-suggestion-chip" onclick="App.sparkSuggest(this)">What connections do you see?</button>
+          <button class="spark-suggestion-chip" onclick="App.sparkSuggest(this)">What are you uncertain about?</button>
+        </div>
+        <div class="spark-chat-input-row">
+          <input type="text" class="spark-chat-input" id="spark-chat-input" placeholder="Ask SPARK anything..." autocomplete="off" />
+          <button class="btn btn-accent spark-chat-send" id="spark-chat-send" title="Send">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
+        </div>
+      </div>
+
       <!-- SPARK Stats Cards -->
       <div class="spark-stats-row">
         <div class="spark-stat-card">

@@ -37,6 +37,14 @@ export { AwarenessCore } from './awareness-core';
 export { ReasoningCore } from './reasoning-core';
 export { SparkOrchestrator } from './orchestrator';
 
+// ── Spiral Memory ───────────────────────────────────────────────
+export { EssenceExtractor } from './essence-extractor';
+export { MemoryTokenManager } from './memory-token-manager';
+export { SpiralLoop } from './spiral-loop';
+export type { SpiralPassResult, SpiralMaintenanceResult } from './spiral-loop';
+export { ContextReconstructor } from './context-reconstructor';
+export { FeedbackIntegrator } from './feedback-integrator';
+
 // ── Constants ─────────────────────────────────────────────────────
 export {
   EMA_ALPHA,
@@ -47,3 +55,13 @@ export {
   buildDefaultWeight,
   buildAllDefaultWeights,
 } from './constants';
+
+export {
+  REINFORCE_RATE,
+  DECAY_RATE,
+  PASSIVE_DECAY_PER_DAY,
+  INITIAL_TOKEN_STRENGTH,
+  ARCHIVE_STRENGTH_THRESHOLD,
+  MAX_CONTEXT_TOKENS,
+  MAX_GRAPH_DEPTH,
+} from './spiral-constants';

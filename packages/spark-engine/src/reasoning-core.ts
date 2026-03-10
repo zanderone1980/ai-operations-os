@@ -33,7 +33,10 @@ import type {
   LearningEpisode,
   SparkCategory,
   TrustLevel,
+  ReconstructedContext,
 } from '@ai-operations/shared-types';
+import type { ContextReconstructor } from './context-reconstructor';
+import type { FeedbackIntegrator } from './feedback-integrator';
 
 // ── Internal Types ─────────────────────────────────────────────────
 
@@ -51,6 +54,7 @@ interface InternalReasoningContext {
   recentInsights: Insight[];
   recentEpisodes: LearningEpisode[];
   crossConnector: CrossConnectorContext;
+  reconstructedContext?: ReconstructedContext;
 }
 
 // ── Query Intent Keywords ──────────────────────────────────────────
@@ -106,10 +110,21 @@ export class ReasoningCore {
 
   private readonly store: SparkStore;
   private readonly rules: ReasoningRule[];
+  private reconstructor?: ContextReconstructor;
+  private feedbackIntegrator?: FeedbackIntegrator;
 
   constructor(store: SparkStore) {
     this.store = store;
     this.rules = this.buildRules();
+  }
+
+  /**
+   * Inject spiral memory engines for context reconstruction.
+   * Called by SparkOrchestrator after construction.
+   */
+  setSpiralMemory(reconstructor: ContextReconstructor, feedbackIntegrator: FeedbackIntegrator): void {
+    this.reconstructor = reconstructor;
+    this.feedbackIntegrator = feedbackIntegrator;
   }
 
   /**
@@ -148,13 +163,19 @@ export class ReasoningCore {
     }
 
     // Save user turn
-    this.store.saveTurn({
+    const userTurn: ConversationTurn = {
       id: randomUUID(),
       conversationId: convId,
       role: 'user',
       content: query,
       createdAt: now,
-    });
+    };
+    this.store.saveTurn(userTurn);
+
+    // Feed into spiral memory
+    if (this.feedbackIntegrator) {
+      this.feedbackIntegrator.onConversationTurn(userTurn);
+    }
 
     // Assemble context
     const context = this.assembleContext(query, queryIntent, conversationHistory, awarenessReport);
@@ -182,14 +203,20 @@ export class ReasoningCore {
     };
 
     // Save SPARK turn
-    this.store.saveTurn({
+    const sparkTurn: ConversationTurn = {
       id: randomUUID(),
       conversationId: convId,
       role: 'spark',
       content: response,
       reasoningResult: result,
       createdAt: now,
-    });
+    };
+    this.store.saveTurn(sparkTurn);
+
+    // Feed SPARK response into spiral memory
+    if (this.feedbackIntegrator) {
+      this.feedbackIntegrator.onConversationTurn(sparkTurn);
+    }
 
     // Attach conversationId to result for the API response
     (result as any).conversationId = convId;
@@ -292,6 +319,14 @@ export class ReasoningCore {
       meta: { reportVersion: 1, generatedAt: new Date().toISOString(), episodeWindow: { from: '', to: '' } },
     };
 
+    // Reconstruct context from spiral memory if available
+    let reconstructedContext: ReconstructedContext | undefined;
+    if (this.reconstructor) {
+      reconstructedContext = this.reconstructor.reconstruct(query, {
+        categories: detectCategories(query) as SparkCategory[],
+      });
+    }
+
     return {
       query,
       queryIntent,
@@ -300,6 +335,7 @@ export class ReasoningCore {
       recentInsights,
       recentEpisodes,
       crossConnector,
+      reconstructedContext,
     };
   }
 

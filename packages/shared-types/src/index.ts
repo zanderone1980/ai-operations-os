@@ -56,6 +56,15 @@ export type {
   Conversation,
   CrossConnectorContext,
   CrossConnectorPattern,
+  SentimentValence,
+  MemoryTokenType,
+  CompressionTier,
+  DecisionPoint,
+  EssenceRelationship,
+  Essence,
+  MemoryToken,
+  MemoryEdge,
+  ReconstructedContext,
 } from './spark';
 export { SENTINEL_CATEGORIES } from './spark';
 

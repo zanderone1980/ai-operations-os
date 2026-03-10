@@ -292,6 +292,109 @@ async function getCrossConnectorContext(ctx: any): Promise<void> {
   sendJson(res, 200, context);
 }
 
+// ── Spiral Memory Routes ────────────────────────────────────────────────────
+
+/** GET /api/spark/memory/tokens — List memory tokens. */
+async function getMemoryTokens(ctx: any): Promise<void> {
+  const { res, query } = ctx;
+  const tokens = stores.spark.listMemoryTokens({
+    type: query.type || undefined,
+    tier: query.tier || undefined,
+    minStrength: query.minStrength ? Number(query.minStrength) : undefined,
+    excludeArchived: query.includeArchived !== 'true',
+    limit: query.limit ? Number(query.limit) : 50,
+  });
+  sendJson(res, 200, { tokens, count: tokens.length });
+}
+
+/** GET /api/spark/memory/tokens/:id — Get a single token. */
+async function getMemoryToken(ctx: any): Promise<void> {
+  const { res, params } = ctx;
+  const token = stores.spark.getMemoryToken(params.id);
+  if (!token) {
+    sendError(res, 404, `Memory token not found: ${params.id}`);
+    return;
+  }
+  sendJson(res, 200, token);
+}
+
+/** GET /api/spark/memory/edges — List memory edges. */
+async function getMemoryEdges(ctx: any): Promise<void> {
+  const { res, query } = ctx;
+  const edges = stores.spark.listMemoryEdges({
+    minWeight: query.minWeight ? Number(query.minWeight) : undefined,
+    type: query.type || undefined,
+    limit: query.limit ? Number(query.limit) : 50,
+  });
+  sendJson(res, 200, { edges, count: edges.length });
+}
+
+/** GET /api/spark/memory/graph — Full token graph for visualization. */
+async function getMemoryGraph(ctx: any): Promise<void> {
+  const { res } = ctx;
+  const tokens = stores.spark.listMemoryTokens({ excludeArchived: true, limit: 200 });
+  const edges = stores.spark.listMemoryEdges({ limit: 500 });
+  sendJson(res, 200, {
+    tokens: tokens.map(t => ({
+      id: t.id,
+      type: t.type,
+      tier: t.tier,
+      strength: t.strength,
+      spiralCount: t.spiralCount,
+      gist: t.essence.gist,
+      topics: t.essence.topics,
+      sentiment: t.essence.sentiment,
+      createdAt: t.createdAt,
+    })),
+    edges: edges.map(e => ({
+      id: e.id,
+      from: e.fromTokenId,
+      to: e.toTokenId,
+      type: e.type,
+      weight: e.weight,
+    })),
+    tokenCount: tokens.length,
+    edgeCount: edges.length,
+  });
+}
+
+/** GET /api/spark/memory/stats — Spiral memory statistics. */
+async function getMemoryStats(ctx: any): Promise<void> {
+  const { res } = ctx;
+  const totalTokens = stores.spark.countMemoryTokens();
+  const activeTokens = stores.spark.countMemoryTokens({ excludeArchived: true });
+  const edges = stores.spark.listMemoryEdges({ limit: 1000 });
+  const topicDocs = stores.spark.getTopicDocumentCount();
+
+  sendJson(res, 200, {
+    totalTokens,
+    activeTokens,
+    archivedTokens: totalTokens - activeTokens,
+    totalEdges: edges.length,
+    topicDocumentCount: topicDocs,
+  });
+}
+
+/** POST /api/spark/memory/reconstruct — Debug context reconstruction. */
+async function reconstructMemory(ctx: any): Promise<void> {
+  const { res, body } = ctx;
+  const query = body?.query;
+  if (!query || typeof query !== 'string') {
+    sendError(res, 400, 'Missing "query" string in request body');
+    return;
+  }
+
+  const result = orchestrator.reconstructor.reconstruct(query);
+  sendJson(res, 200, result);
+}
+
+/** POST /api/spark/memory/maintenance — Trigger maintenance spiral pass. */
+async function maintenancePass(ctx: any): Promise<void> {
+  const { res } = ctx;
+  const result = orchestrator.spiral.maintenancePass();
+  sendJson(res, 200, result);
+}
+
 // ── Export routes ────────────────────────────────────────────────────────────
 
 export { weightManager };
@@ -312,4 +415,12 @@ export const sparkRoutes: Route[] = [
   pathToRoute('GET', '/api/spark/conversations', listConversations),
   pathToRoute('GET', '/api/spark/conversations/:id', getConversation),
   pathToRoute('GET', '/api/spark/context', getCrossConnectorContext),
+  // Spiral Memory
+  pathToRoute('GET', '/api/spark/memory/tokens', getMemoryTokens),
+  pathToRoute('GET', '/api/spark/memory/tokens/:id', getMemoryToken),
+  pathToRoute('GET', '/api/spark/memory/edges', getMemoryEdges),
+  pathToRoute('GET', '/api/spark/memory/graph', getMemoryGraph),
+  pathToRoute('GET', '/api/spark/memory/stats', getMemoryStats),
+  pathToRoute('POST', '/api/spark/memory/reconstruct', reconstructMemory),
+  pathToRoute('POST', '/api/spark/memory/maintenance', maintenancePass),
 ];

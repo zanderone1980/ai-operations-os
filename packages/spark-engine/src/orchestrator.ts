@@ -20,6 +20,11 @@ import { WeightManager } from './weight-manager';
 import { MemoryCore } from './memory-core';
 import { AwarenessCore } from './awareness-core';
 import { ReasoningCore } from './reasoning-core';
+import { EssenceExtractor } from './essence-extractor';
+import { MemoryTokenManager } from './memory-token-manager';
+import { SpiralLoop } from './spiral-loop';
+import { ContextReconstructor } from './context-reconstructor';
+import { FeedbackIntegrator } from './feedback-integrator';
 
 // ── SparkOrchestrator ───────────────────────────────────────────
 
@@ -76,6 +81,21 @@ export class SparkOrchestrator {
   /** Conversational reasoning engine. */
   public readonly reasoning: ReasoningCore;
 
+  /** Essence extraction engine (algorithmic compression). */
+  public readonly essenceExtractor: EssenceExtractor;
+
+  /** Memory token lifecycle manager. */
+  public readonly tokenManager: MemoryTokenManager;
+
+  /** Spiral refinement loop. */
+  public readonly spiral: SpiralLoop;
+
+  /** Context reconstruction engine. */
+  public readonly reconstructor: ContextReconstructor;
+
+  /** Feedback integration engine. */
+  public readonly feedbackIntegrator: FeedbackIntegrator;
+
   /**
    * @param store - SparkStore instance shared across all engines.
    */
@@ -87,6 +107,16 @@ export class SparkOrchestrator {
     this.memory = new MemoryCore(store);
     this.awareness = new AwarenessCore(store);
     this.reasoning = new ReasoningCore(store);
+
+    // Spiral Memory engines
+    this.essenceExtractor = new EssenceExtractor(store);
+    this.tokenManager = new MemoryTokenManager(store, this.essenceExtractor);
+    this.spiral = new SpiralLoop(store, this.tokenManager, this.essenceExtractor);
+    this.reconstructor = new ContextReconstructor(store, this.essenceExtractor);
+    this.feedbackIntegrator = new FeedbackIntegrator(store, this.tokenManager, this.spiral);
+
+    // Wire spiral memory into reasoning core
+    this.reasoning.setSpiralMemory(this.reconstructor, this.feedbackIntegrator);
   }
 
   /**
@@ -107,6 +137,13 @@ export class SparkOrchestrator {
   ): { episode: LearningEpisode; insights: Insight[] } {
     const episode = this.learner.learn(prediction, outcome);
     const insights = this.memory.consolidate(episode);
+
+    // Feed into Spiral Memory
+    this.feedbackIntegrator.onEpisode(episode);
+    for (const insight of insights) {
+      this.feedbackIntegrator.onInsight(insight);
+    }
+
     return { episode, insights };
   }
 

@@ -1,0 +1,221 @@
+/**
+ * SpiralLoop — Spiral Refinement Engine for SPARK Memory.
+ *
+ * The core spiral mechanism. On each new memory token:
+ * - Find related tokens via topic similarity
+ * - Reinforce matching tokens (strength grows)
+ * - Weaken contradicted tokens (strength decays)
+ * - Discover new edges between related tokens
+ * - Apply passive decay over time
+ */
+
+import { randomUUID } from 'node:crypto';
+import type { SparkStore } from '@ai-operations/ops-storage';
+import type { MemoryToken, MemoryEdge, Essence } from '@ai-operations/shared-types';
+import { EssenceExtractor } from './essence-extractor';
+import { MemoryTokenManager } from './memory-token-manager';
+import {
+  REINFORCE_RATE,
+  DECAY_RATE,
+  PASSIVE_DECAY_PER_DAY,
+  EDGE_REINFORCE_RATE,
+  MIN_SIMILARITY_THRESHOLD,
+  MAX_CONNECTIONS_PER_PASS,
+  ARCHIVE_STRENGTH_THRESHOLD,
+} from './spiral-constants';
+
+export interface SpiralPassResult {
+  tokensReinforced: number;
+  tokensWeakened: number;
+  edgesCreated: number;
+  edgesReinforced: number;
+}
+
+export interface SpiralMaintenanceResult {
+  tokensDecayed: number;
+  tokensArchived: number;
+  tiersUpdated: number;
+}
+
+export class SpiralLoop {
+  private readonly store: SparkStore;
+  private readonly tokenManager: MemoryTokenManager;
+  private readonly extractor: EssenceExtractor;
+
+  constructor(store: SparkStore, tokenManager: MemoryTokenManager, extractor: EssenceExtractor) {
+    this.store = store;
+    this.tokenManager = tokenManager;
+    this.extractor = extractor;
+  }
+
+  /**
+   * Run a spiral pass triggered by a new memory token.
+   * Finds related tokens, reinforces/weakens them, creates edges.
+   */
+  spiralPass(newToken: MemoryToken): SpiralPassResult {
+    const result: SpiralPassResult = {
+      tokensReinforced: 0,
+      tokensWeakened: 0,
+      edgesCreated: 0,
+      edgesReinforced: 0,
+    };
+
+    // Find related tokens by topic overlap
+    const relatedTokens = this.findRelatedTokens(newToken, 20);
+    if (relatedTokens.length === 0) return result;
+
+    const now = new Date().toISOString();
+    let edgesCreatedThisPass = 0;
+
+    for (const related of relatedTokens) {
+      if (related.id === newToken.id) continue;
+
+      const similarity = this.computeTopicSimilarity(newToken.essence, related.essence);
+      if (similarity < MIN_SIMILARITY_THRESHOLD) continue;
+
+      const contradiction = this.detectContradiction(newToken.essence, related.essence);
+
+      if (contradiction > 0.5) {
+        // Weaken contradicted token
+        this.weakenToken(related, contradiction, now);
+        result.tokensWeakened++;
+      } else {
+        // Reinforce matching token
+        this.reinforceToken(related, similarity, now);
+        result.tokensReinforced++;
+      }
+
+      // Edge management
+      const existingEdges = this.store.getEdgesBetween(newToken.id, related.id);
+      if (existingEdges.length > 0) {
+        // Reinforce existing edge
+        const edge = existingEdges[0];
+        const newWeight = Math.min(1.0, edge.weight + EDGE_REINFORCE_RATE * (1 - edge.weight));
+        this.store.reinforceEdge(edge.id, newWeight, edge.reinforceCount + 1, now);
+        result.edgesReinforced++;
+      } else if (edgesCreatedThisPass < MAX_CONNECTIONS_PER_PASS && similarity >= MIN_SIMILARITY_THRESHOLD) {
+        // Create new edge
+        const edge: MemoryEdge = {
+          id: randomUUID(),
+          fromTokenId: newToken.id,
+          toTokenId: related.id,
+          type: this.inferEdgeType(newToken, related),
+          weight: similarity,
+          reinforceCount: 1,
+          createdAt: now,
+          lastReinforcedAt: now,
+        };
+        this.store.saveMemoryEdge(edge);
+        result.edgesCreated++;
+        edgesCreatedThisPass++;
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Run a background maintenance spiral.
+   * Applies passive decay, tier updates, and archival.
+   */
+  maintenancePass(): SpiralMaintenanceResult {
+    const result: SpiralMaintenanceResult = {
+      tokensDecayed: 0,
+      tokensArchived: 0,
+      tiersUpdated: 0,
+    };
+
+    const now = new Date();
+    const nowIso = now.toISOString();
+    const activeTokens = this.store.listMemoryTokens({ excludeArchived: true, limit: 1000 });
+
+    for (const token of activeTokens) {
+      const daysSinceSpiral = (now.getTime() - new Date(token.lastSpiralAt).getTime()) / (24 * 60 * 60 * 1000);
+
+      if (daysSinceSpiral > 0.01) { // More than ~15 minutes
+        const decayFactor = 1 - PASSIVE_DECAY_PER_DAY * daysSinceSpiral;
+        const newStrength = Math.max(0, token.strength * decayFactor);
+
+        if (newStrength < ARCHIVE_STRENGTH_THRESHOLD) {
+          this.store.archiveMemoryToken(token.id, nowIso);
+          result.tokensArchived++;
+        } else {
+          this.store.updateMemoryTokenStrength(token.id, newStrength, token.spiralCount, nowIso);
+          result.tokensDecayed++;
+        }
+      }
+    }
+
+    // Update tiers
+    result.tiersUpdated = this.tokenManager.updateTiers();
+
+    return result;
+  }
+
+  /**
+   * Compute cosine similarity between two essence topic vectors.
+   */
+  computeTopicSimilarity(a: Essence, b: Essence): number {
+    if (a.topics.length === 0 || b.topics.length === 0) return 0;
+
+    const setA = new Set(a.topics);
+    const setB = new Set(b.topics);
+
+    // Count intersection
+    let intersection = 0;
+    for (const topic of setA) {
+      if (setB.has(topic)) intersection++;
+    }
+
+    if (intersection === 0) return 0;
+
+    // Jaccard similarity (simpler than cosine for binary vectors)
+    const union = new Set([...setA, ...setB]).size;
+    return intersection / union;
+  }
+
+  // ── Private ────────────────────────────────────────────────────
+
+  private findRelatedTokens(token: MemoryToken, limit: number): MemoryToken[] {
+    if (token.essence.topics.length === 0) return [];
+    return this.store.findTokensByTopics(token.essence.topics, limit);
+  }
+
+  private detectContradiction(a: Essence, b: Essence): number {
+    // Sentiment opposition with topic overlap indicates contradiction
+    const topicOverlap = this.computeTopicSimilarity(a, b);
+    if (topicOverlap < MIN_SIMILARITY_THRESHOLD) return 0;
+
+    const sentimentA = a.sentiment === 'positive' ? 1 : a.sentiment === 'negative' ? -1 : 0;
+    const sentimentB = b.sentiment === 'positive' ? 1 : b.sentiment === 'negative' ? -1 : 0;
+
+    // Strong contradiction: same topics, opposite sentiment
+    if (sentimentA !== 0 && sentimentB !== 0 && sentimentA !== sentimentB) {
+      return topicOverlap * 0.8;
+    }
+
+    return 0;
+  }
+
+  private reinforceToken(token: MemoryToken, matchScore: number, now: string): void {
+    // strength += REINFORCE_RATE * (1 - strength) * matchScore
+    const boost = REINFORCE_RATE * (1 - token.strength) * matchScore;
+    const newStrength = Math.min(1.0, token.strength + boost);
+    this.store.updateMemoryTokenStrength(token.id, newStrength, token.spiralCount + 1, now);
+  }
+
+  private weakenToken(token: MemoryToken, contradictionScore: number, now: string): void {
+    // strength *= (1 - DECAY_RATE * contradictionScore)
+    const newStrength = Math.max(0, token.strength * (1 - DECAY_RATE * contradictionScore));
+    this.store.updateMemoryTokenStrength(token.id, newStrength, token.spiralCount + 1, now);
+  }
+
+  private inferEdgeType(a: MemoryToken, b: MemoryToken): string {
+    // Infer edge type from token types
+    if (a.type === b.type) return 'same-type';
+    if (a.type === 'episode' && b.type === 'insight') return 'episode-to-insight';
+    if (a.type === 'conversation' && b.type === 'episode') return 'conversation-to-episode';
+    if (a.type === 'belief' && b.type === 'episode') return 'belief-to-episode';
+    return 'related';
+  }
+}

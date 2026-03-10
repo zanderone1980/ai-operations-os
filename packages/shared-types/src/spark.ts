@@ -390,3 +390,87 @@ export interface CrossConnectorPattern {
   /** Confidence score (0.0-1.0). */
   confidence: number;
 }
+
+// ── Spiral Memory ──────────────────────────────────────────────
+
+/** Sentiment valence for an essence extraction. */
+export type SentimentValence = 'positive' | 'negative' | 'neutral' | 'mixed';
+
+/** The type of a memory token. */
+export type MemoryTokenType =
+  | 'conversation'
+  | 'episode'
+  | 'insight'
+  | 'belief'
+  | 'cross-connector'
+  | 'composite';
+
+/** Compression tier — controls detail level based on age. */
+export type CompressionTier = 'raw' | 'recent' | 'compressed' | 'archival';
+
+/** A decision point captured from an interaction. */
+export interface DecisionPoint {
+  description: string;
+  choice: string | null;
+  alternatives: string[];
+  confidence: number;
+}
+
+/** An extracted relationship between two concepts. */
+export interface EssenceRelationship {
+  from: string;
+  to: string;
+  type: string;
+  strength: number;
+}
+
+/** The extracted essence from a piece of content. */
+export interface Essence {
+  topics: string[];
+  sentiment: SentimentValence;
+  sentimentIntensity: number;
+  relationships: EssenceRelationship[];
+  decisionPoints: DecisionPoint[];
+  importance: number;
+  categories: SparkCategory[];
+  connectors: string[];
+  gist: string;
+}
+
+/** A memory token — the atomic unit of spiral memory. */
+export interface MemoryToken {
+  id: string;
+  type: MemoryTokenType;
+  tier: CompressionTier;
+  essence: Essence;
+  strength: number;
+  spiralCount: number;
+  sourceId: string;
+  mergedFrom: string[];
+  createdAt: string;
+  lastSpiralAt: string;
+  archivedAt: string | null;
+}
+
+/** An edge connecting two memory tokens in the graph. */
+export interface MemoryEdge {
+  id: string;
+  fromTokenId: string;
+  toTokenId: string;
+  type: string;
+  weight: number;
+  reinforceCount: number;
+  createdAt: string;
+  lastReinforcedAt: string;
+}
+
+/** Reconstructed context produced by the Spiral Memory. */
+export interface ReconstructedContext {
+  narrative: string;
+  tokenIds: string[];
+  edgeIds: string[];
+  relevantTopics: string[];
+  overallSentiment: SentimentValence;
+  relevantDecisions: DecisionPoint[];
+  confidence: number;
+}

@@ -278,6 +278,63 @@ export class Database {
         ON spark_conversation_turns(conversation_id);
       CREATE INDEX IF NOT EXISTS idx_spark_turns_created_at
         ON spark_conversation_turns(created_at);
+
+      -- ── SPARK Spiral Memory ─────────────────────────────────
+
+      CREATE TABLE IF NOT EXISTS spark_memory_tokens (
+        id TEXT PRIMARY KEY,
+        type TEXT NOT NULL,
+        tier TEXT NOT NULL,
+        essence_json TEXT NOT NULL,
+        strength REAL NOT NULL DEFAULT 1.0,
+        spiral_count INTEGER NOT NULL DEFAULT 0,
+        source_id TEXT NOT NULL,
+        merged_from_json TEXT NOT NULL DEFAULT '[]',
+        created_at TEXT NOT NULL,
+        last_spiral_at TEXT NOT NULL,
+        archived_at TEXT
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_spark_memory_tokens_type
+        ON spark_memory_tokens(type);
+      CREATE INDEX IF NOT EXISTS idx_spark_memory_tokens_tier
+        ON spark_memory_tokens(tier);
+      CREATE INDEX IF NOT EXISTS idx_spark_memory_tokens_strength
+        ON spark_memory_tokens(strength);
+      CREATE INDEX IF NOT EXISTS idx_spark_memory_tokens_source_id
+        ON spark_memory_tokens(source_id);
+      CREATE INDEX IF NOT EXISTS idx_spark_memory_tokens_created_at
+        ON spark_memory_tokens(created_at);
+      CREATE INDEX IF NOT EXISTS idx_spark_memory_tokens_archived_at
+        ON spark_memory_tokens(archived_at);
+
+      CREATE TABLE IF NOT EXISTS spark_memory_edges (
+        id TEXT PRIMARY KEY,
+        from_token_id TEXT NOT NULL,
+        to_token_id TEXT NOT NULL,
+        type TEXT NOT NULL,
+        weight REAL NOT NULL DEFAULT 0.5,
+        reinforce_count INTEGER NOT NULL DEFAULT 1,
+        created_at TEXT NOT NULL,
+        last_reinforced_at TEXT NOT NULL
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_spark_memory_edges_from
+        ON spark_memory_edges(from_token_id);
+      CREATE INDEX IF NOT EXISTS idx_spark_memory_edges_to
+        ON spark_memory_edges(to_token_id);
+      CREATE INDEX IF NOT EXISTS idx_spark_memory_edges_type
+        ON spark_memory_edges(type);
+
+      CREATE TABLE IF NOT EXISTS spark_memory_topic_index (
+        topic TEXT NOT NULL,
+        token_id TEXT NOT NULL,
+        tf_idf_score REAL NOT NULL DEFAULT 0.0,
+        PRIMARY KEY (topic, token_id)
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_spark_memory_topic_index_topic
+        ON spark_memory_topic_index(topic);
     `);
   }
 

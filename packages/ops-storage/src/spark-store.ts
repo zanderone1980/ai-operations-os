@@ -18,6 +18,11 @@ import type {
   Conversation,
   ConversationTurn,
   ReasoningResult,
+  MemoryToken,
+  MemoryEdge,
+  MemoryTokenType,
+  CompressionTier,
+  Essence,
 } from '@ai-operations/shared-types';
 
 export interface SparkEpisodeFilter {
@@ -37,6 +42,20 @@ export interface SparkInsightFilter {
   pattern?: InsightPattern;
   limit?: number;
   minImpact?: number;
+}
+
+export interface SparkMemoryTokenFilter {
+  type?: MemoryTokenType;
+  tier?: CompressionTier;
+  minStrength?: number;
+  excludeArchived?: boolean;
+  limit?: number;
+}
+
+export interface SparkMemoryEdgeFilter {
+  minWeight?: number;
+  type?: string;
+  limit?: number;
 }
 
 export class SparkStore {
@@ -81,6 +100,22 @@ export class SparkStore {
   private readonly updateConversationStmt: BetterSqlite3.Statement;
   private readonly getConversationByIdStmt: BetterSqlite3.Statement;
   private readonly insertTurnStmt: BetterSqlite3.Statement;
+
+  // Memory token statements
+  private readonly insertMemoryToken: BetterSqlite3.Statement;
+  private readonly getMemoryTokenById: BetterSqlite3.Statement;
+  private readonly updateTokenStrengthStmt: BetterSqlite3.Statement;
+  private readonly updateTokenTierStmt: BetterSqlite3.Statement;
+  private readonly archiveTokenStmt: BetterSqlite3.Statement;
+
+  // Memory edge statements
+  private readonly insertMemoryEdge: BetterSqlite3.Statement;
+  private readonly getMemoryEdgeById: BetterSqlite3.Statement;
+  private readonly reinforceEdgeStmt: BetterSqlite3.Statement;
+
+  // Topic index statements
+  private readonly upsertTopicIndexStmt: BetterSqlite3.Statement;
+  private readonly deleteTopicIndexStmt: BetterSqlite3.Statement;
 
   constructor(db: BetterSqlite3.Database) {
     this.db = db;
@@ -184,6 +219,54 @@ export class SparkStore {
       INSERT INTO spark_conversation_turns (id, conversation_id, role, content, reasoning_json, created_at)
       VALUES (@id, @conversationId, @role, @content, @reasoningJson, @createdAt)
     `);
+
+    // ── Memory Tokens ─────────────────────────────────────────
+    this.insertMemoryToken = this.db.prepare(`
+      INSERT INTO spark_memory_tokens
+        (id, type, tier, essence_json, strength, spiral_count, source_id, merged_from_json, created_at, last_spiral_at, archived_at)
+      VALUES
+        (@id, @type, @tier, @essenceJson, @strength, @spiralCount, @sourceId, @mergedFromJson, @createdAt, @lastSpiralAt, @archivedAt)
+    `);
+
+    this.getMemoryTokenById = this.db.prepare('SELECT * FROM spark_memory_tokens WHERE id = ?');
+
+    this.updateTokenStrengthStmt = this.db.prepare(`
+      UPDATE spark_memory_tokens SET strength = @strength, spiral_count = @spiralCount, last_spiral_at = @lastSpiralAt
+      WHERE id = @id
+    `);
+
+    this.updateTokenTierStmt = this.db.prepare(`
+      UPDATE spark_memory_tokens SET tier = @tier WHERE id = @id
+    `);
+
+    this.archiveTokenStmt = this.db.prepare(`
+      UPDATE spark_memory_tokens SET archived_at = @archivedAt WHERE id = @id
+    `);
+
+    // ── Memory Edges ──────────────────────────────────────────
+    this.insertMemoryEdge = this.db.prepare(`
+      INSERT INTO spark_memory_edges
+        (id, from_token_id, to_token_id, type, weight, reinforce_count, created_at, last_reinforced_at)
+      VALUES
+        (@id, @fromTokenId, @toTokenId, @type, @weight, @reinforceCount, @createdAt, @lastReinforcedAt)
+    `);
+
+    this.getMemoryEdgeById = this.db.prepare('SELECT * FROM spark_memory_edges WHERE id = ?');
+
+    this.reinforceEdgeStmt = this.db.prepare(`
+      UPDATE spark_memory_edges SET weight = @weight, reinforce_count = @reinforceCount, last_reinforced_at = @lastReinforcedAt
+      WHERE id = @id
+    `);
+
+    // ── Topic Index ───────────────────────────────────────────
+    this.upsertTopicIndexStmt = this.db.prepare(`
+      INSERT OR REPLACE INTO spark_memory_topic_index (topic, token_id, tf_idf_score)
+      VALUES (@topic, @tokenId, @tfIdfScore)
+    `);
+
+    this.deleteTopicIndexStmt = this.db.prepare(
+      'DELETE FROM spark_memory_topic_index WHERE token_id = ?'
+    );
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -671,6 +754,224 @@ export class SparkStore {
       content: row.content,
       reasoningResult: row.reasoning_json ? JSON.parse(row.reasoning_json) : undefined,
       createdAt: row.created_at,
+    };
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // Memory Tokens
+  // ═══════════════════════════════════════════════════════════════
+
+  saveMemoryToken(token: MemoryToken): void {
+    this.insertMemoryToken.run({
+      id: token.id,
+      type: token.type,
+      tier: token.tier,
+      essenceJson: JSON.stringify(token.essence),
+      strength: token.strength,
+      spiralCount: token.spiralCount,
+      sourceId: token.sourceId,
+      mergedFromJson: JSON.stringify(token.mergedFrom),
+      createdAt: token.createdAt,
+      lastSpiralAt: token.lastSpiralAt,
+      archivedAt: token.archivedAt,
+    });
+  }
+
+  getMemoryToken(id: string): MemoryToken | undefined {
+    const row = this.getMemoryTokenById.get(id) as any;
+    return row ? this.rowToMemoryToken(row) : undefined;
+  }
+
+  updateMemoryTokenStrength(id: string, strength: number, spiralCount: number, lastSpiralAt: string): void {
+    this.updateTokenStrengthStmt.run({ id, strength, spiralCount, lastSpiralAt });
+  }
+
+  updateMemoryTokenTier(id: string, tier: CompressionTier): void {
+    this.updateTokenTierStmt.run({ id, tier });
+  }
+
+  archiveMemoryToken(id: string, archivedAt: string): void {
+    this.archiveTokenStmt.run({ id, archivedAt });
+  }
+
+  listMemoryTokens(filter?: SparkMemoryTokenFilter): MemoryToken[] {
+    let sql = 'SELECT * FROM spark_memory_tokens WHERE 1=1';
+    const params: any[] = [];
+
+    if (filter?.type) {
+      sql += ' AND type = ?';
+      params.push(filter.type);
+    }
+    if (filter?.tier) {
+      sql += ' AND tier = ?';
+      params.push(filter.tier);
+    }
+    if (filter?.minStrength !== undefined) {
+      sql += ' AND strength >= ?';
+      params.push(filter.minStrength);
+    }
+    if (filter?.excludeArchived) {
+      sql += ' AND archived_at IS NULL';
+    }
+    sql += ' ORDER BY created_at DESC';
+    if (filter?.limit) {
+      sql += ' LIMIT ?';
+      params.push(filter.limit);
+    }
+
+    const rows = this.db.prepare(sql).all(...params) as any[];
+    return rows.map(r => this.rowToMemoryToken(r));
+  }
+
+  findTokensByTopics(topics: string[], limit = 20): MemoryToken[] {
+    if (topics.length === 0) return [];
+
+    const placeholders = topics.map(() => '?').join(', ');
+    const sql = `
+      SELECT t.*, SUM(ti.tf_idf_score) as total_score
+      FROM spark_memory_topic_index ti
+      JOIN spark_memory_tokens t ON t.id = ti.token_id
+      WHERE ti.topic IN (${placeholders})
+        AND t.archived_at IS NULL
+      GROUP BY t.id
+      ORDER BY total_score DESC
+      LIMIT ?
+    `;
+    const rows = this.db.prepare(sql).all(...topics, limit) as any[];
+    return rows.map(r => this.rowToMemoryToken(r));
+  }
+
+  countMemoryTokens(filter?: { excludeArchived?: boolean }): number {
+    let sql = 'SELECT COUNT(*) as count FROM spark_memory_tokens WHERE 1=1';
+    if (filter?.excludeArchived) sql += ' AND archived_at IS NULL';
+    const row = this.db.prepare(sql).get() as any;
+    return row?.count ?? 0;
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // Memory Edges
+  // ═══════════════════════════════════════════════════════════════
+
+  saveMemoryEdge(edge: MemoryEdge): void {
+    this.insertMemoryEdge.run({
+      id: edge.id,
+      fromTokenId: edge.fromTokenId,
+      toTokenId: edge.toTokenId,
+      type: edge.type,
+      weight: edge.weight,
+      reinforceCount: edge.reinforceCount,
+      createdAt: edge.createdAt,
+      lastReinforcedAt: edge.lastReinforcedAt,
+    });
+  }
+
+  getMemoryEdge(id: string): MemoryEdge | undefined {
+    const row = this.getMemoryEdgeById.get(id) as any;
+    return row ? this.rowToMemoryEdge(row) : undefined;
+  }
+
+  reinforceEdge(id: string, weight: number, reinforceCount: number, lastReinforcedAt: string): void {
+    this.reinforceEdgeStmt.run({ id, weight, reinforceCount, lastReinforcedAt });
+  }
+
+  getEdgesForToken(tokenId: string): MemoryEdge[] {
+    const rows = this.db.prepare(
+      'SELECT * FROM spark_memory_edges WHERE from_token_id = ? OR to_token_id = ?'
+    ).all(tokenId, tokenId) as any[];
+    return rows.map(r => this.rowToMemoryEdge(r));
+  }
+
+  getEdgesBetween(fromTokenId: string, toTokenId: string): MemoryEdge[] {
+    const rows = this.db.prepare(
+      'SELECT * FROM spark_memory_edges WHERE (from_token_id = ? AND to_token_id = ?) OR (from_token_id = ? AND to_token_id = ?)'
+    ).all(fromTokenId, toTokenId, toTokenId, fromTokenId) as any[];
+    return rows.map(r => this.rowToMemoryEdge(r));
+  }
+
+  listMemoryEdges(filter?: SparkMemoryEdgeFilter): MemoryEdge[] {
+    let sql = 'SELECT * FROM spark_memory_edges WHERE 1=1';
+    const params: any[] = [];
+
+    if (filter?.minWeight !== undefined) {
+      sql += ' AND weight >= ?';
+      params.push(filter.minWeight);
+    }
+    if (filter?.type) {
+      sql += ' AND type = ?';
+      params.push(filter.type);
+    }
+    sql += ' ORDER BY weight DESC';
+    if (filter?.limit) {
+      sql += ' LIMIT ?';
+      params.push(filter.limit);
+    }
+
+    const rows = this.db.prepare(sql).all(...params) as any[];
+    return rows.map(r => this.rowToMemoryEdge(r));
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // Topic Index
+  // ═══════════════════════════════════════════════════════════════
+
+  upsertTopicIndex(topic: string, tokenId: string, tfIdfScore: number): void {
+    this.upsertTopicIndexStmt.run({ topic, tokenId, tfIdfScore });
+  }
+
+  deleteTopicIndex(tokenId: string): void {
+    this.deleteTopicIndexStmt.run(tokenId);
+  }
+
+  lookupTopics(topics: string[], limit = 20): Array<{ tokenId: string; totalScore: number }> {
+    if (topics.length === 0) return [];
+    const placeholders = topics.map(() => '?').join(', ');
+    const sql = `
+      SELECT token_id, SUM(tf_idf_score) as total_score
+      FROM spark_memory_topic_index
+      WHERE topic IN (${placeholders})
+      GROUP BY token_id
+      ORDER BY total_score DESC
+      LIMIT ?
+    `;
+    const rows = this.db.prepare(sql).all(...topics, limit) as any[];
+    return rows.map(r => ({ tokenId: r.token_id, totalScore: r.total_score }));
+  }
+
+  getTopicDocumentCount(): number {
+    const row = this.db.prepare(
+      'SELECT COUNT(DISTINCT token_id) as count FROM spark_memory_topic_index'
+    ).get() as any;
+    return row?.count ?? 0;
+  }
+
+  // ── Row Mappers ─────────────────────────────────────────────
+
+  private rowToMemoryToken(row: any): MemoryToken {
+    return {
+      id: row.id,
+      type: row.type,
+      tier: row.tier,
+      essence: JSON.parse(row.essence_json),
+      strength: row.strength,
+      spiralCount: row.spiral_count,
+      sourceId: row.source_id,
+      mergedFrom: JSON.parse(row.merged_from_json || '[]'),
+      createdAt: row.created_at,
+      lastSpiralAt: row.last_spiral_at,
+      archivedAt: row.archived_at ?? null,
+    };
+  }
+
+  private rowToMemoryEdge(row: any): MemoryEdge {
+    return {
+      id: row.id,
+      fromTokenId: row.from_token_id,
+      toTokenId: row.to_token_id,
+      type: row.type,
+      weight: row.weight,
+      reinforceCount: row.reinforce_count,
+      createdAt: row.created_at,
+      lastReinforcedAt: row.last_reinforced_at,
     };
   }
 }

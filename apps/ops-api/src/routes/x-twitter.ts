@@ -25,6 +25,7 @@ import {
 import type { TaskSource, CordDecision } from '@ai-ops/shared-types';
 import { ReceiptBuilder } from '@ai-ops/codebot-adapter';
 import { evaluateAction } from '../middleware/cord-gate';
+import { sparkPredict, sparkLearn } from '../middleware/spark-lifecycle';
 import { requestApproval } from './approvals';
 import { pathToRoute, sendJson, sendError } from '../server';
 import type { Route } from '../server';
@@ -125,6 +126,10 @@ async function postTweet(ctx: any): Promise<void> {
     },
   });
 
+  // ── SPARK: Predict risk before safety evaluation ──
+  const sparkPrediction = sparkPredict(task.id, 'x-twitter', 'post');
+  const execStart = Date.now();
+
   // ── Step 2: Evaluate policy ──────────────────────────────────────
   const policyResult = ruleEngine.evaluate('x-twitter', 'post', { source: 'social' });
 
@@ -224,6 +229,19 @@ async function postTweet(ctx: any): Promise<void> {
   const receipts = receiptBuilder.finalize(HMAC_KEY);
   const chainValid = verifyReceiptChain(receipts, HMAC_KEY);
 
+  // ── SPARK: Learn from outcome ──
+  const sparkResult = sparkLearn({
+    stepId: task.id,
+    connector: 'x-twitter',
+    operation: 'post',
+    cordScore: postSafety.score,
+    cordDecision: postSafety.decision as any,
+    success: execution.success,
+    wasApproved: autoApprove,
+    durationMs: Date.now() - execStart,
+    error: execution.error,
+  });
+
   sendJson(res, 200, {
     task,
     intent: classification,
@@ -237,6 +255,11 @@ async function postTweet(ctx: any): Promise<void> {
     execution,
     receipts,
     receiptChainValid: chainValid.valid,
+    spark: sparkResult ? {
+      prediction: sparkPrediction,
+      episode: sparkResult.episode,
+      insights: sparkResult.insights,
+    } : { prediction: sparkPrediction },
   });
 }
 
@@ -282,6 +305,10 @@ async function replyToTweet(ctx: any): Promise<void> {
       classificationKeywords: classification.matchedKeywords,
     },
   });
+
+  // ── SPARK: Predict risk before safety evaluation ──
+  const sparkPrediction = sparkPredict(task.id, 'x-twitter', 'reply');
+  const execStart = Date.now();
 
   // ── Step 2: Evaluate policy ──────────────────────────────────────
   const policyResult = ruleEngine.evaluate('x-twitter', 'reply', { source: 'social' });
@@ -382,6 +409,19 @@ async function replyToTweet(ctx: any): Promise<void> {
   const receipts = receiptBuilder.finalize(HMAC_KEY);
   const chainValid = verifyReceiptChain(receipts, HMAC_KEY);
 
+  // ── SPARK: Learn from outcome ──
+  const sparkResult = sparkLearn({
+    stepId: task.id,
+    connector: 'x-twitter',
+    operation: 'reply',
+    cordScore: replySafety.score,
+    cordDecision: replySafety.decision as any,
+    success: execution.success,
+    wasApproved: autoApprove,
+    durationMs: Date.now() - execStart,
+    error: execution.error,
+  });
+
   sendJson(res, 200, {
     task,
     intent: classification,
@@ -395,6 +435,11 @@ async function replyToTweet(ctx: any): Promise<void> {
     execution,
     receipts,
     receiptChainValid: chainValid.valid,
+    spark: sparkResult ? {
+      prediction: sparkPrediction,
+      episode: sparkResult.episode,
+      insights: sparkResult.insights,
+    } : { prediction: sparkPrediction },
   });
 }
 
@@ -440,6 +485,10 @@ async function sendDm(ctx: any): Promise<void> {
       classificationKeywords: classification.matchedKeywords,
     },
   });
+
+  // ── SPARK: Predict risk before safety evaluation ──
+  const sparkPrediction = sparkPredict(task.id, 'x-twitter', 'dm_send');
+  const execStart = Date.now();
 
   // ── Step 2: Evaluate policy ──────────────────────────────────────
   const policyResult = ruleEngine.evaluate('x-twitter', 'dm_send', { source: 'social' });
@@ -540,6 +589,19 @@ async function sendDm(ctx: any): Promise<void> {
   const receipts = receiptBuilder.finalize(HMAC_KEY);
   const chainValid = verifyReceiptChain(receipts, HMAC_KEY);
 
+  // ── SPARK: Learn from outcome ──
+  const sparkResult = sparkLearn({
+    stepId: task.id,
+    connector: 'x-twitter',
+    operation: 'dm_send',
+    cordScore: dmSafety.score,
+    cordDecision: dmSafety.decision as any,
+    success: execution.success,
+    wasApproved: autoApprove,
+    durationMs: Date.now() - execStart,
+    error: execution.error,
+  });
+
   sendJson(res, 200, {
     task,
     intent: classification,
@@ -553,6 +615,11 @@ async function sendDm(ctx: any): Promise<void> {
     execution,
     receipts,
     receiptChainValid: chainValid.valid,
+    spark: sparkResult ? {
+      prediction: sparkPrediction,
+      episode: sparkResult.episode,
+      insights: sparkResult.insights,
+    } : { prediction: sparkPrediction },
   });
 }
 

@@ -23,6 +23,7 @@ import {
 import type { TaskSource, CordDecision } from '@ai-ops/shared-types';
 import { ReceiptBuilder } from '@ai-ops/codebot-adapter';
 import { evaluateAction } from '../middleware/cord-gate';
+import { sparkPredict, sparkLearn } from '../middleware/spark-lifecycle';
 import { requestApproval } from './approvals';
 import { pathToRoute, sendJson, sendError } from '../server';
 import type { Route } from '../server';
@@ -172,6 +173,10 @@ async function processMessage(ctx: any): Promise<void> {
     },
   });
 
+  // ── SPARK: Predict risk before safety evaluation ──
+  const sparkPrediction = sparkPredict(messageId, 'gmail', classification.intent || 'read');
+  const execStart = Date.now();
+
   // ── Step 3: Evaluate policy ──────────────────────────────────────
   // Determine the connector operation based on intent
   const operation = classification.intent === 'reply' ? 'reply' : 'read';
@@ -287,6 +292,19 @@ async function processMessage(ctx: any): Promise<void> {
   const receipts = receiptBuilder.finalize(HMAC_KEY);
   const chainValid = verifyReceiptChain(receipts, HMAC_KEY);
 
+  // ── SPARK: Learn from outcome ──
+  const sparkResult = sparkLearn({
+    stepId: messageId,
+    connector: 'gmail',
+    operation: classification.intent || 'read',
+    cordScore: replySafety?.score ?? readSafety?.score ?? 0,
+    cordDecision: replySafety?.decision ?? readSafety?.decision ?? 'ALLOW',
+    success: execution?.success ?? true,
+    wasApproved: !!approvalResult?.decision && approvalResult.decision === 'approved',
+    durationMs: Date.now() - execStart,
+    error: execution?.error,
+  });
+
   sendJson(res, 200, {
     task,
     intent: classification,
@@ -300,6 +318,11 @@ async function processMessage(ctx: any): Promise<void> {
     execution,
     receipts,
     receiptChainValid: chainValid.valid,
+    spark: sparkResult ? {
+      prediction: sparkPrediction,
+      episode: sparkResult.episode,
+      insights: sparkResult.insights,
+    } : { prediction: sparkPrediction },
   });
 }
 

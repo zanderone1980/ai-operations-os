@@ -61,6 +61,8 @@ import { shopifyRoutes } from './routes/shopify';
 import { calendarRoutes } from './routes/calendar';
 import { xTwitterRoutes } from './routes/x-twitter';
 import { sparkRoutes } from './routes/spark';
+import { connectorRoutes } from './routes/connectors';
+import { receiptRoutes } from './routes/receipts';
 import { createRateLimiter } from './middleware/rate-limit';
 
 const log = createLogger('ops-api');
@@ -105,6 +107,8 @@ const routes: Route[] = [
   ...calendarRoutes,
   ...xTwitterRoutes,
   ...sparkRoutes,
+  ...connectorRoutes,
+  ...receiptRoutes,
 ];
 
 /**

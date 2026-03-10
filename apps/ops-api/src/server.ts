@@ -10,6 +10,43 @@
 import * as http from 'http';
 import * as fs from 'fs';
 import * as nodePath from 'path';
+
+// ── Load .env file (zero-dependency) ────────────────────────────────────────
+function loadEnv(): void {
+  // Skip in test environment — tests control their own env vars
+  if (process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID) return;
+
+  // Walk up from dist/server.js → apps/ops-api → repo root
+  let dir = __dirname;
+  for (let i = 0; i < 5; i++) {
+    const envPath = nodePath.join(dir, '.env');
+    if (fs.existsSync(envPath)) {
+      const lines = fs.readFileSync(envPath, 'utf-8').split('\n');
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) continue;
+        const eqIdx = trimmed.indexOf('=');
+        if (eqIdx === -1) continue;
+        const key = trimmed.slice(0, eqIdx).trim();
+        let val = trimmed.slice(eqIdx + 1).trim();
+        // Strip inline comments (but not inside quoted values)
+        if (!val.startsWith('"') && !val.startsWith("'")) {
+          const commentIdx = val.indexOf('#');
+          if (commentIdx > 0) val = val.slice(0, commentIdx).trim();
+        }
+        // Don't overwrite existing env vars (system takes precedence)
+        if (!process.env[key]) {
+          process.env[key] = val;
+        }
+      }
+      break;
+    }
+    dir = nodePath.dirname(dir);
+  }
+}
+
+loadEnv();
+
 import { stores } from './storage';
 import { createLogger } from '@ai-ops/ops-core';
 import { requestLogger } from './middleware/request-logger';

@@ -66,14 +66,64 @@ else
 fi
 echo -e "${GREEN}✓${RESET} Database seeded"
 
+# ── Read port from .env ────────────────────────────────────────
+PORT=$(grep -E '^OPS_PORT=' .env 2>/dev/null | cut -d= -f2 | tr -d ' ')
+PORT=${PORT:-3100}
+
+# ── Check for port conflicts ──────────────────────────────────
+if lsof -ti:$PORT &>/dev/null; then
+  EXISTING_PID=$(lsof -ti:$PORT | head -1)
+  echo -e "${YELLOW}⚠${RESET}  Port ${BOLD}$PORT${RESET} is already in use (PID $EXISTING_PID)."
+  echo ""
+  echo -e "  Options:"
+  echo -e "    ${BOLD}1)${RESET} Kill the existing process and continue"
+  echo -e "    ${BOLD}2)${RESET} Use a different port"
+  echo -e "    ${BOLD}3)${RESET} Abort"
+  echo ""
+  read -rp "  Choose [1/2/3]: " choice
+  case $choice in
+    1)
+      echo -e "  Stopping process $EXISTING_PID..."
+      kill $EXISTING_PID 2>/dev/null
+      sleep 1
+      # Force kill if still running
+      if lsof -ti:$PORT &>/dev/null; then
+        kill -9 $(lsof -ti:$PORT) 2>/dev/null
+        sleep 1
+      fi
+      echo -e "  ${GREEN}✓${RESET} Port $PORT freed"
+      ;;
+    2)
+      read -rp "  Enter port number: " NEW_PORT
+      if [[ -z "$NEW_PORT" ]]; then
+        echo -e "  ${RED}Error:${RESET} No port entered. Aborting."
+        exit 1
+      fi
+      # Update .env
+      if grep -q '^OPS_PORT=' .env 2>/dev/null; then
+        sed -i '' "s/^OPS_PORT=.*/OPS_PORT=$NEW_PORT/" .env
+      else
+        echo "OPS_PORT=$NEW_PORT" >> .env
+      fi
+      PORT=$NEW_PORT
+      echo -e "  ${GREEN}✓${RESET} Updated .env to use port $PORT"
+      ;;
+    *)
+      echo -e "  Aborted."
+      exit 0
+      ;;
+  esac
+  echo ""
+fi
+
 # ── Start ────────────────────────────────────────────────────
 echo ""
 echo -e "${CYAN}[4/4]${RESET} Starting server..."
 echo ""
 echo -e "${BOLD}${GREEN}══════════════════════════════════════════${RESET}"
-echo -e "${BOLD}  Dashboard:  ${CYAN}http://localhost:3100${RESET}"
-echo -e "${BOLD}  API:        ${CYAN}http://localhost:3100/api${RESET}"
-echo -e "${BOLD}  SPARK:      ${CYAN}http://localhost:3100/api/spark/awareness${RESET}"
+echo -e "${BOLD}  Dashboard:  ${CYAN}http://localhost:$PORT${RESET}"
+echo -e "${BOLD}  API:        ${CYAN}http://localhost:$PORT/api${RESET}"
+echo -e "${BOLD}  SPARK:      ${CYAN}http://localhost:$PORT/api/spark/awareness${RESET}"
 echo -e "${BOLD}${GREEN}══════════════════════════════════════════${RESET}"
 echo ""
 echo -e "${DIM}Press Ctrl+C to stop${RESET}"

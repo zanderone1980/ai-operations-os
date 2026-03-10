@@ -5,6 +5,6 @@
  * between server.ts and the route files.
  */
 
-import { createStores } from '@ai-ops/ops-storage';
+import { createStores } from '@ai-operations/ops-storage';
 
 export const stores = createStores(process.env.OPS_DB_PATH);

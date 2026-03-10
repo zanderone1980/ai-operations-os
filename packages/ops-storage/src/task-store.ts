@@ -3,7 +3,7 @@
  */
 
 import type BetterSqlite3 from 'better-sqlite3';
-import type { Task } from '@ai-ops/shared-types';
+import type { Task } from '@ai-operations/shared-types';
 
 export interface TaskFilter {
   status?: string;

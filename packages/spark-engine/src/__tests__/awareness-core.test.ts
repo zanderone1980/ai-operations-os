@@ -10,8 +10,8 @@
  * - Full report generation with alerts and SENTINEL tracking
  */
 
-import { Database, SparkStore } from '@ai-ops/ops-storage';
-import type { SparkCategory, LearningEpisode } from '@ai-ops/shared-types';
+import { Database, SparkStore } from '@ai-operations/ops-storage';
+import type { SparkCategory, LearningEpisode } from '@ai-operations/shared-types';
 import { AwarenessCore } from '../awareness-core';
 import { buildAllDefaultWeights } from '../constants';
 import * as path from 'path';

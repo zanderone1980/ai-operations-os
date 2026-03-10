@@ -11,8 +11,8 @@
  * - Integration (empty results, persistence)
  */
 
-import { Database, SparkStore } from '@ai-ops/ops-storage';
-import type { LearningEpisode, SparkCategory } from '@ai-ops/shared-types';
+import { Database, SparkStore } from '@ai-operations/ops-storage';
+import type { LearningEpisode, SparkCategory } from '@ai-operations/shared-types';
 import { MemoryCore } from '../memory-core';
 import { buildAllDefaultWeights } from '../constants';
 import * as path from 'path';

@@ -8,8 +8,8 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import type { SparkCategory, Prediction } from '@ai-ops/shared-types';
-import type { SparkStore } from '@ai-ops/ops-storage';
+import type { SparkCategory, Prediction } from '@ai-operations/shared-types';
+import type { SparkStore } from '@ai-operations/ops-storage';
 
 // ── Operation → Category Mapping ──────────────────────────────────
 

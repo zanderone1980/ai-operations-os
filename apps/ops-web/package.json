@@ -1,5 +1,5 @@
 {
-  "name": "@ai-ops/ops-web",
+  "name": "@ai-operations/ops-web",
   "version": "0.1.0",
   "description": "Web dashboard for AI Operations OS — approval inbox, task management, workflow visualization, dark mode",
   "private": true,

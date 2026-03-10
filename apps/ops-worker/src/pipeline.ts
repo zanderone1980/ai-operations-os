@@ -21,8 +21,8 @@ import type {
   WorkflowRun, WorkflowStep,
   Approval, CordDecision,
   Prediction, LearningEpisode,
-} from '@ai-ops/shared-types';
-import { createTask, createWorkflowRun, createStep, createApproval } from '@ai-ops/shared-types';
+} from '@ai-operations/shared-types';
+import { createTask, createWorkflowRun, createStep, createApproval } from '@ai-operations/shared-types';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 

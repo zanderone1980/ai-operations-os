@@ -5,7 +5,7 @@
  */
 
 import type BetterSqlite3 from 'better-sqlite3';
-import type { WorkflowRun, WorkflowStep } from '@ai-ops/shared-types';
+import type { WorkflowRun, WorkflowStep } from '@ai-operations/shared-types';
 
 export interface WorkflowRunFilter {
   taskId?: string;

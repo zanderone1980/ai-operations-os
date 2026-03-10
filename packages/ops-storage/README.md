@@ -1,4 +1,4 @@
-# @ai-ops/ops-storage
+# @ai-operations/ops-storage
 
 > SQLite persistence layer for tasks, workflows, approvals, and users in AI Operations OS.
 
@@ -7,7 +7,7 @@ Part of [AI Operations OS](https://github.com/zanderone1980/ai-operations-os) �
 ## Install
 
 ```
-npm install @ai-ops/ops-storage
+npm install @ai-operations/ops-storage
 ```
 
 Requires `better-sqlite3` as a peer dependency.
@@ -15,8 +15,8 @@ Requires `better-sqlite3` as a peer dependency.
 ## Quick Start
 
 ```ts
-import { createStores } from '@ai-ops/ops-storage';
-import { createTask } from '@ai-ops/shared-types';
+import { createStores } from '@ai-operations/ops-storage';
+import { createTask } from '@ai-operations/shared-types';
 
 const { tasks, workflows, approvals, users, db } = createStores();
 
@@ -87,9 +87,9 @@ User account management with typed input/output.
 
 ## Related Packages
 
-- [`@ai-ops/shared-types`](../shared-types) — Task, WorkflowRun, Approval types stored here
-- [`@ai-ops/ops-core`](../ops-core) — Workflow engine that drives stored workflow runs
-- [`@ai-ops/cord-adapter`](../cord-adapter) — ForensicEngine reads from these stores
+- [`@ai-operations/shared-types`](../shared-types) — Task, WorkflowRun, Approval types stored here
+- [`@ai-operations/ops-core`](../ops-core) — Workflow engine that drives stored workflow runs
+- [`@ai-operations/cord-adapter`](../cord-adapter) — ForensicEngine reads from these stores
 
 ## License
 

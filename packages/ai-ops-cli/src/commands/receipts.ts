@@ -7,11 +7,11 @@
 import * as path from 'path';
 import * as os from 'os';
 
-import { createStores } from '@ai-ops/ops-storage';
+import { createStores } from '@ai-operations/ops-storage';
 import {
   verifyReceiptChain,
   type ActionReceipt,
-} from '@ai-ops/shared-types';
+} from '@ai-operations/shared-types';
 
 const DB_PATH = path.join(os.homedir(), '.ai-ops', 'data.db');
 const HMAC_KEY = 'ai-ops-demo-receipt-signing-key';

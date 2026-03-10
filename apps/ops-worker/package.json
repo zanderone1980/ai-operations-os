@@ -1,5 +1,5 @@
 {
-  "name": "@ai-ops/ops-worker",
+  "name": "@ai-operations/ops-worker",
   "version": "0.1.0",
   "description": "Background worker for AI Operations OS — workflow execution, step orchestration, CodeBot/CORD integration",
   "private": true,
@@ -12,12 +12,12 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@ai-ops/shared-types": "*",
-    "@ai-ops/ops-core": "*",
-    "@ai-ops/ops-policy": "*",
-    "@ai-ops/ops-connectors": "*",
-    "@ai-ops/cord-adapter": "*",
-    "@ai-ops/codebot-adapter": "*"
+    "@ai-operations/shared-types": "*",
+    "@ai-operations/ops-core": "*",
+    "@ai-operations/ops-policy": "*",
+    "@ai-operations/ops-connectors": "*",
+    "@ai-operations/cord-adapter": "*",
+    "@ai-operations/codebot-adapter": "*"
   },
   "devDependencies": {
     "typescript": "^5.7.0",

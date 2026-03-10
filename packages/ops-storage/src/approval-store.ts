@@ -3,7 +3,7 @@
  */
 
 import type BetterSqlite3 from 'better-sqlite3';
-import type { Approval, ApprovalDecision } from '@ai-ops/shared-types';
+import type { Approval, ApprovalDecision } from '@ai-operations/shared-types';
 
 export interface ApprovalFilter {
   risk?: string;

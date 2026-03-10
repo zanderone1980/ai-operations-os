@@ -23,9 +23,9 @@ import type {
   Insight,
   AwarenessReport,
   LearningEpisode,
-} from '@ai-ops/shared-types';
-import { SENTINEL_CATEGORIES } from '@ai-ops/shared-types';
-import type { SparkStore } from '@ai-ops/ops-storage';
+} from '@ai-operations/shared-types';
+import { SENTINEL_CATEGORIES } from '@ai-operations/shared-types';
+import type { SparkStore } from '@ai-operations/ops-storage';
 import { ALL_CATEGORIES, MAX_DEVIATION_PERCENT } from './constants';
 
 // ── AwarenessCore ────────────────────────────────────────────────────

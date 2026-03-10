@@ -5,9 +5,10 @@
 
 <p align="center">
   <a href="https://github.com/zanderone1980/ai-operations-os/actions"><img src="https://img.shields.io/github/actions/workflow/status/zanderone1980/ai-operations-os/ci.yml?branch=main&style=flat-square" alt="CI"></a>
-  <a href="https://www.npmjs.com/package/codebot-ai"><img src="https://img.shields.io/npm/v/codebot-ai?style=flat-square&label=codebot-ai" alt="codebot-ai on npm"></a>
-  <a href="https://www.npmjs.com/package/cord-engine"><img src="https://img.shields.io/npm/v/cord-engine?style=flat-square&label=cord-engine" alt="cord-engine on npm"></a>
+  <a href="https://www.npmjs.com/package/@ai-operations/spark-engine"><img src="https://img.shields.io/npm/v/@ai-operations/spark-engine?style=flat-square&label=spark-engine" alt="spark-engine on npm"></a>
+  <a href="https://www.npmjs.com/package/@ai-operations/cord-adapter"><img src="https://img.shields.io/npm/v/@ai-operations/cord-adapter?style=flat-square&label=cord-adapter" alt="cord-adapter on npm"></a>
   <img src="https://img.shields.io/badge/tests-692%20passing-brightgreen?style=flat-square" alt="692 Tests">
+  <img src="https://img.shields.io/badge/coverage-65%25-yellow?style=flat-square" alt="Coverage 65%">
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="License"></a>
   <a href="https://nodejs.org"><img src="https://img.shields.io/badge/node-%3E%3D18-brightgreen?style=flat-square" alt="Node >= 18"></a>
   <a href="https://www.typescriptlang.org"><img src="https://img.shields.io/badge/TypeScript-5.7-blue?style=flat-square" alt="TypeScript"></a>

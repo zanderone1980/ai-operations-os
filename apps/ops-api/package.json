@@ -1,5 +1,5 @@
 {
-  "name": "@ai-ops/ops-api",
+  "name": "@ai-operations/ops-api",
   "version": "0.1.0",
   "description": "REST API server for AI Operations OS — 45+ endpoints, OAuth, webhooks, SPARK chat, zero Express dependencies",
   "private": true,
@@ -12,14 +12,14 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@ai-ops/shared-types": "*",
-    "@ai-ops/ops-core": "*",
-    "@ai-ops/ops-policy": "*",
-    "@ai-ops/ops-connectors": "*",
-    "@ai-ops/cord-adapter": "*",
-    "@ai-ops/ops-worker": "*",
-    "@ai-ops/ops-storage": "*",
-    "@ai-ops/spark-engine": "*"
+    "@ai-operations/shared-types": "*",
+    "@ai-operations/ops-core": "*",
+    "@ai-operations/ops-policy": "*",
+    "@ai-operations/ops-connectors": "*",
+    "@ai-operations/cord-adapter": "*",
+    "@ai-operations/ops-worker": "*",
+    "@ai-operations/ops-storage": "*",
+    "@ai-operations/spark-engine": "*"
   },
   "devDependencies": {
     "typescript": "^5.7.0",

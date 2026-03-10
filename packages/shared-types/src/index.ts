@@ -1,5 +1,5 @@
 /**
- * @ai-ops/shared-types — Core data models for AI Operations OS.
+ * @ai-operations/shared-types — Core data models for AI Operations OS.
  */
 
 // Task

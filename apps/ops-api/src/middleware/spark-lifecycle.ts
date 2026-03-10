@@ -7,9 +7,9 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import { SparkOrchestrator } from '@ai-ops/spark-engine';
+import { SparkOrchestrator } from '@ai-operations/spark-engine';
 import { stores } from '../storage';
-import type { WorkflowStep, CordDecision, Prediction, LearningEpisode, Insight, ReasoningResult } from '@ai-ops/shared-types';
+import type { WorkflowStep, CordDecision, Prediction, LearningEpisode, Insight, ReasoningResult } from '@ai-operations/shared-types';
 
 // Single orchestrator instance shared across all route handlers
 const orchestrator = new SparkOrchestrator(stores.spark);

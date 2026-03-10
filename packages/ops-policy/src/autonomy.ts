@@ -6,7 +6,7 @@
  * layer to call before executing any connector operation.
  */
 
-import type { PolicyConfig } from '@ai-ops/shared-types';
+import type { PolicyConfig } from '@ai-operations/shared-types';
 import { RuleEngine } from './rules';
 import type { EvaluationContext } from './rules';
 

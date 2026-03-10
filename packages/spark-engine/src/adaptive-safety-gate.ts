@@ -1,7 +1,7 @@
 /**
  * AdaptiveSafetyGate — CORD safety evaluation with learned SPARK weight adjustments.
  *
- * Wraps the CordSafetyGate from @ai-ops/cord-adapter and applies learned
+ * Wraps the CordSafetyGate from @ai-operations/cord-adapter and applies learned
  * weight multipliers to adjust CORD risk scores based on historical outcomes.
  * This allows the system to self-calibrate: becoming stricter for categories
  * that have historically been too permissive, and more lenient for categories
@@ -9,11 +9,11 @@
  *
  * Hard blocks from CORD are always respected — SPARK never overrides them.
  *
- * @ai-ops/cord-adapter is an optional dependency. If it is not installed,
+ * @ai-operations/cord-adapter is an optional dependency. If it is not installed,
  * this module's import will fail gracefully at the consumer level.
  */
 
-import type { CordDecision, SparkCategory } from '@ai-ops/shared-types';
+import type { CordDecision, SparkCategory } from '@ai-operations/shared-types';
 import type { WeightManager } from './weight-manager';
 import { operationToCategory } from './predictor';
 
@@ -36,7 +36,7 @@ export interface SafetyResult {
 
 /**
  * Minimal interface for the CordSafetyGate dependency.
- * This avoids a hard import of @ai-ops/cord-adapter.
+ * This avoids a hard import of @ai-operations/cord-adapter.
  */
 export interface CordSafetyGateInterface {
   evaluateAction(

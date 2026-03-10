@@ -4,11 +4,11 @@
  * Every workflow step passes through the CORD gate before execution.
  * If CORD blocks the action, it never reaches the connector.
  *
- * Delegates to CordSafetyGate from @ai-ops/cord-adapter for the actual
+ * Delegates to CordSafetyGate from @ai-operations/cord-adapter for the actual
  * evaluation logic, keeping the API layer thin.
  */
 
-import { CordSafetyGate } from '@ai-ops/cord-adapter';
+import { CordSafetyGate } from '@ai-operations/cord-adapter';
 
 export interface GateResult {
   allowed: boolean;

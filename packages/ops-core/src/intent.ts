@@ -6,7 +6,7 @@
  * can be layered on top for ambiguous cases.
  */
 
-import type { TaskIntent } from '@ai-ops/shared-types';
+import type { TaskIntent } from '@ai-operations/shared-types';
 
 /**
  * A mapping from intent to the keywords that signal it.

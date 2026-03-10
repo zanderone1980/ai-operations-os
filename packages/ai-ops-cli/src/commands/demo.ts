@@ -9,7 +9,7 @@ import * as path from 'path';
 import * as os from 'os';
 import * as crypto from 'crypto';
 
-import { createStores } from '@ai-ops/ops-storage';
+import { createStores } from '@ai-operations/ops-storage';
 import {
   createTask,
   createWorkflowRun,
@@ -20,7 +20,7 @@ import {
   GENESIS_HASH,
   type Task,
   type ActionReceipt,
-} from '@ai-ops/shared-types';
+} from '@ai-operations/shared-types';
 
 const DB_PATH = path.join(os.homedir(), '.ai-ops', 'data.db');
 const HMAC_KEY = 'ai-ops-demo-receipt-signing-key';

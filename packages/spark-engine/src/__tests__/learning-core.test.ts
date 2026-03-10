@@ -10,14 +10,14 @@
  * - EMA convergence behavior (alpha=0.1)
  */
 
-import { Database } from '@ai-ops/ops-storage';
-import { SparkStore } from '@ai-ops/ops-storage';
+import { Database } from '@ai-operations/ops-storage';
+import { SparkStore } from '@ai-operations/ops-storage';
 import type {
   Prediction,
   OutcomeSignal,
   SparkCategory,
   SparkWeightEntry,
-} from '@ai-ops/shared-types';
+} from '@ai-operations/shared-types';
 import { LearningCore } from '../learning-core';
 import {
   EMA_ALPHA,

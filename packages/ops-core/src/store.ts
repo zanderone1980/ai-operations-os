@@ -9,7 +9,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 
-import type { Task, TaskStatus, TaskIntent, TaskPriority } from '@ai-ops/shared-types';
+import type { Task, TaskStatus, TaskIntent, TaskPriority } from '@ai-operations/shared-types';
 
 // ---------------------------------------------------------------------------
 // Filter type

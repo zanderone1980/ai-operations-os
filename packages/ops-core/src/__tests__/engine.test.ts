@@ -1,7 +1,7 @@
 import { WorkflowEngine } from '../engine';
 import type { Connector, ConnectorRegistry, SafetyGate, SafetyGateResult, WorkflowEvent } from '../engine';
-import { createWorkflowRun, createStep } from '@ai-ops/shared-types';
-import type { WorkflowRun } from '@ai-ops/shared-types';
+import { createWorkflowRun, createStep } from '@ai-operations/shared-types';
+import type { WorkflowRun } from '@ai-operations/shared-types';
 
 // Helper to collect all events from an async generator
 async function collectEvents(gen: AsyncGenerator<WorkflowEvent>): Promise<WorkflowEvent[]> {

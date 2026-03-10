@@ -13,17 +13,17 @@
  *   X_USER_ID  — Authenticated user's X/Twitter user ID
  */
 
-import { XTwitterConnector } from '@ai-ops/ops-connectors';
-import { IntentClassifier } from '@ai-ops/ops-core';
-import { RuleEngine } from '@ai-ops/ops-policy';
+import { XTwitterConnector } from '@ai-operations/ops-connectors';
+import { IntentClassifier } from '@ai-operations/ops-core';
+import { RuleEngine } from '@ai-operations/ops-policy';
 import {
   DEFAULT_POLICY,
   createTask,
   createApproval,
   verifyReceiptChain,
-} from '@ai-ops/shared-types';
-import type { TaskSource, CordDecision } from '@ai-ops/shared-types';
-import { ReceiptBuilder } from '@ai-ops/codebot-adapter';
+} from '@ai-operations/shared-types';
+import type { TaskSource, CordDecision } from '@ai-operations/shared-types';
+import { ReceiptBuilder } from '@ai-operations/codebot-adapter';
 import { evaluateAction } from '../middleware/cord-gate';
 import { sparkPredict, sparkLearn, registerPendingApproval } from '../middleware/spark-lifecycle';
 import { requestApproval } from './approvals';

@@ -1,5 +1,5 @@
 {
-  "name": "@ai-ops/ops-storage",
+  "name": "@ai-operations/ops-storage",
   "version": "0.1.0",
   "description": "SQLite persistence layer for AI Operations OS — tasks, workflows, receipts, SPARK learning data (WAL mode)",
   "private": false,
@@ -11,7 +11,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@ai-ops/shared-types": "*",
+    "@ai-operations/shared-types": "*",
     "better-sqlite3": "^11.0.0"
   },
   "devDependencies": {

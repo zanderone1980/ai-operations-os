@@ -11,17 +11,17 @@
  * so the Calendar connector is always initialized with the freshest token.
  */
 
-import { CalendarConnector } from '@ai-ops/ops-connectors';
-import { IntentClassifier } from '@ai-ops/ops-core';
-import { RuleEngine } from '@ai-ops/ops-policy';
+import { CalendarConnector } from '@ai-operations/ops-connectors';
+import { IntentClassifier } from '@ai-operations/ops-core';
+import { RuleEngine } from '@ai-operations/ops-policy';
 import {
   DEFAULT_POLICY,
   createTask,
   createApproval,
   verifyReceiptChain,
-} from '@ai-ops/shared-types';
-import type { TaskSource, CordDecision } from '@ai-ops/shared-types';
-import { ReceiptBuilder } from '@ai-ops/codebot-adapter';
+} from '@ai-operations/shared-types';
+import type { TaskSource, CordDecision } from '@ai-operations/shared-types';
+import { ReceiptBuilder } from '@ai-operations/codebot-adapter';
 import { evaluateAction } from '../middleware/cord-gate';
 import { requestApproval } from './approvals';
 import { pathToRoute, sendJson, sendError } from '../server';

@@ -11,8 +11,8 @@ import type {
   LearningEpisode,
   Insight,
   ReasoningResult,
-} from '@ai-ops/shared-types';
-import type { SparkStore } from '@ai-ops/ops-storage';
+} from '@ai-operations/shared-types';
+import type { SparkStore } from '@ai-operations/ops-storage';
 import { Predictor } from './predictor';
 import { OutcomeTracker } from './outcome-tracker';
 import { LearningCore } from './learning-core';

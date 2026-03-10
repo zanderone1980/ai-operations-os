@@ -1,5 +1,5 @@
 {
-  "name": "@ai-ops/codebot-adapter",
+  "name": "@ai-operations/codebot-adapter",
   "version": "0.1.0",
   "description": "CodeBot adapter for AI Operations OS — action execution bridge with configurable backends",
   "private": false,
@@ -10,7 +10,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@ai-ops/shared-types": "*"
+    "@ai-operations/shared-types": "*"
   },
   "optionalDependencies": {
     "codebot-ai": "^2.7.7"

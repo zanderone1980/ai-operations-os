@@ -8,7 +8,7 @@
  * POST   /api/workflows/:id/resume   Resume a paused workflow
  */
 
-import { createWorkflowRun, createStep } from '@ai-ops/shared-types';
+import { createWorkflowRun, createStep } from '@ai-operations/shared-types';
 import { pathToRoute, sendJson, sendError } from '../server';
 import type { Route } from '../server';
 import { stores } from '../storage';

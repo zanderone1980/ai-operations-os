@@ -2,8 +2,8 @@ import * as path from 'path';
 import * as os from 'os';
 import * as fs from 'fs';
 import { TaskStore } from '../store';
-import { createTask } from '@ai-ops/shared-types';
-import type { Task } from '@ai-ops/shared-types';
+import { createTask } from '@ai-operations/shared-types';
+import type { Task } from '@ai-operations/shared-types';
 
 describe('TaskStore', () => {
   let store: TaskStore;

@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "ops-api",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["apps/ops-api/dist/server.js"],
+      "port": 3100
+    }
+  ]
+}

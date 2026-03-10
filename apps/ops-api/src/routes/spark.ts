@@ -14,12 +14,12 @@
  * GET    /api/spark/insights         Recent learning insights
  */
 
-import type { SparkCategory } from '@ai-ops/shared-types';
+import type { SparkCategory } from '@ai-operations/shared-types';
 import { pathToRoute, sendJson, sendError } from '../server';
 import type { Route } from '../server';
 import { stores } from '../storage';
-import { WeightManager, AwarenessCore, MemoryCore, SparkOrchestrator } from '@ai-ops/spark-engine';
-import { ALL_CATEGORIES } from '@ai-ops/spark-engine';
+import { WeightManager, AwarenessCore, MemoryCore, SparkOrchestrator } from '@ai-operations/spark-engine';
+import { ALL_CATEGORIES } from '@ai-operations/spark-engine';
 
 // ── Singletons ────────────────────────────────────────────────────────────────
 

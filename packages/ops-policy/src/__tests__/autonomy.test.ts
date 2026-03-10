@@ -1,5 +1,5 @@
 import { AutonomyManager } from '../autonomy';
-import type { PolicyConfig } from '@ai-ops/shared-types';
+import type { PolicyConfig } from '@ai-operations/shared-types';
 
 function makePolicy(overrides: Partial<PolicyConfig> = {}): PolicyConfig {
   return {

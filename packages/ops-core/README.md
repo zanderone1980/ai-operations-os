@@ -1,4 +1,4 @@
-# @ai-ops/ops-core
+# @ai-operations/ops-core
 
 > Workflow engine, state machine, and intent classification for AI Operations OS.
 
@@ -7,13 +7,13 @@ Part of [AI Operations OS](https://github.com/zanderone1980/ai-operations-os) �
 ## Install
 
 ```
-npm install @ai-ops/ops-core
+npm install @ai-operations/ops-core
 ```
 
 ## Quick Start
 
 ```ts
-import { WorkflowEngine, IntentClassifier } from '@ai-ops/ops-core';
+import { WorkflowEngine, IntentClassifier } from '@ai-operations/ops-core';
 
 const classifier = new IntentClassifier();
 const intent = classifier.classify('Please reply to John about the meeting');
@@ -88,10 +88,10 @@ In-memory + JSON file task persistence with filtering.
 
 ## Related Packages
 
-- [`@ai-ops/shared-types`](../shared-types) — Task, WorkflowRun, and other core types
-- [`@ai-ops/ops-connectors`](../ops-connectors) — Connector implementations (Gmail, Calendar, X, Shopify)
-- [`@ai-ops/cord-adapter`](../cord-adapter) — CORD safety gate integration
-- [`@ai-ops/ops-policy`](../ops-policy) — Policy rules and autonomy management
+- [`@ai-operations/shared-types`](../shared-types) — Task, WorkflowRun, and other core types
+- [`@ai-operations/ops-connectors`](../ops-connectors) — Connector implementations (Gmail, Calendar, X, Shopify)
+- [`@ai-operations/cord-adapter`](../cord-adapter) — CORD safety gate integration
+- [`@ai-operations/ops-policy`](../ops-policy) — Policy rules and autonomy management
 
 ## License
 

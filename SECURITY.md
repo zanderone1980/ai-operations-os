@@ -31,8 +31,8 @@ AI Operations OS enforces safety at multiple layers:
 
 | Layer | Mechanism | Description |
 |-------|-----------|-------------|
-| **Policy Engine** | `@ai-ops/ops-policy` | Owner-defined rules controlling what runs autonomously vs. requires approval |
-| **CORD Safety Gate** | `@ai-ops/cord-adapter` → `cord-engine` | Constitutional AI scoring on every proposed action (0–99 risk score) |
+| **Policy Engine** | `@ai-operations/ops-policy` | Owner-defined rules controlling what runs autonomously vs. requires approval |
+| **CORD Safety Gate** | `@ai-operations/cord-adapter` → `cord-engine` | Constitutional AI scoring on every proposed action (0–99 risk score) |
 | **Approval Gate** | Human-in-the-loop | Write operations require explicit user approval before execution |
 | **Signed Receipts** | SHA-256 + HMAC-SHA256 | Every executed action produces a cryptographically signed, hash-chained receipt |
 | **Credential Isolation** | `~/.ai-ops/credentials.json` | OAuth tokens stored with `0o600` permissions, never committed to repos |

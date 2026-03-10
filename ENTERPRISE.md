@@ -104,7 +104,7 @@ Receipts are hash-chained — each receipt's `prevHash` points to the previous r
 
 - Default: SQLite database at `~/.ai-ops/data.db`
 - Export: `GET /api/receipts?format=jsonl` for compliance archival
-- Chain verification: `verifyReceiptChain()` from `@ai-ops/shared-types`
+- Chain verification: `verifyReceiptChain()` from `@ai-operations/shared-types`
 
 ### Compliance Mapping
 

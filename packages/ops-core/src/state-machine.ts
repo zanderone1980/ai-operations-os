@@ -12,7 +12,7 @@
  * Any transition not in the table above is rejected with an error.
  */
 
-import type { StepStatus } from '@ai-ops/shared-types';
+import type { StepStatus } from '@ai-operations/shared-types';
 
 /** Events that trigger state transitions. */
 export type StepEvent =

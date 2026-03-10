@@ -9,9 +9,9 @@
  * - Predicted scores adjust based on learned weights
  */
 
-import { Database } from '@ai-ops/ops-storage';
-import { SparkStore } from '@ai-ops/ops-storage';
-import type { SparkCategory, SparkWeightEntry } from '@ai-ops/shared-types';
+import { Database } from '@ai-operations/ops-storage';
+import { SparkStore } from '@ai-operations/ops-storage';
+import type { SparkCategory, SparkWeightEntry } from '@ai-operations/shared-types';
 import { Predictor, operationToCategory } from '../predictor';
 import {
   ALL_CATEGORIES,

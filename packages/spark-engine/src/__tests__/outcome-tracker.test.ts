@@ -7,10 +7,10 @@
  * - Outcomes are persisted to the store
  */
 
-import { Database } from '@ai-ops/ops-storage';
-import { SparkStore } from '@ai-ops/ops-storage';
-import type { WorkflowStep } from '@ai-ops/shared-types';
-import type { OutcomeSignal } from '@ai-ops/shared-types';
+import { Database } from '@ai-operations/ops-storage';
+import { SparkStore } from '@ai-operations/ops-storage';
+import type { WorkflowStep } from '@ai-operations/shared-types';
+import type { OutcomeSignal } from '@ai-operations/shared-types';
 import { OutcomeTracker } from '../outcome-tracker';
 
 import * as path from 'path';

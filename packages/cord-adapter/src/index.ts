@@ -1,5 +1,5 @@
 /**
- * @ai-ops/cord-adapter — Bridge to cord-engine for safety evaluation.
+ * @ai-operations/cord-adapter — Bridge to cord-engine for safety evaluation.
  *
  * Provides CordSafetyGate for action evaluation, PolicySimulator for
  * dry-run analysis, and ForensicEngine for session timeline inspection.

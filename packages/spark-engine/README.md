@@ -1,4 +1,4 @@
-# @ai-ops/spark-engine
+# @ai-operations/spark-engine
 
 **Self-Perpetuating Adaptive Reasoning Kernel** — A closed feedback loop that makes CORD safety scoring learn from outcomes.
 
@@ -22,7 +22,7 @@ Step arrives → Predictor predicts outcome → CORD scores (with learned weight
 Before each step, predicts the CORD score, expected outcome, and confidence.
 
 ```typescript
-import { Predictor } from '@ai-ops/spark-engine';
+import { Predictor } from '@ai-operations/spark-engine';
 
 const predictor = new Predictor(sparkStore);
 const prediction = predictor.predict(stepId, runId, 'gmail', 'send');
@@ -33,7 +33,7 @@ const prediction = predictor.predict(stepId, runId, 'gmail', 'send');
 After execution, measures what actually happened.
 
 ```typescript
-import { OutcomeTracker } from '@ai-ops/spark-engine';
+import { OutcomeTracker } from '@ai-operations/spark-engine';
 
 const tracker = new OutcomeTracker(sparkStore);
 const outcome = tracker.measure(step, runId, wasApproved);
@@ -44,7 +44,7 @@ const outcome = tracker.measure(step, runId, wasApproved);
 Compares prediction to reality and adjusts weights.
 
 ```typescript
-import { LearningCore } from '@ai-ops/spark-engine';
+import { LearningCore } from '@ai-operations/spark-engine';
 
 const core = new LearningCore(sparkStore);
 const episode = core.learn(prediction, outcome);
@@ -55,7 +55,7 @@ const episode = core.learn(prediction, outcome);
 Wraps CordSafetyGate with learned weight multipliers.
 
 ```typescript
-import { AdaptiveSafetyGate } from '@ai-ops/spark-engine';
+import { AdaptiveSafetyGate } from '@ai-operations/spark-engine';
 
 const gate = new AdaptiveSafetyGate(cordGate, weightManager);
 const result = gate.evaluateAction('gmail', 'send', input);

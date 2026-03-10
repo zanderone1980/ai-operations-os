@@ -1,5 +1,5 @@
 /**
- * @ai-ops/ops-policy — Business rules and autonomy levels.
+ * @ai-operations/ops-policy — Business rules and autonomy levels.
  *
  * This package handles policy evaluation, autonomy management,
  * escalation paths, and budget tracking for the AI Operations OS.

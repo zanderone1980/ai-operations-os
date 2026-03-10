@@ -9,8 +9,8 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import { createTask } from '@ai-ops/shared-types';
-import type { TaskSource } from '@ai-ops/shared-types';
+import { createTask } from '@ai-operations/shared-types';
+import type { TaskSource } from '@ai-operations/shared-types';
 import { pathToRoute, sendJson, sendError } from '../server';
 import type { Route } from '../server';
 

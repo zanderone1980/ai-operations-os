@@ -1,5 +1,5 @@
 /**
- * @ai-ops/spark-engine — Self-Perpetuating Adaptive Reasoning Kernel.
+ * @ai-operations/spark-engine — Self-Perpetuating Adaptive Reasoning Kernel.
  *
  * Closed feedback loop that wraps CORD safety scoring with
  * predict -> act -> measure -> learn -> consolidate -> assess.

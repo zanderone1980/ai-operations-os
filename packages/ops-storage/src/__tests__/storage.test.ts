@@ -6,8 +6,8 @@ import { TaskStore } from '../task-store';
 import { ApprovalStore } from '../approval-store';
 import { WorkflowStore } from '../workflow-store';
 import { createStores } from '../index';
-import type { Task } from '@ai-ops/shared-types';
-import type { Approval, WorkflowRun, WorkflowStep } from '@ai-ops/shared-types';
+import type { Task } from '@ai-operations/shared-types';
+import type { Approval, WorkflowRun, WorkflowStep } from '@ai-operations/shared-types';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 

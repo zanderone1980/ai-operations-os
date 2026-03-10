@@ -6,8 +6,8 @@
  * weight snapshots for rollback capability.
  */
 
-import type { SparkCategory, SparkWeights, SparkWeightEntry } from '@ai-ops/shared-types';
-import type { SparkStore } from '@ai-ops/ops-storage';
+import type { SparkCategory, SparkWeights, SparkWeightEntry } from '@ai-operations/shared-types';
+import type { SparkStore } from '@ai-operations/ops-storage';
 import { ALL_CATEGORIES, buildDefaultWeight } from './constants';
 
 // ── WeightManager ─────────────────────────────────────────────────

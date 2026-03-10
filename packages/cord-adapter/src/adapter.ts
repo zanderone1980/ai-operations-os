@@ -6,7 +6,7 @@
  * with a warning so the system can still operate in a permissive mode.
  */
 
-import type { CordDecision } from '@ai-ops/shared-types';
+import type { CordDecision } from '@ai-operations/shared-types';
 
 // ---------------------------------------------------------------------------
 // Graceful cord-engine import

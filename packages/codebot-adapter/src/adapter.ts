@@ -10,7 +10,7 @@ import { randomUUID } from 'node:crypto';
  * mode with plausible timing, outputs, and metadata.
  */
 
-import type { WorkflowStep } from '@ai-ops/shared-types';
+import type { WorkflowStep } from '@ai-operations/shared-types';
 
 // ---------------------------------------------------------------------------
 // Graceful codebot-ai import

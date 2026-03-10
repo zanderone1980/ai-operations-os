@@ -48,7 +48,7 @@ function loadEnv(): void {
 loadEnv();
 
 import { stores } from './storage';
-import { createLogger } from '@ai-ops/ops-core';
+import { createLogger } from '@ai-operations/ops-core';
 import { requestLogger } from './middleware/request-logger';
 import { taskRoutes } from './routes/tasks';
 import { workflowRoutes } from './routes/workflows';

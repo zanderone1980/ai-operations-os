@@ -1,5 +1,5 @@
 {
-  "name": "@ai-ops/spark-engine",
+  "name": "@ai-operations/spark-engine",
   "version": "0.1.0",
   "description": "SPARK engine — Self-Perpetuating Adaptive Reasoning Kernel with predict/learn feedback loop, awareness, and conversational reasoning",
   "private": false,
@@ -11,11 +11,11 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@ai-ops/shared-types": "*",
-    "@ai-ops/ops-storage": "*"
+    "@ai-operations/shared-types": "*",
+    "@ai-operations/ops-storage": "*"
   },
   "optionalDependencies": {
-    "@ai-ops/cord-adapter": "*"
+    "@ai-operations/cord-adapter": "*"
   },
   "files": ["dist", "README.md", "LICENSE"],
   "publishConfig": { "registry": "https://registry.npmjs.org/", "access": "public" },

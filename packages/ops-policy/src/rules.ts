@@ -7,8 +7,8 @@
  * is returned.
  */
 
-import type { PolicyConfig, PolicyRule, AutonomyLevel } from '@ai-ops/shared-types';
-import type { RiskLevel } from '@ai-ops/shared-types';
+import type { PolicyConfig, PolicyRule, AutonomyLevel } from '@ai-operations/shared-types';
+import type { RiskLevel } from '@ai-operations/shared-types';
 
 /** Context provided when evaluating a rule. */
 export interface EvaluationContext {

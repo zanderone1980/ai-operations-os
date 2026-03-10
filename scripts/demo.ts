@@ -16,7 +16,7 @@ import {
   verifyReceiptChain,
   GENESIS_HASH,
   type ActionReceipt,
-} from '@ai-ops/shared-types';
+} from '@ai-operations/shared-types';
 
 // ── ANSI Colors ──────────────────────────────────────────────────────────────
 

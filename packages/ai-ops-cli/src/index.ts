@@ -1,5 +1,5 @@
 /**
- * @ai-ops/cli — CLI for AI Operations OS.
+ * @ai-operations/cli — CLI for AI Operations OS.
  *
  * Re-exports all commands for programmatic use.
  */

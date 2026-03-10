@@ -16,7 +16,7 @@ import {
   type WorkflowStore,
   type ApprovalStore,
   type TaskStore,
-} from '@ai-ops/ops-storage';
+} from '@ai-operations/ops-storage';
 import type {
   ActionReceipt,
   WorkflowRun,
@@ -24,7 +24,7 @@ import type {
   Approval,
   Task,
   Action,
-} from '@ai-ops/shared-types';
+} from '@ai-operations/shared-types';
 
 // ---------------------------------------------------------------------------
 // Types

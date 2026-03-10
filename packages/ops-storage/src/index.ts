@@ -1,5 +1,5 @@
 /**
- * @ai-ops/ops-storage — SQLite persistence layer for AI Operations OS.
+ * @ai-operations/ops-storage — SQLite persistence layer for AI Operations OS.
  *
  * Provides typed store classes for tasks, workflows, and approvals,
  * all backed by a single SQLite database.

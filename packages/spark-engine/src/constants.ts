@@ -6,8 +6,8 @@
  * factory functions for building default weight entries per CORD category.
  */
 
-import type { SparkCategory, SparkWeightEntry } from '@ai-ops/shared-types';
-import { SENTINEL_CATEGORIES } from '@ai-ops/shared-types';
+import type { SparkCategory, SparkWeightEntry } from '@ai-operations/shared-types';
+import { SENTINEL_CATEGORIES } from '@ai-operations/shared-types';
 
 // ── Learning Tuning Parameters ────────────────────────────────────
 

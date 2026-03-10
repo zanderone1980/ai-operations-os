@@ -1,4 +1,4 @@
-# @ai-ops/ops-connectors
+# @ai-operations/ops-connectors
 
 > Connector framework with Gmail, Calendar, X/Twitter, and Shopify integrations for AI Operations OS.
 
@@ -7,13 +7,13 @@ Part of [AI Operations OS](https://github.com/zanderone1980/ai-operations-os) �
 ## Install
 
 ```
-npm install @ai-ops/ops-connectors
+npm install @ai-operations/ops-connectors
 ```
 
 ## Quick Start
 
 ```ts
-import { ConnectorRegistry, GmailConnector, resilientFetch, RateLimiter } from '@ai-ops/ops-connectors';
+import { ConnectorRegistry, GmailConnector, resilientFetch, RateLimiter } from '@ai-operations/ops-connectors';
 
 const registry = new ConnectorRegistry();
 registry.register(new GmailConnector({ name: 'gmail', enabled: true, credentials: { token: '...' } }));
@@ -88,9 +88,9 @@ await limiter.waitAndRecord(); // Block until a slot opens
 
 ## Related Packages
 
-- [`@ai-ops/shared-types`](../shared-types) — Core types consumed by connectors
-- [`@ai-ops/ops-core`](../ops-core) — WorkflowEngine that executes connector operations
-- [`@ai-ops/cord-adapter`](../cord-adapter) — Safety gate evaluated before connector execution
+- [`@ai-operations/shared-types`](../shared-types) — Core types consumed by connectors
+- [`@ai-operations/ops-core`](../ops-core) — WorkflowEngine that executes connector operations
+- [`@ai-operations/cord-adapter`](../cord-adapter) — Safety gate evaluated before connector execution
 
 ## License
 

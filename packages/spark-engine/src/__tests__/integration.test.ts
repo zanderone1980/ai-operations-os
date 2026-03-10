@@ -11,15 +11,15 @@
  * - Snapshot and rollback preserve system state
  */
 
-import { Database } from '@ai-ops/ops-storage';
-import { SparkStore } from '@ai-ops/ops-storage';
+import { Database } from '@ai-operations/ops-storage';
+import { SparkStore } from '@ai-operations/ops-storage';
 import type {
   SparkCategory,
   Prediction,
   OutcomeSignal,
   WorkflowStep,
-} from '@ai-ops/shared-types';
-import { SENTINEL_CATEGORIES } from '@ai-ops/shared-types';
+} from '@ai-operations/shared-types';
+import { SENTINEL_CATEGORIES } from '@ai-operations/shared-types';
 import { Predictor, operationToCategory } from '../predictor';
 import { OutcomeTracker } from '../outcome-tracker';
 import { LearningCore } from '../learning-core';

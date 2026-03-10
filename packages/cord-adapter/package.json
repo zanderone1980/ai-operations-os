@@ -1,5 +1,5 @@
 {
-  "name": "@ai-ops/cord-adapter",
+  "name": "@ai-operations/cord-adapter",
   "version": "0.1.0",
   "description": "CORD safety gate adapter for AI Operations OS — 14-dimension constitutional AI scoring with SPARK integration",
   "private": false,
@@ -10,8 +10,8 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@ai-ops/shared-types": "*",
-    "@ai-ops/ops-storage": "*"
+    "@ai-operations/shared-types": "*",
+    "@ai-operations/ops-storage": "*"
   },
   "optionalDependencies": {
     "cord-engine": "^4.3.0"

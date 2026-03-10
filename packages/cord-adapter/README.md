@@ -1,4 +1,4 @@
-# @ai-ops/cord-adapter
+# @ai-operations/cord-adapter
 
 > CORD safety gate, policy simulation, and forensic timeline analysis for AI Operations OS.
 
@@ -7,7 +7,7 @@ Part of [AI Operations OS](https://github.com/zanderone1980/ai-operations-os) �
 ## Install
 
 ```
-npm install @ai-ops/cord-adapter
+npm install @ai-operations/cord-adapter
 ```
 
 `cord-engine` is an optional dependency. When not installed, `CordSafetyGate` defaults to ALLOW for all evaluations so the system can operate in permissive mode.
@@ -15,7 +15,7 @@ npm install @ai-ops/cord-adapter
 ## Quick Start
 
 ```ts
-import { CordSafetyGate, PolicySimulator } from '@ai-ops/cord-adapter';
+import { CordSafetyGate, PolicySimulator } from '@ai-operations/cord-adapter';
 
 const gate = new CordSafetyGate();
 const result = gate.evaluateAction('gmail', 'send', { to: 'user@example.com', subject: 'Hi' });
@@ -81,10 +81,10 @@ getTimeline(): ForensicTimeline | null
 
 ## Related Packages
 
-- [`@ai-ops/shared-types`](../shared-types) — CordDecision, ActionReceipt types
-- [`@ai-ops/ops-core`](../ops-core) — WorkflowEngine uses CordSafetyGate as its SafetyGate
-- [`@ai-ops/ops-storage`](../ops-storage) — ForensicEngine reads session data from stores
-- [`@ai-ops/ops-policy`](../ops-policy) — Policy rules complementing CORD evaluation
+- [`@ai-operations/shared-types`](../shared-types) — CordDecision, ActionReceipt types
+- [`@ai-operations/ops-core`](../ops-core) — WorkflowEngine uses CordSafetyGate as its SafetyGate
+- [`@ai-operations/ops-storage`](../ops-storage) — ForensicEngine reads session data from stores
+- [`@ai-operations/ops-policy`](../ops-policy) — Policy rules complementing CORD evaluation
 
 ## License
 

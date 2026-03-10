@@ -1,5 +1,5 @@
 /**
- * @ai-ops/ops-core — Workflow engine and state machine.
+ * @ai-operations/ops-core — Workflow engine and state machine.
  *
  * This package provides the core execution runtime for the AI Operations OS:
  *

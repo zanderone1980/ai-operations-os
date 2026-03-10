@@ -15,7 +15,7 @@
  *   OLLAMA_URL           — Base URL for Ollama (default: http://localhost:11434)
  */
 
-import type { TaskIntent } from '@ai-ops/shared-types';
+import type { TaskIntent } from '@ai-operations/shared-types';
 import { IntentClassifier } from './intent';
 import type { ClassificationResult } from './intent';
 

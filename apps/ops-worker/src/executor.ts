@@ -5,7 +5,7 @@
  * the CORD safety gate, runs through connectors, and manages approvals.
  */
 
-import type { WorkflowRun, WorkflowStep, CordDecision } from '@ai-ops/shared-types';
+import type { WorkflowRun, WorkflowStep, CordDecision } from '@ai-operations/shared-types';
 
 export interface ExecutorOptions {
   /** Callback to evaluate safety before execution */

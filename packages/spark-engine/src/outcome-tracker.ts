@@ -7,9 +7,9 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import type { OutcomeSignal, ActualOutcome } from '@ai-ops/shared-types';
-import type { WorkflowStep } from '@ai-ops/shared-types';
-import type { SparkStore } from '@ai-ops/ops-storage';
+import type { OutcomeSignal, ActualOutcome } from '@ai-operations/shared-types';
+import type { WorkflowStep } from '@ai-operations/shared-types';
+import type { SparkStore } from '@ai-operations/ops-storage';
 
 // ── Outcome Derivation Constants ──────────────────────────────────
 

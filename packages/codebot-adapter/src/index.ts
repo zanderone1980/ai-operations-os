@@ -1,5 +1,5 @@
 /**
- * @ai-ops/codebot-adapter — Bridge to codebot-ai for workflow execution.
+ * @ai-operations/codebot-adapter — Bridge to codebot-ai for workflow execution.
  *
  * Provides CodeBotAdapter for step-level execution, CodeBotExecutor for
  * agent-driven multi-tool runs, and ReceiptBuilder for hash-chained

@@ -1,4 +1,4 @@
-# @ai-ops/shared-types
+# @ai-operations/shared-types
 
 > Core data models, JSON schemas, and receipt cryptography for AI Operations OS.
 
@@ -7,13 +7,13 @@ Part of [AI Operations OS](https://github.com/zanderone1980/ai-operations-os) �
 ## Install
 
 ```
-npm install @ai-ops/shared-types
+npm install @ai-operations/shared-types
 ```
 
 ## Quick Start
 
 ```ts
-import { createTask, createWorkflowRun, createStep, verifyReceiptChain } from '@ai-ops/shared-types';
+import { createTask, createWorkflowRun, createStep, verifyReceiptChain } from '@ai-operations/shared-types';
 
 const task = createTask({ source: 'email', title: 'Reply to John' });
 const run = createWorkflowRun(task.id, 'email-reply', [
@@ -59,7 +59,7 @@ Create a single workflow step definition for use with `createWorkflowRun`.
 ### Receipt Cryptography
 
 ```ts
-import { computeReceiptHash, signReceipt, verifyReceipt, verifyReceiptChain, GENESIS_HASH } from '@ai-ops/shared-types';
+import { computeReceiptHash, signReceipt, verifyReceipt, verifyReceiptChain, GENESIS_HASH } from '@ai-operations/shared-types';
 
 const hash = computeReceiptHash(receiptData);       // SHA-256 content hash
 const sig  = signReceipt(hash, 'hmac-key');          // HMAC-SHA256 signature
@@ -72,17 +72,17 @@ const chain = verifyReceiptChain(receipts, 'hmac-key'); // { valid, brokenAt?, r
 JSON Schema draft-07 definitions for runtime validation and OpenAPI generation:
 
 ```ts
-import { TaskSchema, ApprovalSchema, ActionReceiptSchema, WorkflowRunSchema, SCHEMAS } from '@ai-ops/shared-types';
+import { TaskSchema, ApprovalSchema, ActionReceiptSchema, WorkflowRunSchema, SCHEMAS } from '@ai-operations/shared-types';
 
 // SCHEMAS is a registry: { Task, Approval, ActionReceipt, WorkflowStep, WorkflowRun }
 ```
 
 ## Related Packages
 
-- [`@ai-ops/ops-core`](../ops-core) — Workflow engine consuming these types
-- [`@ai-ops/ops-storage`](../ops-storage) — SQLite persistence for tasks, workflows, approvals
-- [`@ai-ops/ops-policy`](../ops-policy) — Policy rules built on PolicyConfig
-- [`@ai-ops/codebot-adapter`](../codebot-adapter) — Receipt building and chain verification
+- [`@ai-operations/ops-core`](../ops-core) — Workflow engine consuming these types
+- [`@ai-operations/ops-storage`](../ops-storage) — SQLite persistence for tasks, workflows, approvals
+- [`@ai-operations/ops-policy`](../ops-policy) — Policy rules built on PolicyConfig
+- [`@ai-operations/codebot-adapter`](../codebot-adapter) — Receipt building and chain verification
 
 ## License
 

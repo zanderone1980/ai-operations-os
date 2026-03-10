@@ -8,8 +8,8 @@
  * DELETE /api/tasks/:id      Delete a task (soft — marks as failed)
  */
 
-import type { Task, TaskSource, TaskIntent, TaskPriority } from '@ai-ops/shared-types';
-import { createTask } from '@ai-ops/shared-types';
+import type { Task, TaskSource, TaskIntent, TaskPriority } from '@ai-operations/shared-types';
+import { createTask } from '@ai-operations/shared-types';
 import { pathToRoute, sendJson, sendError } from '../server';
 import type { Route } from '../server';
 import { stores } from '../storage';

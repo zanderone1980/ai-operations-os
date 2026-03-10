@@ -1,4 +1,4 @@
-# @ai-ops/codebot-adapter
+# @ai-operations/codebot-adapter
 
 > CodeBot execution bridge and hash-chained receipt builder for AI Operations OS.
 
@@ -7,7 +7,7 @@ Part of [AI Operations OS](https://github.com/zanderone1980/ai-operations-os) �
 ## Install
 
 ```
-npm install @ai-ops/codebot-adapter
+npm install @ai-operations/codebot-adapter
 ```
 
 `codebot-ai` is an optional dependency. When not installed, `CodeBotAdapter` and `CodeBotExecutor` produce realistic simulated results with plausible timing and outputs.
@@ -15,8 +15,8 @@ npm install @ai-ops/codebot-adapter
 ## Quick Start
 
 ```ts
-import { CodeBotAdapter, ReceiptBuilder } from '@ai-ops/codebot-adapter';
-import { verifyReceiptChain } from '@ai-ops/shared-types';
+import { CodeBotAdapter, ReceiptBuilder } from '@ai-operations/codebot-adapter';
+import { verifyReceiptChain } from '@ai-operations/shared-types';
 
 const adapter = new CodeBotAdapter();
 const result = await adapter.executeStep(workflowStep);
@@ -82,9 +82,9 @@ reset(): void
 
 ## Related Packages
 
-- [`@ai-ops/shared-types`](../shared-types) — ActionReceipt, verifyReceiptChain, GENESIS_HASH
-- [`@ai-ops/ops-core`](../ops-core) — WorkflowEngine that drives step execution
-- [`@ai-ops/cord-adapter`](../cord-adapter) — CORD safety evaluation before CodeBot runs
+- [`@ai-operations/shared-types`](../shared-types) — ActionReceipt, verifyReceiptChain, GENESIS_HASH
+- [`@ai-operations/ops-core`](../ops-core) — WorkflowEngine that drives step execution
+- [`@ai-operations/cord-adapter`](../cord-adapter) — CORD safety evaluation before CodeBot runs
 
 ## License
 

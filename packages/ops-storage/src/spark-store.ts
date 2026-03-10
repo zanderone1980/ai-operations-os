@@ -18,7 +18,7 @@ import type {
   Conversation,
   ConversationTurn,
   ReasoningResult,
-} from '@ai-ops/shared-types';
+} from '@ai-operations/shared-types';
 
 export interface SparkEpisodeFilter {
   category?: string;

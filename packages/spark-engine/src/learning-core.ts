@@ -19,9 +19,9 @@ import type {
   LearningEpisode,
   SparkCategory,
   WeightHistoryEntry,
-} from '@ai-ops/shared-types';
-import type { OutcomeSignal } from '@ai-ops/shared-types';
-import type { SparkStore } from '@ai-ops/ops-storage';
+} from '@ai-operations/shared-types';
+import type { OutcomeSignal } from '@ai-operations/shared-types';
+import type { SparkStore } from '@ai-operations/ops-storage';
 import {
   EMA_ALPHA,
   MIN_EPISODES_BEFORE_LEARNING,

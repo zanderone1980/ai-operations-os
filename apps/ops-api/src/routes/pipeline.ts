@@ -12,13 +12,13 @@
  * - Approval flow via approvals routes
  */
 
-import type { TaskSource, Approval, WorkflowStep } from '@ai-ops/shared-types';
-import { DEFAULT_POLICY } from '@ai-ops/shared-types';
-import { runPipeline as runPipelineFn, defaultBuildWorkflow } from '@ai-ops/ops-worker';
-import { LLMIntentClassifier } from '@ai-ops/ops-core';
-import { RuleEngine } from '@ai-ops/ops-policy';
-import { ConnectorRegistry, GmailConnector, CalendarConnector, XTwitterConnector, ShopifyConnector } from '@ai-ops/ops-connectors';
-import { Predictor, OutcomeTracker, LearningCore, WeightManager } from '@ai-ops/spark-engine';
+import type { TaskSource, Approval, WorkflowStep } from '@ai-operations/shared-types';
+import { DEFAULT_POLICY } from '@ai-operations/shared-types';
+import { runPipeline as runPipelineFn, defaultBuildWorkflow } from '@ai-operations/ops-worker';
+import { LLMIntentClassifier } from '@ai-operations/ops-core';
+import { RuleEngine } from '@ai-operations/ops-policy';
+import { ConnectorRegistry, GmailConnector, CalendarConnector, XTwitterConnector, ShopifyConnector } from '@ai-operations/ops-connectors';
+import { Predictor, OutcomeTracker, LearningCore, WeightManager } from '@ai-operations/spark-engine';
 import { evaluateAction } from '../middleware/cord-gate';
 import { requestApproval, waitForDecision } from './approvals';
 import { pathToRoute, sendJson, sendError } from '../server';

@@ -6,8 +6,12 @@ module.exports = {
   roots: ['<rootDir>/src'],
   testMatch: ['**/__tests__/**/*.test.ts', '**/*.test.ts'],
   moduleNameMapper: {
-    '^@ai-ops/shared-types$': '<rootDir>/../shared-types/src',
-    '^@ai-ops/ops-storage$': '<rootDir>/../ops-storage/src',
-    '^@ai-ops/cord-adapter$': '<rootDir>/../cord-adapter/src',
+    '^@ai-operations/shared-types$': '<rootDir>/../shared-types/src',
+    '^@ai-operations/ops-storage$': '<rootDir>/../ops-storage/src',
+    '^@ai-operations/cord-adapter$': '<rootDir>/../cord-adapter/src',
   },
+  collectCoverageFrom: [
+    'src/**/*.ts',
+    '!src/__tests__/**',
+  ],
 };

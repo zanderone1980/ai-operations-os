@@ -1,5 +1,5 @@
 /**
- * @ai-ops/ops-connectors
+ * @ai-operations/ops-connectors
  *
  * Connector framework and stub implementations for the AI Operations OS.
  * Provides a BaseConnector abstract class, a ConnectorRegistry for managing

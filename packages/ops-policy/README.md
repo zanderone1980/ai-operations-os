@@ -1,4 +1,4 @@
-# @ai-ops/ops-policy
+# @ai-operations/ops-policy
 
 > Business rules, autonomy levels, escalation paths, and budget tracking for AI Operations OS.
 
@@ -7,14 +7,14 @@ Part of [AI Operations OS](https://github.com/zanderone1980/ai-operations-os) �
 ## Install
 
 ```
-npm install @ai-ops/ops-policy
+npm install @ai-operations/ops-policy
 ```
 
 ## Quick Start
 
 ```ts
-import { AutonomyManager, BudgetTracker } from '@ai-ops/ops-policy';
-import { DEFAULT_POLICY } from '@ai-ops/shared-types';
+import { AutonomyManager, BudgetTracker } from '@ai-operations/ops-policy';
+import { DEFAULT_POLICY } from '@ai-operations/shared-types';
 
 const manager = new AutonomyManager(DEFAULT_POLICY);
 const decision = manager.canExecute('gmail', 'send', { source: 'email' });
@@ -86,9 +86,9 @@ setConnectorLimit(connector: string, limit: number): void
 
 ## Related Packages
 
-- [`@ai-ops/shared-types`](../shared-types) — PolicyConfig, PolicyRule, AutonomyLevel types
-- [`@ai-ops/ops-core`](../ops-core) — Workflow engine that checks policy before execution
-- [`@ai-ops/cord-adapter`](../cord-adapter) — CORD safety evaluation layer
+- [`@ai-operations/shared-types`](../shared-types) — PolicyConfig, PolicyRule, AutonomyLevel types
+- [`@ai-operations/ops-core`](../ops-core) — Workflow engine that checks policy before execution
+- [`@ai-operations/cord-adapter`](../cord-adapter) — CORD safety evaluation layer
 
 ## License
 

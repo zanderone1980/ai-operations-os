@@ -7,8 +7,8 @@
  * GET    /api/approvals/stream       SSE stream of new approval requests
  */
 
-import type { Approval, ApprovalDecision } from '@ai-ops/shared-types';
-import { createApproval } from '@ai-ops/shared-types';
+import type { Approval, ApprovalDecision } from '@ai-operations/shared-types';
+import { createApproval } from '@ai-operations/shared-types';
 import { pathToRoute, sendJson, sendError } from '../server';
 import type { Route } from '../server';
 import { stores } from '../storage';

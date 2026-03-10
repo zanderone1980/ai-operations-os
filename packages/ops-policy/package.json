@@ -1,5 +1,5 @@
 {
-  "name": "@ai-ops/ops-policy",
+  "name": "@ai-operations/ops-policy",
   "version": "0.1.0",
   "description": "Policy engine for AI Operations OS — rule evaluation, autonomy levels, budget enforcement, escalation logic",
   "private": false,
@@ -11,7 +11,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@ai-ops/shared-types": "*"
+    "@ai-operations/shared-types": "*"
   },
   "devDependencies": {
     "typescript": "^5.7.0"

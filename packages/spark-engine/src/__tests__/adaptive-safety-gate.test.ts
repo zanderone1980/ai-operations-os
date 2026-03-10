@@ -9,10 +9,10 @@
  * - rawScore and adjustedScore are both returned
  */
 
-import { Database } from '@ai-ops/ops-storage';
-import { SparkStore } from '@ai-ops/ops-storage';
-import type { SparkCategory } from '@ai-ops/shared-types';
-import type { CordDecision } from '@ai-ops/shared-types';
+import { Database } from '@ai-operations/ops-storage';
+import { SparkStore } from '@ai-operations/ops-storage';
+import type { SparkCategory } from '@ai-operations/shared-types';
+import type { CordDecision } from '@ai-operations/shared-types';
 import { AdaptiveSafetyGate } from '../adaptive-safety-gate';
 import { WeightManager } from '../weight-manager';
 import { buildAllDefaultWeights } from '../constants';

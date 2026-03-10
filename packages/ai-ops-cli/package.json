@@ -1,5 +1,5 @@
 {
-  "name": "@ai-ops/cli",
+  "name": "@ai-operations/cli",
   "version": "0.1.0",
   "description": "CLI for AI Operations OS",
   "bin": { "ai-ops": "./dist/bin.js" },
@@ -10,8 +10,8 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@ai-ops/shared-types": "*",
-    "@ai-ops/ops-storage": "*"
+    "@ai-operations/shared-types": "*",
+    "@ai-operations/ops-storage": "*"
   },
   "devDependencies": {
     "typescript": "^5.7.0"

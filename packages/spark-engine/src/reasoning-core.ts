@@ -18,7 +18,7 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import type { SparkStore } from '@ai-ops/ops-storage';
+import type { SparkStore } from '@ai-operations/ops-storage';
 import type {
   SparkQueryIntent,
   ReasoningStep,
@@ -33,7 +33,7 @@ import type {
   LearningEpisode,
   SparkCategory,
   TrustLevel,
-} from '@ai-ops/shared-types';
+} from '@ai-operations/shared-types';
 
 // ── Internal Types ─────────────────────────────────────────────────
 

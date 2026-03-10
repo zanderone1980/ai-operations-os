@@ -13,7 +13,7 @@ import type {
   StepStatus,
   WorkflowState,
   CordDecision,
-} from '@ai-ops/shared-types';
+} from '@ai-operations/shared-types';
 
 import { StateMachine, InvalidTransitionError } from './state-machine';
 import type { StepEvent } from './state-machine';

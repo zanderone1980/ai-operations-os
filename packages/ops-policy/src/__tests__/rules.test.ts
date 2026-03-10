@@ -1,6 +1,6 @@
 import { RuleEngine } from '../rules';
-import type { PolicyConfig, PolicyRule } from '@ai-ops/shared-types';
-import { DEFAULT_POLICY } from '@ai-ops/shared-types';
+import type { PolicyConfig, PolicyRule } from '@ai-operations/shared-types';
+import { DEFAULT_POLICY } from '@ai-operations/shared-types';
 
 function makeConfig(rules: PolicyRule[], overrides: Partial<PolicyConfig> = {}): PolicyConfig {
   return {

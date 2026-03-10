@@ -10,10 +10,10 @@
  * - Snapshot/rollback preserves and restores system state
  */
 
-import { Database } from '@ai-ops/ops-storage';
-import { SparkStore } from '@ai-ops/ops-storage';
-import type { SparkCategory, SparkWeightEntry } from '@ai-ops/shared-types';
-import { SENTINEL_CATEGORIES } from '@ai-ops/shared-types';
+import { Database } from '@ai-operations/ops-storage';
+import { SparkStore } from '@ai-operations/ops-storage';
+import type { SparkCategory, SparkWeightEntry } from '@ai-operations/shared-types';
+import { SENTINEL_CATEGORIES } from '@ai-operations/shared-types';
 import { WeightManager } from '../weight-manager';
 import { ALL_CATEGORIES, buildDefaultWeight } from '../constants';
 

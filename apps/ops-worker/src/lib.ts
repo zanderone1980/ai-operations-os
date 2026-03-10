@@ -1,5 +1,5 @@
 /**
- * Library exports for @ai-ops/ops-worker.
+ * Library exports for @ai-operations/ops-worker.
  * Import this (via package.json main) to use pipeline/queue/scheduler
  * without triggering side effects.
  */

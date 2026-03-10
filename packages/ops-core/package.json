@@ -1,5 +1,5 @@
 {
-  "name": "@ai-ops/ops-core",
+  "name": "@ai-operations/ops-core",
   "version": "0.1.0",
   "description": "Pipeline engine for AI Operations OS — intent classification, state machine, LLM integration, structured logging",
   "private": false,
@@ -11,7 +11,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@ai-ops/shared-types": "*"
+    "@ai-operations/shared-types": "*"
   },
   "devDependencies": {
     "typescript": "^5.7.0"

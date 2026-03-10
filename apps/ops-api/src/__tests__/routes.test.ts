@@ -59,7 +59,7 @@ afterAll(async () => {
   // Stop the ops-worker background timers (queue polling + scheduler)
   // that get started as a side effect of importing the pipeline routes.
   try {
-    const worker = await import('@ai-ops/ops-worker') as any;
+    const worker = await import('@ai-operations/ops-worker') as any;
     if (worker.queue) worker.queue.stop();
     if (worker.scheduler) worker.scheduler.stop();
   } catch { /* worker may not be loaded */ }

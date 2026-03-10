@@ -8,7 +8,7 @@
 
 import * as http from 'http';
 import { randomUUID } from 'node:crypto';
-import { createLogger } from '@ai-ops/ops-core';
+import { createLogger } from '@ai-operations/ops-core';
 
 const log = createLogger('request-logger');
 

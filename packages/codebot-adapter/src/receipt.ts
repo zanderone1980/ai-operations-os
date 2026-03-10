@@ -5,15 +5,15 @@ import { randomUUID } from 'node:crypto';
  *
  * Tracks workflow steps as they execute and produces cryptographically
  * signed ActionReceipt objects linked in a hash chain. Uses the receipt
- * functions from @ai-ops/shared-types for hashing and signing.
+ * functions from @ai-operations/shared-types for hashing and signing.
  */
 
-import type { ActionReceipt, CordDecision } from '@ai-ops/shared-types';
+import type { ActionReceipt, CordDecision } from '@ai-operations/shared-types';
 import {
   GENESIS_HASH,
   computeReceiptHash,
   signReceipt,
-} from '@ai-ops/shared-types';
+} from '@ai-operations/shared-types';
 
 // ---------------------------------------------------------------------------
 // Types

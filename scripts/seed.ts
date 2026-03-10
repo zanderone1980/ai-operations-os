@@ -12,8 +12,8 @@ import * as path from 'path';
 import * as os from 'os';
 import * as crypto from 'crypto';
 
-import { createStores } from '@ai-ops/ops-storage';
-import type { Stores } from '@ai-ops/ops-storage';
+import { createStores } from '@ai-operations/ops-storage';
+import type { Stores } from '@ai-operations/ops-storage';
 import {
   createTask,
   createWorkflowRun,
@@ -27,12 +27,12 @@ import {
   type WorkflowRun,
   type SparkCategory,
   type LearningEpisode,
-} from '@ai-ops/shared-types';
+} from '@ai-operations/shared-types';
 import {
   buildAllDefaultWeights,
   MemoryCore,
   AwarenessCore,
-} from '@ai-ops/spark-engine';
+} from '@ai-operations/spark-engine';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 

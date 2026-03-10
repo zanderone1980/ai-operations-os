@@ -1760,6 +1760,167 @@
   // Expose showToast globally for convenience
   window.showToast = showToast;
 
+  // ═══════════════════════════════════════════════════════════════
+  // SPARK — Self-Perpetuating Adaptive Reasoning Kernel
+  // ═══════════════════════════════════════════════════════════════
+
+  async function loadSparkData() {
+    try {
+      const [weightsRes, episodesRes, predictionsRes, statsRes] = await Promise.all([
+        fetch(`${API}/spark/weights`).catch(() => null),
+        fetch(`${API}/spark/episodes?limit=20`).catch(() => null),
+        fetch(`${API}/spark/predictions?limit=20`).catch(() => null),
+        fetch(`${API}/spark/stats`).catch(() => null),
+      ]);
+
+      if (statsRes && statsRes.ok) {
+        const stats = await statsRes.json();
+        document.getElementById('spark-total-episodes').textContent = stats.totalEpisodes || 0;
+
+        // Compute overall accuracy
+        const cats = Object.values(stats.categories || {});
+        if (cats.length > 0) {
+          const avgAccuracy = cats.reduce((s, c) => s + (c.accuracy || 0), 0) / cats.length;
+          document.getElementById('spark-accuracy').textContent = (avgAccuracy * 100).toFixed(0) + '%';
+        }
+
+        // Count drifted categories
+        const drifted = cats.filter(c => Math.abs(c.drift || 0) > 0.01).length;
+        document.getElementById('spark-categories-drifted').textContent = drifted;
+      }
+
+      if (weightsRes && weightsRes.ok) {
+        const data = await weightsRes.json();
+        renderSparkWeights(data.weights || data);
+      }
+
+      if (episodesRes && episodesRes.ok) {
+        const data = await episodesRes.json();
+        renderSparkEpisodes(data.episodes || []);
+      }
+
+      if (predictionsRes && predictionsRes.ok) {
+        const data = await predictionsRes.json();
+        renderSparkPredictions(data.predictions || data || []);
+      }
+    } catch (err) {
+      console.warn('SPARK data load failed:', err);
+    }
+  }
+
+  function renderSparkWeights(weights) {
+    const grid = document.getElementById('spark-weights-grid');
+    if (!weights || (typeof weights === 'object' && Object.keys(weights).length === 0)) {
+      grid.innerHTML = '<div class="empty-state">No weights data — SPARK not yet initialized</div>';
+      return;
+    }
+
+    const entries = Array.isArray(weights) ? weights : Object.values(weights);
+    const sentinel = ['destructive', 'financial'];
+
+    grid.innerHTML = entries.map(w => {
+      const isSentinel = sentinel.includes(w.category);
+      const drift = w.currentWeight - w.baseWeight;
+      const driftDir = drift > 0.005 ? 'increase' : drift < -0.005 ? 'decrease' : 'neutral';
+      const barPercent = ((w.currentWeight - w.lowerBound) / (w.upperBound - w.lowerBound)) * 100;
+
+      return `
+        <div class="spark-weight-card ${isSentinel ? 'sentinel' : ''}">
+          <div class="spark-weight-card-header">
+            <span class="spark-weight-category">${w.category}</span>
+            ${isSentinel ? '<span class="spark-weight-sentinel-badge">SENTINEL</span>' : ''}
+          </div>
+          <div class="spark-weight-value">${w.currentWeight.toFixed(3)}</div>
+          <div class="spark-weight-bar">
+            <div class="spark-weight-bar-fill ${driftDir}" style="width: ${Math.max(5, barPercent)}%"></div>
+          </div>
+          <div class="spark-weight-meta">
+            <span>Bounds: ${w.lowerBound.toFixed(2)}–${w.upperBound.toFixed(2)}</span>
+            <span>${w.episodeCount} episodes</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function renderSparkEpisodes(episodes) {
+    const list = document.getElementById('spark-episodes-list');
+    if (!episodes || episodes.length === 0) {
+      list.innerHTML = '<div class="empty-state">No learning episodes yet — run the pipeline to generate feedback</div>';
+      return;
+    }
+
+    list.innerHTML = episodes.map(ep => {
+      const icon = ep.adjustmentDirection === 'increase' ? '↑' :
+                   ep.adjustmentDirection === 'decrease' ? '↓' : '—';
+      const weightChange = ep.weightAfter - ep.weightBefore;
+      const changeStr = weightChange === 0 ? '—' :
+        (weightChange > 0 ? '+' : '') + weightChange.toFixed(4);
+      const changeColor = weightChange > 0 ? '#ef4444' : weightChange < 0 ? '#22c55e' : 'var(--muted)';
+
+      return `
+        <div class="spark-episode-card">
+          <div class="spark-episode-direction ${ep.adjustmentDirection}">${icon}</div>
+          <div class="spark-episode-info">
+            <div class="spark-episode-reason">${ep.reason}</div>
+            <div class="spark-episode-meta">${ep.category} · ${new Date(ep.createdAt).toLocaleString()}</div>
+          </div>
+          <div class="spark-episode-weight-change" style="color: ${changeColor}">${changeStr}</div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function renderSparkPredictions(predictions) {
+    const list = document.getElementById('spark-predictions-list');
+    if (!predictions || predictions.length === 0) {
+      list.innerHTML = '<div class="empty-state">No predictions yet — run the pipeline to generate predictions</div>';
+      return;
+    }
+
+    list.innerHTML = predictions.map(p => {
+      const scoreClass = p.predictedScore < 25 ? 'low' : p.predictedScore < 60 ? 'medium' : 'high';
+
+      return `
+        <div class="spark-prediction-card">
+          <div>
+            <div class="spark-prediction-op">${p.connector}.${p.operation}</div>
+            <div style="font-size: 0.7rem; color: var(--muted)">${p.category} · ${p.predictedOutcome}</div>
+          </div>
+          <div class="spark-prediction-score ${scoreClass}">Score: ${p.predictedScore}</div>
+          <div class="spark-prediction-confidence">${(p.confidence * 100).toFixed(0)}% conf</div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // SPARK event handlers
+  document.getElementById('spark-refresh-btn')?.addEventListener('click', loadSparkData);
+  document.getElementById('spark-snapshot-btn')?.addEventListener('click', async () => {
+    try {
+      const res = await fetch(`${API}/spark/snapshot`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: 'Manual dashboard snapshot' }),
+      });
+      if (res.ok) {
+        showToast('Weight snapshot created', 'success');
+      } else {
+        showToast('Failed to create snapshot', 'error');
+      }
+    } catch {
+      showToast('Snapshot request failed', 'error');
+    }
+  });
+
+  // Load SPARK data when tab switches to it
+  const origTabClick = document.querySelectorAll('.tab');
+  origTabClick.forEach(tab => {
+    tab.addEventListener('click', () => {
+      if (tab.dataset.tab === 'spark') loadSparkData();
+    });
+  });
+
   checkHealth();
   loadApprovals();
   loadTasks();

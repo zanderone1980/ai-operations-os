@@ -12,16 +12,18 @@
  * - Approval flow via approvals routes
  */
 
-import type { TaskSource, Approval } from '@ai-ops/shared-types';
+import type { TaskSource, Approval, WorkflowStep } from '@ai-ops/shared-types';
 import { DEFAULT_POLICY } from '@ai-ops/shared-types';
 import { runPipeline as runPipelineFn, defaultBuildWorkflow } from '@ai-ops/ops-worker';
 import { LLMIntentClassifier } from '@ai-ops/ops-core';
 import { RuleEngine } from '@ai-ops/ops-policy';
 import { ConnectorRegistry, GmailConnector, CalendarConnector, XTwitterConnector, ShopifyConnector } from '@ai-ops/ops-connectors';
+import { Predictor, OutcomeTracker, LearningCore, WeightManager } from '@ai-ops/spark-engine';
 import { evaluateAction } from '../middleware/cord-gate';
 import { requestApproval, waitForDecision } from './approvals';
 import { pathToRoute, sendJson, sendError } from '../server';
 import type { Route } from '../server';
+import { stores } from '../storage';
 
 // ── Singletons ────────────────────────────────────────────────────────────────
 
@@ -34,6 +36,13 @@ registry.register(new GmailConnector());
 registry.register(new CalendarConnector());
 registry.register(new XTwitterConnector());
 registry.register(new ShopifyConnector());
+
+// SPARK singletons — predict/measure/learn cycle
+const sparkWeightManager = new WeightManager(stores.spark);
+sparkWeightManager.initialize();
+const sparkPredictor = new Predictor(stores.spark);
+const sparkOutcomeTracker = new OutcomeTracker(stores.spark);
+const sparkLearningCore = new LearningCore(stores.spark);
 
 /**
  * Trigger the full pipeline and stream events via SSE.
@@ -125,6 +134,29 @@ async function handleRunPipeline(ctx: any): Promise<void> {
       },
 
       buildWorkflow: defaultBuildWorkflow,
+
+      spark: {
+        beforeStep: (stepId: string, runId: string, connector: string, operation: string) => {
+          try {
+            return sparkPredictor.predict(stepId, runId, connector, operation);
+          } catch {
+            return undefined;
+          }
+        },
+
+        afterStep: (step: WorkflowStep, runId: string, wasApproved?: boolean) => {
+          try {
+            const prediction = stores.spark.getPredictionByStepId(step.id);
+            if (!prediction) return undefined;
+
+            const outcome = sparkOutcomeTracker.measure(step, runId, wasApproved);
+            const episode = sparkLearningCore.learn(prediction, outcome);
+            return episode;
+          } catch {
+            return undefined;
+          }
+        },
+      },
     });
 
     for await (const event of pipeline) {

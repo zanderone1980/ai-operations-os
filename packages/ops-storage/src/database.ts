@@ -142,6 +142,88 @@ export class Database {
       );
 
       CREATE INDEX IF NOT EXISTS idx_receipts_action_id ON receipts(action_id);
+
+      -- SPARK tables (Self-Perpetuating Adaptive Reasoning Kernel)
+
+      CREATE TABLE IF NOT EXISTS spark_predictions (
+        id TEXT PRIMARY KEY,
+        step_id TEXT NOT NULL,
+        run_id TEXT NOT NULL,
+        connector TEXT NOT NULL,
+        operation TEXT NOT NULL,
+        category TEXT NOT NULL,
+        predicted_score INTEGER NOT NULL,
+        predicted_outcome TEXT NOT NULL,
+        confidence REAL NOT NULL,
+        created_at TEXT NOT NULL
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_spark_predictions_step_id ON spark_predictions(step_id);
+      CREATE INDEX IF NOT EXISTS idx_spark_predictions_run_id ON spark_predictions(run_id);
+      CREATE INDEX IF NOT EXISTS idx_spark_predictions_category ON spark_predictions(category);
+
+      CREATE TABLE IF NOT EXISTS spark_outcomes (
+        id TEXT PRIMARY KEY,
+        step_id TEXT NOT NULL,
+        run_id TEXT NOT NULL,
+        actual_outcome TEXT NOT NULL,
+        actual_cord_score INTEGER NOT NULL,
+        actual_cord_decision TEXT NOT NULL,
+        signals TEXT NOT NULL DEFAULT '{}',
+        measured_at TEXT NOT NULL
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_spark_outcomes_step_id ON spark_outcomes(step_id);
+      CREATE INDEX IF NOT EXISTS idx_spark_outcomes_run_id ON spark_outcomes(run_id);
+
+      CREATE TABLE IF NOT EXISTS spark_episodes (
+        id TEXT PRIMARY KEY,
+        prediction_id TEXT NOT NULL,
+        outcome_id TEXT NOT NULL,
+        category TEXT NOT NULL,
+        score_delta REAL NOT NULL,
+        outcome_mismatch INTEGER NOT NULL,
+        adjustment_direction TEXT NOT NULL,
+        adjustment_magnitude REAL NOT NULL,
+        weight_before REAL NOT NULL,
+        weight_after REAL NOT NULL,
+        reason TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_spark_episodes_category ON spark_episodes(category);
+      CREATE INDEX IF NOT EXISTS idx_spark_episodes_created_at ON spark_episodes(created_at);
+
+      CREATE TABLE IF NOT EXISTS spark_weights (
+        category TEXT PRIMARY KEY,
+        current_weight REAL NOT NULL,
+        base_weight REAL NOT NULL,
+        lower_bound REAL NOT NULL,
+        upper_bound REAL NOT NULL,
+        episode_count INTEGER NOT NULL DEFAULT 0,
+        last_adjusted_at TEXT NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS spark_weight_history (
+        id TEXT PRIMARY KEY,
+        category TEXT NOT NULL,
+        previous_weight REAL NOT NULL,
+        new_weight REAL NOT NULL,
+        episode_id TEXT NOT NULL,
+        snapshot_id TEXT NOT NULL,
+        reason TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_spark_weight_history_category ON spark_weight_history(category);
+      CREATE INDEX IF NOT EXISTS idx_spark_weight_history_created_at ON spark_weight_history(created_at);
+
+      CREATE TABLE IF NOT EXISTS spark_snapshots (
+        id TEXT PRIMARY KEY,
+        weights_json TEXT NOT NULL,
+        reason TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      );
     `);
   }
 

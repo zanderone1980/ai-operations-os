@@ -7,7 +7,7 @@
   <a href="https://github.com/zanderone1980/ai-operations-os/actions"><img src="https://img.shields.io/github/actions/workflow/status/zanderone1980/ai-operations-os/ci.yml?branch=main&style=flat-square" alt="CI"></a>
   <a href="https://www.npmjs.com/package/codebot-ai"><img src="https://img.shields.io/npm/v/codebot-ai?style=flat-square&label=codebot-ai" alt="codebot-ai on npm"></a>
   <a href="https://www.npmjs.com/package/cord-engine"><img src="https://img.shields.io/npm/v/cord-engine?style=flat-square&label=cord-engine" alt="cord-engine on npm"></a>
-  <img src="https://img.shields.io/badge/tests-595%20passing-brightgreen?style=flat-square" alt="595 Tests">
+  <img src="https://img.shields.io/badge/tests-660%20passing-brightgreen?style=flat-square" alt="660 Tests">
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="License"></a>
   <a href="https://nodejs.org"><img src="https://img.shields.io/badge/node-%3E%3D18-brightgreen?style=flat-square" alt="Node >= 18"></a>
   <a href="https://www.typescriptlang.org"><img src="https://img.shields.io/badge/TypeScript-5.7-blue?style=flat-square" alt="TypeScript"></a>

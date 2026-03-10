@@ -32,6 +32,20 @@ export {
 export type { PolicyRule, PolicyConfig, AutonomyLevel } from './policy';
 export { DEFAULT_POLICY } from './policy';
 
+// SPARK
+export type {
+  SparkCategory,
+  PredictedOutcome,
+  ActualOutcome,
+  Prediction,
+  OutcomeSignal,
+  LearningEpisode,
+  SparkWeightEntry,
+  SparkWeights,
+  WeightHistoryEntry,
+} from './spark';
+export { SENTINEL_CATEGORIES } from './spark';
+
 // JSON Schemas
 export {
   TaskSchema,

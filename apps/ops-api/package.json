@@ -16,7 +16,8 @@
     "@ai-ops/ops-connectors": "*",
     "@ai-ops/cord-adapter": "*",
     "@ai-ops/ops-worker": "*",
-    "@ai-ops/ops-storage": "*"
+    "@ai-ops/ops-storage": "*",
+    "@ai-ops/spark-engine": "*"
   },
   "devDependencies": {
     "typescript": "^5.7.0",

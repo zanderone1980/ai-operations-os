@@ -23,6 +23,7 @@ import { gmailRoutes } from './routes/gmail';
 import { shopifyRoutes } from './routes/shopify';
 import { calendarRoutes } from './routes/calendar';
 import { xTwitterRoutes } from './routes/x-twitter';
+import { sparkRoutes } from './routes/spark';
 import { createRateLimiter } from './middleware/rate-limit';
 
 const log = createLogger('ops-api');
@@ -66,6 +67,7 @@ const routes: Route[] = [
   ...shopifyRoutes,
   ...calendarRoutes,
   ...xTwitterRoutes,
+  ...sparkRoutes,
 ];
 
 /**

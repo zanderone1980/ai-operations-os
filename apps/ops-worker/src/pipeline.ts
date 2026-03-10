@@ -20,6 +20,7 @@ import type {
   Task, TaskSource, TaskIntent,
   WorkflowRun, WorkflowStep,
   Approval, CordDecision,
+  Prediction, LearningEpisode,
 } from '@ai-ops/shared-types';
 import { createTask, createWorkflowRun, createStep, createApproval } from '@ai-ops/shared-types';
 
@@ -40,12 +41,16 @@ export interface PipelineEvent {
     | 'step_executing'
     | 'step_completed'
     | 'step_failed'
+    | 'spark_prediction'
+    | 'spark_learned'
     | 'workflow_completed'
     | 'workflow_failed';
   task?: Task;
   run?: WorkflowRun;
   step?: WorkflowStep;
   approval?: Approval;
+  prediction?: Prediction;
+  episode?: LearningEpisode;
   message: string;
   timestamp: string;
 }
@@ -80,6 +85,12 @@ export interface PipelineConfig {
 
   /** Build workflow steps for a given task */
   buildWorkflow: (task: Task) => { workflowType: string; steps: Array<{ connector: string; operation: string; input: Record<string, unknown> }> };
+
+  /** Optional SPARK hooks for predict/measure/learn cycle */
+  spark?: {
+    beforeStep?: (stepId: string, runId: string, connector: string, operation: string) => any;
+    afterStep?: (step: WorkflowStep, runId: string, wasApproved?: boolean) => any;
+  };
 }
 
 // ── Pipeline ─────────────────────────────────────────────────────────────────
@@ -150,6 +161,21 @@ export async function* runPipeline(
       timestamp: now(),
     };
 
+    // ── SPARK: beforeStep hook ───────────────────────────────────
+    let sparkPrediction: any;
+    if (config.spark?.beforeStep) {
+      sparkPrediction = config.spark.beforeStep(step.id, run.id, step.connector, step.operation);
+      if (sparkPrediction) {
+        yield {
+          type: 'spark_prediction',
+          task, run, step,
+          prediction: sparkPrediction,
+          message: `SPARK prediction: score=${sparkPrediction.predictedScore} confidence=${sparkPrediction.confidence} category=${sparkPrediction.category}`,
+          timestamp: now(),
+        };
+      }
+    }
+
     // ── 4a. Policy check ─────────────────────────────────────────
     const policy = config.evaluatePolicy(step.connector, step.operation);
 
@@ -160,6 +186,18 @@ export async function* runPipeline(
       run.error = step.error;
       run.endedAt = now();
       task.status = 'failed';
+
+      // ── SPARK: afterStep hook (policy blocked) ──────────────────
+      const sparkEpisodeBlocked = config.spark?.afterStep?.(step, run.id);
+      if (sparkEpisodeBlocked) {
+        yield {
+          type: 'spark_learned',
+          task, run, step,
+          episode: sparkEpisodeBlocked,
+          message: `SPARK learned: ${sparkEpisodeBlocked.adjustmentDirection} (${sparkEpisodeBlocked.reason})`,
+          timestamp: now(),
+        };
+      }
 
       yield {
         type: 'step_blocked',
@@ -184,6 +222,18 @@ export async function* runPipeline(
       run.endedAt = now();
       task.status = 'failed';
 
+      // ── SPARK: afterStep hook (CORD blocked) ────────────────────
+      const sparkEpisodeCordBlocked = config.spark?.afterStep?.(step, run.id);
+      if (sparkEpisodeCordBlocked) {
+        yield {
+          type: 'spark_learned',
+          task, run, step,
+          episode: sparkEpisodeCordBlocked,
+          message: `SPARK learned: ${sparkEpisodeCordBlocked.adjustmentDirection} (${sparkEpisodeCordBlocked.reason})`,
+          timestamp: now(),
+        };
+      }
+
       yield {
         type: 'step_blocked',
         task, run, step,
@@ -196,6 +246,7 @@ export async function* runPipeline(
 
     // ── 4c. Approval gate ────────────────────────────────────────
     const needsApproval = safety.decision === 'CHALLENGE' || policy.autonomy === 'approve';
+    let wasApproved: boolean | undefined;
 
     if (needsApproval) {
       const preview = `${step.connector}.${step.operation}: ${JSON.stringify(step.input).slice(0, 200)}`;
@@ -228,12 +279,26 @@ export async function* runPipeline(
         run.error = 'User denied approval';
         run.endedAt = now();
         task.status = 'failed';
+        wasApproved = false;
+
+        // ── SPARK: afterStep hook (denied) ────────────────────────
+        const sparkEpisodeDenied = config.spark?.afterStep?.(step, run.id, wasApproved);
+        if (sparkEpisodeDenied) {
+          yield {
+            type: 'spark_learned',
+            task, run, step,
+            episode: sparkEpisodeDenied,
+            message: `SPARK learned: ${sparkEpisodeDenied.adjustmentDirection} (${sparkEpisodeDenied.reason})`,
+            timestamp: now(),
+          };
+        }
 
         yield { type: 'step_denied', task, run, step, approval, message: 'User denied', timestamp: now() };
         yield { type: 'workflow_failed', task, run, message: run.error, timestamp: now() };
         return;
       }
 
+      wasApproved = true;
       step.status = 'approved';
       yield { type: 'step_approved', task, run, step, approval, message: 'User approved', timestamp: now() };
     } else {
@@ -265,6 +330,18 @@ export async function* runPipeline(
       run.endedAt = now();
       task.status = 'failed';
 
+      // ── SPARK: afterStep hook (failed) ──────────────────────────
+      const sparkEpisodeFailed = config.spark?.afterStep?.(step, run.id, wasApproved);
+      if (sparkEpisodeFailed) {
+        yield {
+          type: 'spark_learned',
+          task, run, step,
+          episode: sparkEpisodeFailed,
+          message: `SPARK learned: ${sparkEpisodeFailed.adjustmentDirection} (${sparkEpisodeFailed.reason})`,
+          timestamp: now(),
+        };
+      }
+
       yield { type: 'step_failed', task, run, step, message: step.error, timestamp: now() };
       yield { type: 'workflow_failed', task, run, message: run.error, timestamp: now() };
       return;
@@ -272,6 +349,18 @@ export async function* runPipeline(
 
     step.output = result.data;
     step.status = 'completed';
+
+    // ── SPARK: afterStep hook (completed) ──────────────────────────
+    const sparkEpisode = config.spark?.afterStep?.(step, run.id, wasApproved);
+    if (sparkEpisode) {
+      yield {
+        type: 'spark_learned',
+        task, run, step,
+        episode: sparkEpisode,
+        message: `SPARK learned: ${sparkEpisode.adjustmentDirection} (${sparkEpisode.reason})`,
+        timestamp: now(),
+      };
+    }
 
     yield {
       type: 'step_completed',

@@ -6,6 +6,7 @@ module.exports = {
     '<rootDir>/packages/ops-policy',
     '<rootDir>/packages/ops-connectors',
     '<rootDir>/packages/ops-storage',
+    '<rootDir>/packages/spark-engine',
     '<rootDir>/apps/ops-api',
   ],
   collectCoverageFrom: [

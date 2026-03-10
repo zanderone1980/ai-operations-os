@@ -71,6 +71,7 @@
       <button class="tab" data-tab="workflows">Workflows</button>
       <button class="tab" data-tab="activity">Activity</button>
       <button class="tab" data-tab="analytics">Analytics</button>
+      <button class="tab" data-tab="spark">SPARK</button>
     </div>
   </nav>
 
@@ -230,6 +231,62 @@
         <div class="analytics-card analytics-card-wide">
           <h3 class="analytics-card-title">Tasks Created (Last 7 Days)</h3>
           <div id="chart-timeline" class="chart-container"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SPARK Panel -->
+    <section id="panel-spark" class="panel">
+      <div class="panel-header">
+        <h2>SPARK <span class="spark-subtitle">Self-Perpetuating Adaptive Reasoning Kernel</span></h2>
+        <div class="spark-header-actions">
+          <button class="btn btn-sm btn-accent" id="spark-snapshot-btn">Create Snapshot</button>
+          <button class="btn btn-sm btn-modify" id="spark-refresh-btn">Refresh</button>
+        </div>
+      </div>
+
+      <!-- SPARK Stats Cards -->
+      <div class="spark-stats-row">
+        <div class="spark-stat-card">
+          <div class="spark-stat-value" id="spark-total-episodes">0</div>
+          <div class="spark-stat-label">Learning Episodes</div>
+        </div>
+        <div class="spark-stat-card">
+          <div class="spark-stat-value" id="spark-accuracy">—</div>
+          <div class="spark-stat-label">Prediction Accuracy</div>
+        </div>
+        <div class="spark-stat-card">
+          <div class="spark-stat-value" id="spark-categories-drifted">0</div>
+          <div class="spark-stat-label">Categories Drifted</div>
+        </div>
+        <div class="spark-stat-card">
+          <div class="spark-stat-value" id="spark-sentinel-status">Protected</div>
+          <div class="spark-stat-label">SENTINEL Status</div>
+        </div>
+      </div>
+
+      <!-- Weight Evolution -->
+      <div class="spark-section">
+        <h3 class="spark-section-title">Category Weights</h3>
+        <p class="spark-section-desc">SPARK adjusts CORD scoring weights based on predict→act→measure→learn feedback. SENTINEL categories (destructive, financial) can never decrease below 1.0.</p>
+        <div id="spark-weights-grid" class="spark-weights-grid">
+          <div class="empty-state">Loading weights...</div>
+        </div>
+      </div>
+
+      <!-- Recent Learning Episodes -->
+      <div class="spark-section">
+        <h3 class="spark-section-title">Recent Learning Episodes</h3>
+        <div id="spark-episodes-list" class="spark-episodes-list">
+          <div class="empty-state">No learning episodes yet</div>
+        </div>
+      </div>
+
+      <!-- Recent Predictions -->
+      <div class="spark-section">
+        <h3 class="spark-section-title">Recent Predictions</h3>
+        <div id="spark-predictions-list" class="spark-predictions-list">
+          <div class="empty-state">No predictions yet</div>
         </div>
       </div>
     </section>

@@ -6,10 +6,20 @@
  */
 
 import * as http from 'http';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
 import type { AddressInfo } from 'net';
 
 let server: http.Server;
 let baseUrl: string;
+
+// Isolate tests from real credentials on dev machines.
+// Rename the credentials file before module import, restore after.
+const CREDS_PATH = path.join(os.homedir(), '.ai-ops', 'credentials.json');
+const CREDS_BACKUP = CREDS_PATH + '.test-backup';
+const hadCreds = fs.existsSync(CREDS_PATH);
+if (hadCreds) fs.renameSync(CREDS_PATH, CREDS_BACKUP);
 
 // We need to import the server after potentially setting env vars.
 // The server.ts module has a side effect: it calls server.listen(PORT).
@@ -41,6 +51,11 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+  // Restore credentials file if we backed it up
+  if (hadCreds && fs.existsSync(CREDS_BACKUP)) {
+    fs.renameSync(CREDS_BACKUP, CREDS_PATH);
+  }
+
   // Stop the ops-worker background timers (queue polling + scheduler)
   // that get started as a side effect of importing the pipeline routes.
   try {

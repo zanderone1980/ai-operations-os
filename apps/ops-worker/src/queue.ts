@@ -5,6 +5,8 @@
  * Production: swap for BullMQ, SQS, or similar.
  */
 
+import { randomUUID } from 'node:crypto';
+
 export interface QueueJob<T = unknown> {
   id: string;
   type: string;
@@ -45,7 +47,7 @@ export class JobQueue {
    */
   enqueue<T>(type: string, data: T, options?: { maxAttempts?: number }): QueueJob<T> {
     const job: QueueJob<T> = {
-      id: crypto.randomUUID(),
+      id: randomUUID(),
       type,
       data,
       createdAt: new Date().toISOString(),

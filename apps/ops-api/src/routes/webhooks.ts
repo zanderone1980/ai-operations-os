@@ -8,6 +8,7 @@
  * POST   /api/webhooks/generic     Generic webhook (custom integrations)
  */
 
+import { randomUUID } from 'node:crypto';
 import { createTask } from '@ai-ops/shared-types';
 import type { TaskSource } from '@ai-ops/shared-types';
 import { pathToRoute, sendJson, sendError } from '../server';
@@ -32,7 +33,7 @@ async function handleGmailWebhook(ctx: any): Promise<void> {
   const { res, body } = ctx;
 
   const event: WebhookEvent = {
-    id: crypto.randomUUID(),
+    id: randomUUID(),
     source: 'gmail',
     receivedAt: new Date().toISOString(),
     payload: body,
@@ -59,7 +60,7 @@ async function handleCalendarWebhook(ctx: any): Promise<void> {
   const { res, body } = ctx;
 
   const event: WebhookEvent = {
-    id: crypto.randomUUID(),
+    id: randomUUID(),
     source: 'calendar',
     receivedAt: new Date().toISOString(),
     payload: body,
@@ -86,7 +87,7 @@ async function handleShopifyWebhook(ctx: any): Promise<void> {
   const { res, body } = ctx;
 
   const event: WebhookEvent = {
-    id: crypto.randomUUID(),
+    id: randomUUID(),
     source: 'shopify',
     receivedAt: new Date().toISOString(),
     payload: body,
@@ -112,7 +113,7 @@ async function handleStripeWebhook(ctx: any): Promise<void> {
   const { res, body } = ctx;
 
   const event: WebhookEvent = {
-    id: crypto.randomUUID(),
+    id: randomUUID(),
     source: 'stripe',
     receivedAt: new Date().toISOString(),
     payload: body,
@@ -139,7 +140,7 @@ async function handleGenericWebhook(ctx: any): Promise<void> {
 
   const source = (body.source as TaskSource) || 'manual';
   const event: WebhookEvent = {
-    id: crypto.randomUUID(),
+    id: randomUUID(),
     source: 'generic',
     receivedAt: new Date().toISOString(),
     payload: body,

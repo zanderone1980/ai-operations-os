@@ -7,7 +7,7 @@
  */
 
 import * as http from 'http';
-import * as crypto from 'crypto';
+import { randomUUID } from 'node:crypto';
 import { createLogger } from '@ai-ops/ops-core';
 
 const log = createLogger('request-logger');
@@ -24,7 +24,7 @@ export function requestLogger(
   res: http.ServerResponse,
   next: () => void,
 ): void {
-  const correlationId = crypto.randomUUID();
+  const correlationId = randomUUID();
   (req as any).correlationId = correlationId;
 
   const start = Date.now();

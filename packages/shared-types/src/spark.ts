@@ -287,3 +287,106 @@ export interface AwarenessReport {
     episodeWindow: { from: string; to: string };
   };
 }
+
+// ── Reasoning ──────────────────────────────────────────────────
+
+/** The intent type for conversational queries to SPARK. */
+export type SparkQueryIntent =
+  | 'status'
+  | 'explain'
+  | 'predict'
+  | 'recommend'
+  | 'cross-connector'
+  | 'introspect'
+  | 'history'
+  | 'configure'
+  | 'general';
+
+/** A single reasoning step SPARK took to arrive at a response. */
+export interface ReasoningStep {
+  /** Which rule or heuristic produced this step. */
+  ruleId: string;
+  /** Human-readable description of the reasoning. */
+  description: string;
+  /** Evidence that triggered this reasoning step. */
+  evidence: {
+    categories?: SparkCategory[];
+    connectors?: string[];
+    episodeIds?: string[];
+    insightIds?: string[];
+    beliefs?: Partial<Record<SparkCategory, TrustLevel>>;
+  };
+  /** Confidence in this reasoning step (0.0-1.0). */
+  confidence: number;
+}
+
+/** The full result of a reasoning operation. */
+export interface ReasoningResult {
+  /** Unique identifier for this reasoning result. */
+  id: string;
+  /** The query intent that was classified. */
+  queryIntent: SparkQueryIntent;
+  /** Ordered list of reasoning steps. */
+  steps: ReasoningStep[];
+  /** The composed natural language response. */
+  response: string;
+  /** Suggested follow-up questions. */
+  suggestions: string[];
+  /** ISO 8601 timestamp. */
+  createdAt: string;
+}
+
+/** A conversation turn (user message + SPARK response). */
+export interface ConversationTurn {
+  /** Unique turn identifier. */
+  id: string;
+  /** The conversation this turn belongs to. */
+  conversationId: string;
+  /** 'user' or 'spark'. */
+  role: 'user' | 'spark';
+  /** The message content. */
+  content: string;
+  /** The reasoning result (only for spark turns). */
+  reasoningResult?: ReasoningResult;
+  /** ISO 8601 timestamp. */
+  createdAt: string;
+}
+
+/** A conversation session. */
+export interface Conversation {
+  /** Unique conversation identifier. */
+  id: string;
+  /** ISO 8601 timestamp of creation. */
+  createdAt: string;
+  /** ISO 8601 timestamp of last activity. */
+  lastActivityAt: string;
+  /** Number of turns in this conversation. */
+  turnCount: number;
+}
+
+/** The cross-connector activity context assembled for reasoning. */
+export interface CrossConnectorContext {
+  /** Recent activity per connector. */
+  connectorActivity: Record<string, {
+    recentOperations: string[];
+    recentOutcomes: ActualOutcome[];
+    episodeCount: number;
+    lastActivityAt: string | null;
+  }>;
+  /** Active cross-connector patterns detected. */
+  patterns: CrossConnectorPattern[];
+  /** Current system-wide state from AwarenessReport. */
+  systemState: AwarenessReport['systemState'];
+}
+
+/** A detected cross-connector pattern. */
+export interface CrossConnectorPattern {
+  /** Pattern type identifier. */
+  type: 'email-to-calendar' | 'social-to-store' | 'email-to-social' | 'store-to-email' | 'general';
+  /** Human-readable description. */
+  description: string;
+  /** Connectors involved. */
+  connectors: string[];
+  /** Confidence score (0.0-1.0). */
+  confidence: number;
+}

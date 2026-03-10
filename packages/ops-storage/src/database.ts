@@ -251,6 +251,33 @@ export class Database {
         evidence_json TEXT NOT NULL DEFAULT '{}',
         updated_at TEXT NOT NULL
       );
+
+      -- ── SPARK Conversations ─────────────────────────────────
+
+      CREATE TABLE IF NOT EXISTS spark_conversations (
+        id TEXT PRIMARY KEY,
+        created_at TEXT NOT NULL,
+        last_activity_at TEXT NOT NULL,
+        turn_count INTEGER NOT NULL DEFAULT 0
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_spark_conversations_last_activity
+        ON spark_conversations(last_activity_at);
+
+      CREATE TABLE IF NOT EXISTS spark_conversation_turns (
+        id TEXT PRIMARY KEY,
+        conversation_id TEXT NOT NULL,
+        role TEXT NOT NULL,
+        content TEXT NOT NULL,
+        reasoning_json TEXT,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (conversation_id) REFERENCES spark_conversations(id)
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_spark_turns_conversation_id
+        ON spark_conversation_turns(conversation_id);
+      CREATE INDEX IF NOT EXISTS idx_spark_turns_created_at
+        ON spark_conversation_turns(created_at);
     `);
   }
 

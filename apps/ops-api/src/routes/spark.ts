@@ -18,7 +18,7 @@ import type { SparkCategory } from '@ai-ops/shared-types';
 import { pathToRoute, sendJson, sendError } from '../server';
 import type { Route } from '../server';
 import { stores } from '../storage';
-import { WeightManager, AwarenessCore, MemoryCore } from '@ai-ops/spark-engine';
+import { WeightManager, AwarenessCore, MemoryCore, SparkOrchestrator } from '@ai-ops/spark-engine';
 import { ALL_CATEGORIES } from '@ai-ops/spark-engine';
 
 // ── Singletons ────────────────────────────────────────────────────────────────
@@ -26,6 +26,7 @@ import { ALL_CATEGORIES } from '@ai-ops/spark-engine';
 const weightManager = new WeightManager(stores.spark);
 const awarenessCore = new AwarenessCore(stores.spark);
 const memoryCore = new MemoryCore(stores.spark);
+const orchestrator = new SparkOrchestrator(stores.spark);
 
 // ── Route handlers ───────────────────────────────────────────────────────────
 
@@ -228,6 +229,69 @@ async function getInsights(ctx: any): Promise<void> {
   });
 }
 
+// ── Chat & Reasoning ────────────────────────────────────────────────────────
+
+/**
+ * POST /api/spark/chat — Conversational interface to SPARK.
+ * Body: { message: string, conversationId?: string }
+ */
+async function chat(ctx: any): Promise<void> {
+  const { res, body } = ctx;
+
+  const message = body.message as string;
+  if (!message || typeof message !== 'string') {
+    sendError(res, 400, 'Missing required field: message');
+    return;
+  }
+
+  const conversationId = (body.conversationId as string) || undefined;
+
+  weightManager.initialize();
+  const result = orchestrator.chat(message, conversationId);
+
+  sendJson(res, 200, {
+    response: result.response,
+    reasoning: result.steps,
+    conversationId: (result as any).conversationId,
+    suggestions: result.suggestions,
+    queryIntent: result.queryIntent,
+    createdAt: result.createdAt,
+  });
+}
+
+/** GET /api/spark/conversations — List recent conversations. */
+async function listConversations(ctx: any): Promise<void> {
+  const { res, query } = ctx;
+  const limit = parseInt(query.limit || '20', 10);
+  const conversations = stores.spark.listRecentConversations(limit);
+  sendJson(res, 200, { conversations, total: conversations.length });
+}
+
+/** GET /api/spark/conversations/:id — Get conversation history. */
+async function getConversation(ctx: any): Promise<void> {
+  const { res, params, query } = ctx;
+  const conversationId = params.id;
+  const limit = parseInt(query.limit || '50', 10);
+
+  const conversation = stores.spark.getConversation(conversationId);
+  if (!conversation) {
+    sendError(res, 404, `Conversation not found: ${conversationId}`);
+    return;
+  }
+
+  const turns = stores.spark.listTurns(conversationId, limit);
+  sendJson(res, 200, { conversation, turns });
+}
+
+/** GET /api/spark/context — Cross-connector reasoning context. */
+async function getCrossConnectorContext(ctx: any): Promise<void> {
+  const { res } = ctx;
+  weightManager.initialize();
+  const report = awarenessCore.report();
+  const context = orchestrator.reasoning.assembleCrossConnectorContext(report);
+  sendJson(res, 200, context);
+}
+
 // ── Export routes ────────────────────────────────────────────────────────────
 
 export { weightManager };
@@ -244,4 +308,8 @@ export const sparkRoutes: Route[] = [
   pathToRoute('GET', '/api/spark/awareness', getAwareness),
   pathToRoute('GET', '/api/spark/beliefs', getBeliefs),
   pathToRoute('GET', '/api/spark/insights', getInsights),
+  pathToRoute('POST', '/api/spark/chat', chat),
+  pathToRoute('GET', '/api/spark/conversations', listConversations),
+  pathToRoute('GET', '/api/spark/conversations/:id', getConversation),
+  pathToRoute('GET', '/api/spark/context', getCrossConnectorContext),
 ];

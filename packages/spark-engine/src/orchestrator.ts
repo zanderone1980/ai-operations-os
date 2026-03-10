@@ -10,6 +10,7 @@ import type {
   OutcomeSignal,
   LearningEpisode,
   Insight,
+  ReasoningResult,
 } from '@ai-ops/shared-types';
 import type { SparkStore } from '@ai-ops/ops-storage';
 import { Predictor } from './predictor';
@@ -18,6 +19,7 @@ import { LearningCore } from './learning-core';
 import { WeightManager } from './weight-manager';
 import { MemoryCore } from './memory-core';
 import { AwarenessCore } from './awareness-core';
+import { ReasoningCore } from './reasoning-core';
 
 // ── SparkOrchestrator ───────────────────────────────────────────
 
@@ -71,6 +73,9 @@ export class SparkOrchestrator {
   /** Weight state manager (initialization, multipliers, snapshots). */
   public readonly weights: WeightManager;
 
+  /** Conversational reasoning engine. */
+  public readonly reasoning: ReasoningCore;
+
   /**
    * @param store - SparkStore instance shared across all engines.
    */
@@ -81,6 +86,7 @@ export class SparkOrchestrator {
     this.weights = new WeightManager(store);
     this.memory = new MemoryCore(store);
     this.awareness = new AwarenessCore(store);
+    this.reasoning = new ReasoningCore(store);
   }
 
   /**
@@ -102,5 +108,18 @@ export class SparkOrchestrator {
     const episode = this.learner.learn(prediction, outcome);
     const insights = this.memory.consolidate(episode);
     return { episode, insights };
+  }
+
+  /**
+   * Process a conversational query through the reasoning engine.
+   * Assembles a full awareness report and delegates to ReasoningCore.
+   *
+   * @param query          - Natural language question for SPARK.
+   * @param conversationId - Optional ID to continue an existing conversation.
+   * @returns Structured reasoning result with response, steps, and suggestions.
+   */
+  chat(query: string, conversationId?: string): ReasoningResult {
+    const report = this.awareness.report();
+    return this.reasoning.reason(query, conversationId, report);
   }
 }

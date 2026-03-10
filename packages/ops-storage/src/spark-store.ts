@@ -15,6 +15,9 @@ import type {
   Insight,
   InsightPattern,
   Belief,
+  Conversation,
+  ConversationTurn,
+  ReasoningResult,
 } from '@ai-ops/shared-types';
 
 export interface SparkEpisodeFilter {
@@ -72,6 +75,12 @@ export class SparkStore {
   private readonly upsertBelief: BetterSqlite3.Statement;
   private readonly getBeliefByCategory: BetterSqlite3.Statement;
   private readonly getAllBeliefsStmt: BetterSqlite3.Statement;
+
+  // Conversation statements
+  private readonly insertConversationStmt: BetterSqlite3.Statement;
+  private readonly updateConversationStmt: BetterSqlite3.Statement;
+  private readonly getConversationByIdStmt: BetterSqlite3.Statement;
+  private readonly insertTurnStmt: BetterSqlite3.Statement;
 
   constructor(db: BetterSqlite3.Database) {
     this.db = db;
@@ -157,6 +166,24 @@ export class SparkStore {
 
     this.getBeliefByCategory = this.db.prepare('SELECT * FROM spark_beliefs WHERE category = ?');
     this.getAllBeliefsStmt = this.db.prepare('SELECT * FROM spark_beliefs ORDER BY category');
+
+    // ── Conversations ───────────────────────────────────────
+    this.insertConversationStmt = this.db.prepare(`
+      INSERT INTO spark_conversations (id, created_at, last_activity_at, turn_count)
+      VALUES (@id, @createdAt, @lastActivityAt, @turnCount)
+    `);
+
+    this.updateConversationStmt = this.db.prepare(`
+      UPDATE spark_conversations SET last_activity_at = @lastActivityAt, turn_count = @turnCount
+      WHERE id = @id
+    `);
+
+    this.getConversationByIdStmt = this.db.prepare('SELECT * FROM spark_conversations WHERE id = ?');
+
+    this.insertTurnStmt = this.db.prepare(`
+      INSERT INTO spark_conversation_turns (id, conversation_id, role, content, reasoning_json, created_at)
+      VALUES (@id, @conversationId, @role, @content, @reasoningJson, @createdAt)
+    `);
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -577,6 +604,73 @@ export class SparkStore {
       narrative: row.narrative,
       evidence: JSON.parse(row.evidence_json || '{}'),
       updatedAt: row.updated_at,
+    };
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // Conversations
+  // ═══════════════════════════════════════════════════════════════
+
+  saveConversation(conv: Conversation): void {
+    this.insertConversationStmt.run({
+      id: conv.id,
+      createdAt: conv.createdAt,
+      lastActivityAt: conv.lastActivityAt,
+      turnCount: conv.turnCount,
+    });
+  }
+
+  getConversation(id: string): Conversation | undefined {
+    const row = this.getConversationByIdStmt.get(id) as any;
+    return row ? this.rowToConversation(row) : undefined;
+  }
+
+  updateConversationActivity(id: string, lastActivityAt: string, turnCount: number): void {
+    this.updateConversationStmt.run({ id, lastActivityAt, turnCount });
+  }
+
+  saveTurn(turn: ConversationTurn): void {
+    this.insertTurnStmt.run({
+      id: turn.id,
+      conversationId: turn.conversationId,
+      role: turn.role,
+      content: turn.content,
+      reasoningJson: turn.reasoningResult ? JSON.stringify(turn.reasoningResult) : null,
+      createdAt: turn.createdAt,
+    });
+  }
+
+  listTurns(conversationId: string, limit = 50): ConversationTurn[] {
+    const rows = this.db.prepare(
+      'SELECT * FROM spark_conversation_turns WHERE conversation_id = ? ORDER BY created_at ASC LIMIT ?'
+    ).all(conversationId, limit) as any[];
+    return rows.map(r => this.rowToTurn(r));
+  }
+
+  listRecentConversations(limit = 20): Conversation[] {
+    const rows = this.db.prepare(
+      'SELECT * FROM spark_conversations ORDER BY last_activity_at DESC LIMIT ?'
+    ).all(limit) as any[];
+    return rows.map(r => this.rowToConversation(r));
+  }
+
+  private rowToConversation(row: any): Conversation {
+    return {
+      id: row.id,
+      createdAt: row.created_at,
+      lastActivityAt: row.last_activity_at,
+      turnCount: row.turn_count,
+    };
+  }
+
+  private rowToTurn(row: any): ConversationTurn {
+    return {
+      id: row.id,
+      conversationId: row.conversation_id,
+      role: row.role,
+      content: row.content,
+      reasoningResult: row.reasoning_json ? JSON.parse(row.reasoning_json) : undefined,
+      createdAt: row.created_at,
     };
   }
 }

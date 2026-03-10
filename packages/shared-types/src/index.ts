@@ -49,6 +49,13 @@ export type {
   TrendDirection,
   Belief,
   AwarenessReport,
+  SparkQueryIntent,
+  ReasoningStep,
+  ReasoningResult,
+  ConversationTurn,
+  Conversation,
+  CrossConnectorContext,
+  CrossConnectorPattern,
 } from './spark';
 export { SENTINEL_CATEGORIES } from './spark';
 

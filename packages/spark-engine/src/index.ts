@@ -34,6 +34,7 @@ export type {
 // ── Memory & Awareness ──────────────────────────────────────────
 export { MemoryCore } from './memory-core';
 export { AwarenessCore } from './awareness-core';
+export { ReasoningCore } from './reasoning-core';
 export { SparkOrchestrator } from './orchestrator';
 
 // ── Constants ─────────────────────────────────────────────────────

@@ -9,7 +9,7 @@
 import { randomUUID } from 'node:crypto';
 import { SparkOrchestrator } from '@ai-ops/spark-engine';
 import { stores } from '../storage';
-import type { WorkflowStep, CordDecision, Prediction, LearningEpisode, Insight } from '@ai-ops/shared-types';
+import type { WorkflowStep, CordDecision, Prediction, LearningEpisode, Insight, ReasoningResult } from '@ai-ops/shared-types';
 
 // Single orchestrator instance shared across all route handlers
 const orchestrator = new SparkOrchestrator(stores.spark);
@@ -114,6 +114,17 @@ export function resolvePendingApproval(
 /** Get count of pending contexts (for debugging/monitoring) */
 export function getPendingCount(): number {
   return pendingContexts.size;
+}
+
+// ── Chat convenience wrapper ─────────────────────────────────────────────────
+
+/**
+ * Talk to SPARK. Convenience wrapper around orchestrator.chat()
+ * for use outside of HTTP route handlers (e.g. CLI, scheduled tasks).
+ */
+export function sparkChat(message: string, conversationId?: string): ReasoningResult {
+  orchestrator.weights.initialize();
+  return orchestrator.chat(message, conversationId);
 }
 
 export { orchestrator };

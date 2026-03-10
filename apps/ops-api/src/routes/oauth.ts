@@ -133,18 +133,19 @@ export function getXBearerToken(): string | null {
 async function getGoogleAuthUrl(ctx: any): Promise<void> {
   const { res, query } = ctx;
 
-  const clientId = query.client_id || process.env.GOOGLE_CLIENT_ID;
-  const redirectUri = query.redirect_uri || `http://localhost:3100/api/oauth/google/callback`;
+  const clientId = query.client_id || process.env.GMAIL_CLIENT_ID || process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = query.client_secret || process.env.GMAIL_CLIENT_SECRET || process.env.GOOGLE_CLIENT_SECRET || '';
+  const redirectUri = query.redirect_uri || process.env.GMAIL_REDIRECT_URI || `http://localhost:3100/api/oauth/google/callback`;
 
   if (!clientId) {
-    sendError(res, 400, 'Missing client_id. Set GOOGLE_CLIENT_ID env var or pass ?client_id=...');
+    sendError(res, 400, 'Missing client_id. Set GMAIL_CLIENT_ID env var or pass ?client_id=...');
     return;
   }
 
   // Store client_id temporarily for the callback
   const state = crypto.randomBytes(16).toString('hex');
   const creds = loadCredentials();
-  (creds as any)._pendingOauth = { clientId, clientSecret: query.client_secret || process.env.GOOGLE_CLIENT_SECRET || '', redirectUri, state };
+  (creds as any)._pendingOauth = { clientId, clientSecret, redirectUri, state };
   saveCredentials(creds);
 
   const params = new URLSearchParams({
@@ -159,10 +160,17 @@ async function getGoogleAuthUrl(ctx: any): Promise<void> {
 
   const authUrl = `${GOOGLE_AUTH_URL}?${params}`;
 
-  sendJson(res, 200, {
-    url: authUrl,
-    instructions: 'Open this URL in your browser to authorize Gmail & Calendar access.',
-  });
+  // If accessed from a browser, redirect directly. Otherwise return JSON.
+  const accept = (ctx.req.headers?.accept || '');
+  if (accept.includes('text/html')) {
+    res.writeHead(302, { Location: authUrl });
+    res.end();
+  } else {
+    sendJson(res, 200, {
+      url: authUrl,
+      instructions: 'Open this URL in your browser to authorize Gmail & Calendar access.',
+    });
+  }
 }
 
 /** Handle Google OAuth2 callback */
@@ -310,6 +318,7 @@ async function saveXToken(ctx: any): Promise<void> {
 
 export const oauthRoutes: Route[] = [
   pathToRoute('GET', '/api/oauth/google/url', getGoogleAuthUrl),
+  pathToRoute('GET', '/api/oauth/google/start', getGoogleAuthUrl),
   pathToRoute('GET', '/api/oauth/google/callback', handleGoogleCallback),
   pathToRoute('GET', '/api/oauth/status', getOAuthStatus),
   pathToRoute('POST', '/api/oauth/google/refresh', handleRefreshToken),

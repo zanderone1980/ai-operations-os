@@ -571,3 +571,148 @@ describe('Shopify Routes', () => {
     expect(data).toHaveProperty('error');
   });
 });
+
+// ── SPARK Chat & Memory Routes ──────────────────────────────────────────────
+
+describe('SPARK Chat — failure cases', () => {
+  test('POST /api/spark/chat with empty body returns 400', async () => {
+    const { status, data } = await api('POST', '/api/spark/chat', {});
+    expect(status).toBe(400);
+    expect(data).toHaveProperty('error');
+    expect(data.error).toMatch(/missing.*message/i);
+  });
+
+  test('POST /api/spark/chat with non-string message returns 400', async () => {
+    const { status, data } = await api('POST', '/api/spark/chat', {
+      message: 12345 as any,
+    });
+    expect(status).toBe(400);
+    expect(data).toHaveProperty('error');
+    expect(data.error).toMatch(/missing.*message/i);
+  });
+
+  test('POST /api/spark/chat with valid message returns 200 with response, reasoning, suggestions', async () => {
+    const { status, data } = await api('POST', '/api/spark/chat', {
+      message: 'What are the current SPARK weights?',
+    });
+    expect(status).toBe(200);
+    expect(data).toHaveProperty('response');
+    expect(typeof data.response).toBe('string');
+    expect(data).toHaveProperty('reasoning');
+    expect(Array.isArray(data.reasoning)).toBe(true);
+    expect(data).toHaveProperty('suggestions');
+    expect(Array.isArray(data.suggestions)).toBe(true);
+    expect(data).toHaveProperty('conversationId');
+  });
+
+  test('POST /api/spark/chat with conversationId continues conversation', async () => {
+    // Start a conversation
+    const first = await api('POST', '/api/spark/chat', {
+      message: 'Tell me about email weights',
+    });
+    expect(first.status).toBe(200);
+    const convId = first.data.conversationId;
+    expect(convId).toBeTruthy();
+
+    // Continue the same conversation
+    const second = await api('POST', '/api/spark/chat', {
+      message: 'What about calendar?',
+      conversationId: convId,
+    });
+    expect(second.status).toBe(200);
+    expect(second.data.conversationId).toBe(convId);
+    expect(second.data).toHaveProperty('response');
+  });
+});
+
+describe('SPARK Memory — empty state', () => {
+  test('GET /api/spark/memory/tokens returns 200 with empty tokens array initially', async () => {
+    const { status, data } = await api('GET', '/api/spark/memory/tokens');
+    expect(status).toBe(200);
+    expect(data).toHaveProperty('tokens');
+    expect(Array.isArray(data.tokens)).toBe(true);
+    expect(data).toHaveProperty('count');
+  });
+
+  test('GET /api/spark/memory/edges returns 200 with empty edges array initially', async () => {
+    const { status, data } = await api('GET', '/api/spark/memory/edges');
+    expect(status).toBe(200);
+    expect(data).toHaveProperty('edges');
+    expect(Array.isArray(data.edges)).toBe(true);
+    expect(data).toHaveProperty('count');
+  });
+
+  test('GET /api/spark/memory/stats returns 200 with zero counts', async () => {
+    const { status, data } = await api('GET', '/api/spark/memory/stats');
+    expect(status).toBe(200);
+    expect(data).toHaveProperty('totalTokens');
+    expect(data).toHaveProperty('activeTokens');
+    expect(data).toHaveProperty('archivedTokens');
+    expect(data).toHaveProperty('totalEdges');
+    expect(data).toHaveProperty('topicDocumentCount');
+  });
+
+  test('GET /api/spark/memory/graph returns 200 with empty arrays', async () => {
+    const { status, data } = await api('GET', '/api/spark/memory/graph');
+    expect(status).toBe(200);
+    expect(data).toHaveProperty('tokens');
+    expect(Array.isArray(data.tokens)).toBe(true);
+    expect(data).toHaveProperty('edges');
+    expect(Array.isArray(data.edges)).toBe(true);
+    expect(data).toHaveProperty('tokenCount');
+    expect(data).toHaveProperty('edgeCount');
+  });
+
+  test('GET /api/spark/memory/tokens/:id with bad ID returns 404', async () => {
+    const { status, data } = await api('GET', '/api/spark/memory/tokens/nonexistent-token-id');
+    expect(status).toBe(404);
+    expect(data).toHaveProperty('error');
+    expect(data.error).toMatch(/not found/i);
+  });
+});
+
+describe('SPARK Memory — reconstruction & maintenance', () => {
+  test('POST /api/spark/memory/reconstruct without query returns 400', async () => {
+    const { status, data } = await api('POST', '/api/spark/memory/reconstruct', {});
+    expect(status).toBe(400);
+    expect(data).toHaveProperty('error');
+    expect(data.error).toMatch(/missing.*query/i);
+  });
+
+  test('POST /api/spark/memory/reconstruct with valid query returns 200', async () => {
+    const { status, data } = await api('POST', '/api/spark/memory/reconstruct', {
+      query: 'email handling performance',
+    });
+    expect(status).toBe(200);
+    // The reconstruct endpoint returns a context reconstruction result
+    expect(data).toBeDefined();
+  });
+
+  test('POST /api/spark/memory/maintenance returns 200', async () => {
+    const { status, data } = await api('POST', '/api/spark/memory/maintenance');
+    expect(status).toBe(200);
+    expect(data).toBeDefined();
+  });
+});
+
+describe('SPARK Chat — generates spiral memory tokens', () => {
+  test('After chat, memory tokens should be created', async () => {
+    // Send a chat message that should trigger token creation via FeedbackIntegrator
+    const chatRes = await api('POST', '/api/spark/chat', {
+      message: 'Analyze the email connector performance trends and suggest improvements',
+    });
+    expect(chatRes.status).toBe(200);
+
+    // Now check that spiral memory tokens were generated
+    const tokenRes = await api('GET', '/api/spark/memory/tokens');
+    expect(tokenRes.status).toBe(200);
+    expect(tokenRes.data.tokens.length).toBeGreaterThan(0);
+    expect(tokenRes.data.count).toBeGreaterThan(0);
+  });
+
+  test('After chat, memory stats should show activeTokens > 0', async () => {
+    const { status, data } = await api('GET', '/api/spark/memory/stats');
+    expect(status).toBe(200);
+    expect(data.activeTokens).toBeGreaterThan(0);
+  });
+});

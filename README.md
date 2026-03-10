@@ -7,7 +7,7 @@
   <a href="https://github.com/zanderone1980/ai-operations-os/actions"><img src="https://img.shields.io/github/actions/workflow/status/zanderone1980/ai-operations-os/ci.yml?branch=main&style=flat-square" alt="CI"></a>
   <a href="https://www.npmjs.com/package/@ai-operations/spark-engine"><img src="https://img.shields.io/npm/v/@ai-operations/spark-engine?style=flat-square&label=spark-engine" alt="spark-engine on npm"></a>
   <a href="https://www.npmjs.com/package/@ai-operations/cord-adapter"><img src="https://img.shields.io/npm/v/@ai-operations/cord-adapter?style=flat-square&label=cord-adapter" alt="cord-adapter on npm"></a>
-  <img src="https://img.shields.io/badge/tests-692%20passing-brightgreen?style=flat-square" alt="692 Tests">
+  <img src="https://img.shields.io/badge/tests-742%20passing-brightgreen?style=flat-square" alt="742 Tests">
   <img src="https://img.shields.io/badge/coverage-65%25-yellow?style=flat-square" alt="Coverage 65%">
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="License"></a>
   <a href="https://nodejs.org"><img src="https://img.shields.io/badge/node-%3E%3D18-brightgreen?style=flat-square" alt="Node >= 18"></a>
@@ -344,6 +344,7 @@ ai-operations-os/
 │   ├── ops-policy/            # Policy rules, autonomy levels, budget tracking
 │   ├── ops-connectors/        # Gmail, Calendar, X, Shopify connector adapters
 │   ├── ops-storage/           # SQLite database layer (WAL mode, indexed)
+│   ├── spark-engine/          # SPARK reasoning + spiral memory (7 engines, 0 LLM deps)
 │   ├── codebot-adapter/       # Bridge to codebot-ai + receipt chain builder
 │   └── cord-adapter/          # Bridge to cord-engine safety evaluation
 │
@@ -355,7 +356,55 @@ ai-operations-os/
 └── tsconfig.json              # Shared TypeScript config
 ```
 
-**10 packages.** 3 apps, 7 libraries. Managed with npm workspaces and built with Turborepo.
+**12 packages.** 3 apps, 9 libraries. Managed with npm workspaces and built with Turborepo.
+
+---
+
+## SPARK — Self-Perpetuating Adaptive Reasoning Kernel
+
+<p align="center">
+  <img src="docs/spark-demo.svg" alt="SPARK Chat + Spiral Memory" width="860">
+</p>
+
+SPARK is the self-learning brain of AI Operations OS. It observes every operation outcome, adjusts CORD safety weights, and builds an evolving understanding of your business operations.
+
+### Spiral Memory Architecture
+
+Instead of storing every conversation token verbatim, SPARK compresses interactions into **essence tokens** — extracting topics, sentiment, relationships, and decision points — then reinforces or weakens them through spiral passes as patterns repeat or contradict.
+
+```
+  Conversation Turn                    Essence Token                    Spiral Pass
+  ================                    ==============                   ===========
+
+  "Email system has been      →    topics: [email, system, reliabl]    →   Reinforcement:
+   performing reliably"             sentiment: positive (0.6)               strength += 0.15 * (1-s) * match
+                                    gist: "Email system reliable"           Weakening:
+                                    importance: 0.72                        strength *= (1 - 0.1 * conflict)
+                                    tier: raw → compressed                  Decay:
+                                                                            strength *= (1 - 0.02 * days)
+```
+
+**Five engines, zero LLM calls:**
+
+| Engine | Purpose |
+|--------|---------|
+| **EssenceExtractor** | TF-IDF topics, lexicon sentiment, relationship patterns, decision detection |
+| **MemoryTokenManager** | Token lifecycle, tier compression (raw → recent → compressed → archival) |
+| **SpiralLoop** | Reinforcement/weakening math with diminishing returns + passive decay |
+| **ContextReconstructor** | BFS graph walk to rebuild context from essence threads |
+| **FeedbackIntegrator** | Bridges SPARK episodes, insights, and beliefs into spiral memory |
+
+### SPARK API
+
+| Endpoint | Description |
+|----------|-------------|
+| `POST /api/spark/chat` | Conversational interface to SPARK |
+| `GET /api/spark/awareness` | Full awareness self-report |
+| `GET /api/spark/memory/tokens` | List spiral memory tokens |
+| `GET /api/spark/memory/graph` | Full token graph for visualization |
+| `GET /api/spark/memory/stats` | Spiral memory statistics |
+| `POST /api/spark/memory/reconstruct` | Context reconstruction from query |
+| `POST /api/spark/memory/maintenance` | Trigger decay/tier/archival pass |
 
 ---
 

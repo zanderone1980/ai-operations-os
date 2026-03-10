@@ -13,6 +13,7 @@ import * as os from 'os';
 import * as crypto from 'crypto';
 
 import { createStores } from '@ai-ops/ops-storage';
+import type { Stores } from '@ai-ops/ops-storage';
 import {
   createTask,
   createWorkflowRun,
@@ -23,7 +24,15 @@ import {
   GENESIS_HASH,
   type Task,
   type ActionReceipt,
+  type WorkflowRun,
+  type SparkCategory,
+  type LearningEpisode,
 } from '@ai-ops/shared-types';
+import {
+  buildAllDefaultWeights,
+  MemoryCore,
+  AwarenessCore,
+} from '@ai-ops/spark-engine';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -327,6 +336,170 @@ function seedReceipts(stores: ReturnType<typeof createStores>): ActionReceipt[] 
   return receipts;
 }
 
+function seedSpark(stores: Stores): { episodes: number; insights: number } {
+  // Initialize default weights for all 7 categories
+  stores.spark.initializeWeights(buildAllDefaultWeights());
+
+  // Seed learning episodes with realistic patterns
+  const baseTime = new Date('2026-03-01T08:00:00Z');
+  let episodeCount = 0;
+
+  const scenarios: Array<{
+    category: SparkCategory;
+    episodes: Array<{
+      direction: 'increase' | 'decrease' | 'none';
+      magnitude: number;
+      mismatch: boolean;
+    }>;
+  }> = [
+    // Communication: mostly correct, slight upward trend (becoming more cautious)
+    {
+      category: 'communication',
+      episodes: [
+        { direction: 'none', magnitude: 0, mismatch: false },
+        { direction: 'none', magnitude: 0, mismatch: false },
+        { direction: 'increase', magnitude: 0.085, mismatch: true },
+        { direction: 'none', magnitude: 0, mismatch: false },
+        { direction: 'increase', magnitude: 0.065, mismatch: true },
+        { direction: 'none', magnitude: 0, mismatch: false },
+        { direction: 'none', magnitude: 0, mismatch: false },
+        { direction: 'increase', magnitude: 0.05, mismatch: false },
+        { direction: 'none', magnitude: 0, mismatch: false },
+        { direction: 'none', magnitude: 0, mismatch: false },
+        { direction: 'none', magnitude: 0, mismatch: false },
+        { direction: 'increase', magnitude: 0.04, mismatch: false },
+      ],
+    },
+    // Readonly: all correct, no adjustments needed — should reach "reliable"
+    {
+      category: 'readonly',
+      episodes: Array.from({ length: 25 }, () => ({
+        direction: 'none' as const,
+        magnitude: 0,
+        mismatch: false,
+      })),
+    },
+    // Scheduling: oscillating — sometimes too strict, sometimes too loose
+    {
+      category: 'scheduling',
+      episodes: [
+        { direction: 'increase', magnitude: 0.08, mismatch: true },
+        { direction: 'decrease', magnitude: 0.06, mismatch: false },
+        { direction: 'increase', magnitude: 0.07, mismatch: true },
+        { direction: 'decrease', magnitude: 0.05, mismatch: false },
+        { direction: 'increase', magnitude: 0.09, mismatch: true },
+        { direction: 'decrease', magnitude: 0.04, mismatch: false },
+        { direction: 'increase', magnitude: 0.06, mismatch: true },
+        { direction: 'decrease', magnitude: 0.07, mismatch: false },
+      ],
+    },
+    // Destructive (SENTINEL): CORD was too permissive twice, weight pushed up
+    {
+      category: 'destructive',
+      episodes: [
+        { direction: 'none', magnitude: 0, mismatch: false },
+        { direction: 'none', magnitude: 0, mismatch: false },
+        { direction: 'none', magnitude: 0, mismatch: false },
+        { direction: 'increase', magnitude: 0.09, mismatch: true },
+        { direction: 'increase', magnitude: 0.085, mismatch: true },
+        { direction: 'increase', magnitude: 0.07, mismatch: false },
+        { direction: 'none', magnitude: 0, mismatch: false },
+      ],
+    },
+    // Financial (SENTINEL): mostly correct, one cautious override
+    {
+      category: 'financial',
+      episodes: [
+        { direction: 'none', magnitude: 0, mismatch: false },
+        { direction: 'none', magnitude: 0, mismatch: false },
+        { direction: 'none', magnitude: 0, mismatch: false },
+        { direction: 'none', magnitude: 0, mismatch: false },
+        { direction: 'decrease', magnitude: 0.05, mismatch: false },
+      ],
+    },
+    // Publication: converging — adjustments getting smaller
+    {
+      category: 'publication',
+      episodes: [
+        { direction: 'increase', magnitude: 0.15, mismatch: true },
+        { direction: 'increase', magnitude: 0.12, mismatch: true },
+        { direction: 'increase', magnitude: 0.09, mismatch: false },
+        { direction: 'increase', magnitude: 0.06, mismatch: false },
+        { direction: 'increase', magnitude: 0.04, mismatch: false },
+        { direction: 'increase', magnitude: 0.03, mismatch: false },
+      ],
+    },
+    // General: only 2 episodes — should be "insufficient"
+    {
+      category: 'general',
+      episodes: [
+        { direction: 'none', magnitude: 0, mismatch: false },
+        { direction: 'none', magnitude: 0, mismatch: false },
+      ],
+    },
+  ];
+
+  for (const scenario of scenarios) {
+    let currentWeight = 1.0;
+
+    for (let i = 0; i < scenario.episodes.length; i++) {
+      const ep = scenario.episodes[i];
+      const weightBefore = currentWeight;
+
+      if (ep.direction === 'increase') {
+        currentWeight = Math.min(1.3, currentWeight + 0.1 * ep.magnitude);
+      } else if (ep.direction === 'decrease') {
+        currentWeight = Math.max(
+          scenario.category === 'destructive' || scenario.category === 'financial' ? 1.0 : 0.7,
+          currentWeight - 0.1 * ep.magnitude,
+        );
+      }
+      currentWeight = Math.round(currentWeight * 10000) / 10000;
+
+      const episode: LearningEpisode = {
+        id: crypto.randomUUID(),
+        predictionId: `seed-pred-${scenario.category}-${i}`,
+        outcomeId: `seed-out-${scenario.category}-${i}`,
+        category: scenario.category,
+        scoreDelta: ep.direction === 'increase' ? -10 : ep.direction === 'decrease' ? 10 : 0,
+        outcomeMismatch: ep.mismatch,
+        adjustmentDirection: ep.direction,
+        adjustmentMagnitude: ep.magnitude,
+        weightBefore,
+        weightAfter: currentWeight,
+        reason: ep.direction === 'none'
+          ? `CORD assessment correct for ${scenario.category}. No adjustment.`
+          : ep.direction === 'increase'
+            ? `CORD too permissive for ${scenario.category}. Increasing weight.`
+            : `CORD too cautious for ${scenario.category}. Decreasing weight.`,
+        createdAt: new Date(baseTime.getTime() + episodeCount * 3600000).toISOString(),
+      };
+
+      stores.spark.saveEpisode(episode);
+      episodeCount++;
+    }
+
+    // Update the weight to reflect the final state
+    const weight = stores.spark.getWeight(scenario.category)!;
+    stores.spark.saveWeight({
+      ...weight,
+      currentWeight,
+      episodeCount: scenario.episodes.length,
+      lastAdjustedAt: new Date().toISOString(),
+    });
+  }
+
+  // Run memory consolidation to generate insights
+  const memory = new MemoryCore(stores.spark);
+  const insights = memory.consolidateAll();
+
+  // Run awareness assessment to generate beliefs
+  const awareness = new AwarenessCore(stores.spark);
+  awareness.assessAll();
+
+  return { episodes: episodeCount, insights: insights.length };
+}
+
 // ── Main ─────────────────────────────────────────────────────────────────────
 
 export async function runSeed(reset: boolean = false): Promise<{
@@ -334,6 +507,8 @@ export async function runSeed(reset: boolean = false): Promise<{
   workflows: number;
   approvals: number;
   receipts: number;
+  sparkEpisodes: number;
+  sparkInsights: number;
 }> {
   if (reset && fs.existsSync(DB_PATH)) {
     fs.unlinkSync(DB_PATH);
@@ -347,19 +522,27 @@ export async function runSeed(reset: boolean = false): Promise<{
 
   const stores = createStores(DB_PATH);
 
+  // Disable FK checks during seed — demo data doesn't have full referential chains
+  stores.db.db.pragma('foreign_keys = OFF');
+
   try {
     const tasks = seedTasks(stores);
     const workflows = seedWorkflows(stores, tasks);
     seedApprovals(stores, tasks);
     const receipts = seedReceipts(stores);
+    const spark = seedSpark(stores);
 
     return {
       tasks: tasks.length,
       workflows: workflows.length,
       approvals: 3,
       receipts: receipts.length,
+      sparkEpisodes: spark.episodes,
+      sparkInsights: spark.insights,
     };
   } finally {
+    // Re-enable FK checks before closing
+    stores.db.db.pragma('foreign_keys = ON');
     stores.db.close();
   }
 }
@@ -375,6 +558,7 @@ if (require.main === module || process.argv[1]?.endsWith('seed.ts')) {
       console.log(`  ${c.cyan}Workflows:${c.reset} ${counts.workflows}`);
       console.log(`  ${c.cyan}Approvals:${c.reset} ${counts.approvals}`);
       console.log(`  ${c.cyan}Receipts:${c.reset}  ${counts.receipts}`);
+      console.log(`  ${c.cyan}SPARK:${c.reset}     ${counts.sparkEpisodes} episodes, ${counts.sparkInsights} insights`);
       console.log();
       console.log(`  ${c.dim}Database: ${DB_PATH}${c.reset}`);
       console.log();

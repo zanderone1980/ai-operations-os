@@ -5,6 +5,26 @@
   "description": "AI Operations OS — Autonomous business workflow orchestration with safety enforcement",
   "author": "Alex Pinkevich <alex@zanderpinkdesign.com>",
   "license": "MIT",
+  "homepage": "https://github.com/zanderone1980/ai-operations-os#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zanderone1980/ai-operations-os.git"
+  },
+  "bugs": {
+    "url": "https://github.com/zanderone1980/ai-operations-os/issues"
+  },
+  "keywords": [
+    "ai-ops",
+    "ai-agents",
+    "workflow-automation",
+    "safety",
+    "cord",
+    "spark",
+    "autonomous-agents",
+    "business-automation",
+    "typescript",
+    "monorepo"
+  ],
   "workspaces": [
     "packages/*",
     "apps/*"

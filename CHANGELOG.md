@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Architecture**
 - 6-layer pipeline: Inbox → Intent → Policy → Workflow → Safety → Receipts
-- 10-package Turborepo monorepo with npm workspaces
+- 12-package Turborepo monorepo with npm workspaces
 - Zero runtime dependencies in API server (Node.js built-in http module)
 - TypeScript strict mode throughout
 
@@ -53,9 +53,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub Actions CI (ubuntu + macOS, Node 18/20/22)
 
 **Testing**
-- 538 tests across 24 test suites
+- 692 tests across 35 test suites (7 packages with test coverage)
 - Integration tests for all API routes
 - Unit tests for intent classifier, policy engine, connectors, storage, schemas
+- SPARK engine tests: predictor, learning core, weight manager, awareness, memory consolidation
 
 ### Known Limitations
 

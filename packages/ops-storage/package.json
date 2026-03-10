@@ -1,11 +1,13 @@
 {
   "name": "@ai-ops/ops-storage",
   "version": "0.1.0",
+  "description": "SQLite persistence layer for AI Operations OS — tasks, workflows, receipts, SPARK learning data (WAL mode)",
   "private": false,
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
+    "test": "jest",
     "clean": "rm -rf dist"
   },
   "dependencies": {

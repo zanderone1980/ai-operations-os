@@ -1,11 +1,13 @@
 {
   "name": "@ai-ops/ops-connectors",
   "version": "0.1.0",
+  "description": "Connector SDK for AI Operations OS — Gmail, Calendar, X/Twitter, Shopify with resilient fetch and retry",
   "private": false,
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
+    "test": "jest",
     "clean": "rm -rf dist"
   },
   "dependencies": {

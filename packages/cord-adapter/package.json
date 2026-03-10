@@ -1,6 +1,7 @@
 {
   "name": "@ai-ops/cord-adapter",
   "version": "0.1.0",
+  "description": "CORD safety gate adapter for AI Operations OS — 14-dimension constitutional AI scoring with SPARK integration",
   "private": false,
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

@@ -1,6 +1,7 @@
 {
   "name": "@ai-ops/shared-types",
   "version": "0.1.0",
+  "description": "Core TypeScript types and schemas for AI Operations OS — tasks, workflows, approvals, receipts, SPARK learning",
   "private": false,
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

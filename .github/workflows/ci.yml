@@ -24,7 +24,7 @@ jobs:
       - run: npm ci
       - run: npx turbo build
       - name: Run tests
-        run: npm test
+        run: npx turbo test
 
   api-smoke:
     runs-on: ubuntu-latest
@@ -71,6 +71,13 @@ jobs:
             -H 'Content-Type: application/json' \
             -d '{"source":"email","title":"Reply to customer","body":"customer asked about return policy"}' \
             | node -e "process.stdin.on('data',d=>{const j=JSON.parse(d);if(!j.simulation||!j.intent)process.exit(1)})"
+
+      - name: SPARK chat
+        run: |
+          curl -sf -X POST http://localhost:3100/api/spark/chat \
+            -H 'Content-Type: application/json' \
+            -d '{"message":"How are you doing?"}' \
+            | node -e "process.stdin.on('data',d=>{const j=JSON.parse(d);if(!j.response||!j.conversationId)process.exit(1)})"
 
   typecheck:
     runs-on: ubuntu-latest

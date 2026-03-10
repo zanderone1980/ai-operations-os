@@ -1,6 +1,7 @@
 {
   "name": "@ai-ops/ops-policy",
   "version": "0.1.0",
+  "description": "Policy engine for AI Operations OS — rule evaluation, autonomy levels, budget enforcement, escalation logic",
   "private": false,
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

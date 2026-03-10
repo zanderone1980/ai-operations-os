@@ -1,6 +1,7 @@
 {
   "name": "@ai-ops/ops-web",
   "version": "0.1.0",
+  "description": "Web dashboard for AI Operations OS — approval inbox, task management, workflow visualization, dark mode",
   "private": true,
   "scripts": {
     "build": "echo 'Static files — no build needed'",

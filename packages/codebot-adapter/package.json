@@ -1,6 +1,7 @@
 {
   "name": "@ai-ops/codebot-adapter",
   "version": "0.1.0",
+  "description": "CodeBot adapter for AI Operations OS — action execution bridge with configurable backends",
   "private": false,
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

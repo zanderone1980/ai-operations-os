@@ -1,6 +1,7 @@
 {
   "name": "@ai-ops/ops-worker",
   "version": "0.1.0",
+  "description": "Background worker for AI Operations OS — workflow execution, step orchestration, CodeBot/CORD integration",
   "private": true,
   "main": "dist/lib.js",
   "types": "dist/lib.d.ts",

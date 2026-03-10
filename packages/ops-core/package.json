@@ -1,6 +1,7 @@
 {
   "name": "@ai-ops/ops-core",
   "version": "0.1.0",
+  "description": "Pipeline engine for AI Operations OS — intent classification, state machine, LLM integration, structured logging",
   "private": false,
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

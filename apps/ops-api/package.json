@@ -1,10 +1,12 @@
 {
   "name": "@ai-ops/ops-api",
   "version": "0.1.0",
+  "description": "REST API server for AI Operations OS — 45+ endpoints, OAuth, webhooks, SPARK chat, zero Express dependencies",
   "private": true,
   "main": "dist/server.js",
   "scripts": {
     "build": "tsc",
+    "test": "jest",
     "dev": "node --watch dist/server.js",
     "start": "node dist/server.js",
     "clean": "rm -rf dist"

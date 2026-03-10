@@ -1,6 +1,7 @@
 {
   "name": "@ai-ops/spark-engine",
   "version": "0.1.0",
+  "description": "SPARK engine — Self-Perpetuating Adaptive Reasoning Kernel with predict/learn feedback loop, awareness, and conversational reasoning",
   "private": false,
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

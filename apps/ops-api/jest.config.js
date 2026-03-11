@@ -13,6 +13,7 @@ module.exports = {
     '^@ai-operations/cord-adapter$': '<rootDir>/../../packages/cord-adapter/src',
     '^@ai-operations/codebot-adapter$': '<rootDir>/../../packages/codebot-adapter/src',
     '^@ai-operations/ops-storage$': '<rootDir>/../../packages/ops-storage/src',
+    '^@ai-operations/ops-auth$': '<rootDir>/../../packages/ops-auth/src',
     '^@ai-operations/ops-worker$': '<rootDir>/../ops-worker/src',
   },
   collectCoverageFrom: [

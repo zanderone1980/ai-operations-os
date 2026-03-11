@@ -67,7 +67,8 @@ import { slackRoutes } from './routes/slack';
 import { notionRoutes } from './routes/notion';
 import { authRoutes } from './routes/auth';
 import { createRateLimiter } from './middleware/rate-limit';
-import { setJwtVerifier, setUserLookup } from './middleware/auth';
+import { authenticate, setJwtVerifier, setUserLookup } from './middleware/auth';
+import { isAuthExempt, requiresElevatedRole, MAX_BODY_SIZE } from './middleware/auth-guard';
 import { verifyToken } from '@ai-operations/ops-auth';
 
 const log = createLogger('ops-api');
@@ -172,14 +173,34 @@ function parseQuery(url: string): Record<string, string> {
   return params;
 }
 
+class PayloadTooLargeError extends Error {
+  constructor() {
+    super('Payload too large');
+    this.name = 'PayloadTooLargeError';
+  }
+}
+
 /**
- * Read request body as JSON.
+ * Read request body as JSON. Rejects with PayloadTooLargeError if body exceeds MAX_BODY_SIZE.
  */
 async function readBody(req: http.IncomingMessage): Promise<Record<string, unknown>> {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
-    req.on('data', (chunk: Buffer) => chunks.push(chunk));
+    let totalSize = 0;
+    let rejected = false;
+
+    req.on('data', (chunk: Buffer) => {
+      if (rejected) return;
+      totalSize += chunk.length;
+      if (totalSize > MAX_BODY_SIZE) {
+        rejected = true;
+        reject(new PayloadTooLargeError());
+        return;
+      }
+      chunks.push(chunk);
+    });
     req.on('end', () => {
+      if (rejected) return;
       if (chunks.length === 0) return resolve({});
       try {
         resolve(JSON.parse(Buffer.concat(chunks).toString('utf-8')));
@@ -187,7 +208,9 @@ async function readBody(req: http.IncomingMessage): Promise<Record<string, unkno
         resolve({});
       }
     });
-    req.on('error', () => resolve({}));
+    req.on('error', () => {
+      if (!rejected) resolve({});
+    });
   });
 }
 
@@ -313,6 +336,25 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // Auth guard — applied to all API routes except exempt paths
+  if (path.startsWith('/api/') && !isAuthExempt(path)) {
+    const auth = await authenticate(req);
+    if (!auth.authenticated) {
+      sendError(res, 401, 'Authentication required');
+      return;
+    }
+    // Attach auth context to request for downstream use
+    (req as any).auth = auth;
+
+    // Role check for destructive operations
+    if (requiresElevatedRole(method, path)) {
+      if (!auth.role || !['admin', 'operator'].includes(auth.role)) {
+        sendError(res, 403, 'Forbidden — insufficient role');
+        return;
+      }
+    }
+  }
+
   // Match route
   for (const route of routes) {
     if (route.method !== method) continue;
@@ -329,6 +371,10 @@ const server = http.createServer(async (req, res) => {
       const query = parseQuery(url);
       await route.handler({ req, res, path, method, body, params, query });
     } catch (err) {
+      if (err instanceof PayloadTooLargeError) {
+        sendError(res, 413, 'Payload too large — maximum body size is 1 MB');
+        return;
+      }
       const correlationId = (req as any).correlationId as string | undefined;
       log.error(`Error in ${method} ${path}`, {
         error: err instanceof Error ? err.message : String(err),
@@ -377,6 +423,12 @@ server.listen(PORT, HOST, () => {
     port: PORT,
     routes: routes.length,
   });
+
+  // Warn if using fallback JWT secret (insecure for production)
+  if (JWT_SECRET === 'ai-ops-dev-jwt-secret') {
+    log.warn('Using default JWT secret — set JWT_SECRET or OPS_API_KEY env var for production');
+  }
+
   console.log(`\n  AI Operations OS — API Server`);
   console.log(`  Listening on http://${HOST}:${PORT}`);
   console.log(`  Health:    http://localhost:${PORT}/health`);

@@ -25,11 +25,15 @@ if (hadCreds) fs.renameSync(CREDS_PATH, CREDS_BACKUP);
 // The server.ts module has a side effect: it calls server.listen(PORT).
 // Our strategy: import it, close the auto-started listener, then re-listen on port 0.
 
+const TEST_API_KEY = 'test-integration-api-key';
+
 beforeAll(async () => {
   // Use an in-memory SQLite database for tests
   process.env.OPS_DB_PATH = ':memory:';
   // Prevent the server from binding to the default port
   process.env.OPS_PORT = '0';
+  // Set API key for auth (must be set before importing server)
+  process.env.OPS_API_KEY = TEST_API_KEY;
 
   const mod = await import('../server');
   server = mod.server;
@@ -75,11 +79,16 @@ async function api(
   method: string,
   path: string,
   body?: Record<string, unknown>,
+  options?: { skipAuth?: boolean },
 ): Promise<{ status: number; data: any; headers: http.IncomingHttpHeaders }> {
   const url = `${baseUrl}${path}`;
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (!options?.skipAuth) {
+    headers['Authorization'] = `Bearer ${TEST_API_KEY}`;
+  }
   const opts: RequestInit = {
     method,
-    headers: { 'Content-Type': 'application/json' },
+    headers,
   };
   if (body) opts.body = JSON.stringify(body);
 

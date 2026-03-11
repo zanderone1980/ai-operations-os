@@ -13,6 +13,9 @@ import { createTask } from '@ai-operations/shared-types';
 import type { TaskSource } from '@ai-operations/shared-types';
 import { pathToRoute, sendJson, sendError } from '../server';
 import type { Route } from '../server';
+import { createLogger } from '@ai-operations/ops-core';
+
+const log = createLogger('webhooks');
 
 // ── Webhook event log ────────────────────────────────────────────────────────
 
@@ -51,7 +54,7 @@ async function handleGmailWebhook(ctx: any): Promise<void> {
   event.taskCreated = task.id;
   webhookLog.push(event);
 
-  console.log(`[webhook] Gmail: created task ${task.id}`);
+  log.info('Webhook received', { source: 'gmail', taskId: task.id });
   sendJson(res, 200, { received: true, taskId: task.id });
 }
 
@@ -78,7 +81,7 @@ async function handleCalendarWebhook(ctx: any): Promise<void> {
   event.taskCreated = task.id;
   webhookLog.push(event);
 
-  console.log(`[webhook] Calendar: created task ${task.id}`);
+  log.info('Webhook received', { source: 'calendar', taskId: task.id });
   sendJson(res, 200, { received: true, taskId: task.id });
 }
 
@@ -104,7 +107,7 @@ async function handleShopifyWebhook(ctx: any): Promise<void> {
   event.taskCreated = task.id;
   webhookLog.push(event);
 
-  console.log(`[webhook] Shopify: created task ${task.id}`);
+  log.info('Webhook received', { source: 'shopify', taskId: task.id });
   sendJson(res, 200, { received: true, taskId: task.id });
 }
 
@@ -130,7 +133,7 @@ async function handleStripeWebhook(ctx: any): Promise<void> {
   event.taskCreated = task.id;
   webhookLog.push(event);
 
-  console.log(`[webhook] Stripe (${eventType}): created task ${task.id}`);
+  log.info('Webhook received', { source: 'stripe', eventType, taskId: task.id });
   sendJson(res, 200, { received: true, taskId: task.id });
 }
 
@@ -156,7 +159,7 @@ async function handleGenericWebhook(ctx: any): Promise<void> {
   event.taskCreated = task.id;
   webhookLog.push(event);
 
-  console.log(`[webhook] Generic: created task ${task.id}`);
+  log.info('Webhook received', { source: 'generic', taskId: task.id });
   sendJson(res, 200, { received: true, taskId: task.id });
 }
 

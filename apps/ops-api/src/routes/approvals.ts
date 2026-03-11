@@ -92,12 +92,21 @@ async function decideApproval(ctx: any): Promise<void> {
 
   const decision = body.decision as ApprovalDecision;
 
+  const decidedBy = (body.decidedBy as string) || 'user';
+
   stores.approvals.decide(
     params.id,
     decision,
-    (body.decidedBy as string) || 'user',
+    decidedBy,
     decision === 'modified' ? (body.modifications as Record<string, unknown>) : undefined,
   );
+
+  stores.audit.log('approval.decided', {
+    actorId: decidedBy,
+    resourceType: 'approval',
+    resourceId: params.id,
+    details: { decision, taskId: approval.taskId, risk: approval.risk },
+  });
 
   // ── SPARK: Learn from approval outcome ──
   // If this approval has a pending SPARK context, close the loop

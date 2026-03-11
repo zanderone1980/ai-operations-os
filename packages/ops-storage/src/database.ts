@@ -336,6 +336,26 @@ export class Database {
       CREATE INDEX IF NOT EXISTS idx_spark_memory_topic_index_topic
         ON spark_memory_topic_index(topic);
 
+      -- ── Audit Log ────────────────────────────────────────────
+
+      CREATE TABLE IF NOT EXISTS audit_log (
+        id TEXT PRIMARY KEY,
+        event_type TEXT NOT NULL,
+        actor_id TEXT,
+        resource_type TEXT,
+        resource_id TEXT,
+        details TEXT NOT NULL DEFAULT '{}',
+        ip_address TEXT,
+        created_at TEXT NOT NULL
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_audit_log_event_type
+        ON audit_log(event_type);
+      CREATE INDEX IF NOT EXISTS idx_audit_log_actor_id
+        ON audit_log(actor_id);
+      CREATE INDEX IF NOT EXISTS idx_audit_log_created_at
+        ON audit_log(created_at);
+
       -- ── Credential Vault ─────────────────────────────────────
 
       CREATE TABLE IF NOT EXISTS credentials_vault (

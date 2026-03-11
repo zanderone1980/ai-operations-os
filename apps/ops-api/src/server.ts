@@ -353,6 +353,9 @@ const server = http.createServer(async (req, res) => {
   if (path.startsWith('/api/') && !isAuthExempt(path)) {
     const auth = await authenticate(req);
     if (!auth.authenticated) {
+      stores.audit.log('auth.rejected', {
+        details: { method, path, reason: 'missing_or_invalid_token' },
+      });
       sendError(res, 401, 'Authentication required');
       return;
     }

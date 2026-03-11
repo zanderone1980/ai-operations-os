@@ -14,7 +14,10 @@ import { pathToRoute, sendJson, sendError } from '../server';
 import type { Route } from '../server';
 import { stores } from '../storage';
 import { authenticate } from '../middleware/auth';
+import { createLogger } from '@ai-operations/ops-core';
 import type * as http from 'http';
+
+const log = createLogger('auth');
 
 const JWT_SECRET = process.env.JWT_SECRET || process.env.OPS_API_KEY || 'ai-ops-dev-jwt-secret';
 
@@ -58,6 +61,9 @@ async function registerUser(ctx: any): Promise<void> {
   // Check if email already exists
   const existing = stores.users.getByEmail(email);
   if (existing) {
+    stores.audit.log('auth.register', {
+      details: { email, reason: 'email_already_registered' },
+    });
     sendError(res, 409, 'Email already registered');
     return;
   }
@@ -77,6 +83,15 @@ async function registerUser(ctx: any): Promise<void> {
     JWT_SECRET,
     86_400, // 24 hours
   );
+
+  stores.audit.log('auth.register', {
+    actorId: user.id,
+    resourceType: 'user',
+    resourceId: user.id,
+    details: { email: user.email },
+  });
+
+  log.info('User registered', { userId: user.id, email: user.email });
 
   sendJson(res, 201, {
     user: {
@@ -110,12 +125,19 @@ async function loginUser(ctx: any): Promise<void> {
 
   const user = stores.users.getByEmail(email);
   if (!user || !user.passwordHash) {
+    stores.audit.log('auth.login_failed', {
+      details: { email, reason: 'user_not_found' },
+    });
     sendError(res, 401, 'Invalid email or password');
     return;
   }
 
   const valid = verifyPassword(password, user.passwordHash);
   if (!valid) {
+    stores.audit.log('auth.login_failed', {
+      actorId: user.id,
+      details: { email, reason: 'invalid_password' },
+    });
     sendError(res, 401, 'Invalid email or password');
     return;
   }
@@ -129,6 +151,15 @@ async function loginUser(ctx: any): Promise<void> {
     JWT_SECRET,
     86_400,
   );
+
+  stores.audit.log('auth.login', {
+    actorId: user.id,
+    resourceType: 'user',
+    resourceId: user.id,
+    details: { email: user.email },
+  });
+
+  log.info('User logged in', { userId: user.id, email: user.email });
 
   sendJson(res, 200, {
     user: {
@@ -202,6 +233,13 @@ async function storeCredential(ctx: any): Promise<void> {
   const encryptedValue = encrypt(value, vaultKey);
   const credential = stores.credentials.save(connector, key, encryptedValue, userId);
 
+  stores.audit.log('credential.created', {
+    actorId: userId,
+    resourceType: 'credential',
+    resourceId: credential.id,
+    details: { connector, key },
+  });
+
   sendJson(res, 201, {
     id: credential.id,
     connector: credential.connector,
@@ -249,6 +287,12 @@ async function deleteCredential(ctx: any): Promise<void> {
     sendError(res, 404, `Credential not found: ${params.id}`);
     return;
   }
+
+  stores.audit.log('credential.deleted', {
+    actorId: userId,
+    resourceType: 'credential',
+    resourceId: params.id,
+  });
 
   sendJson(res, 200, { deleted: true });
 }

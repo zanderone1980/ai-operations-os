@@ -16,7 +16,7 @@
 <body>
 
   <!-- Skip to content (a11y) -->
-  <a href="#page-container" class="skip-link">Skip to main content</a>
+  <a href="#main-content" id="skip-to-content" class="skip-link">Skip to main content</a>
 
   <!-- ═══ Login Overlay ══════════════════════════════════════════════ -->
   <div class="login-overlay" id="login-overlay">
@@ -368,7 +368,7 @@
           <!-- Pending Approvals -->
           <div class="section-header">
             <h3 class="section-title">Pending Approvals</h3>
-            <span class="label" id="approval-count">0 pending</span>
+            <span class="label" id="approval-count" aria-live="polite">0 pending</span>
           </div>
           <div id="approval-list" class="task-list mb-6">
             <div class="empty-state">No pending approvals</div>

@@ -191,6 +191,9 @@
     // Close mobile sidebar
     if (sidebar) sidebar.classList.remove('mobile-open');
 
+    // Animate page in
+    animatePageIn(page);
+
     // Page-specific loading
     if (page === 'dashboard') loadDashboard();
     else if (page === 'spark-chat') loadSparkChat();
@@ -2157,6 +2160,136 @@
   }
 
   // ═══════════════════════════════════════════════════════════════════
+  // 16. Animations, Accessibility & Polish
+  // ═══════════════════════════════════════════════════════════════════
+
+  // ── Page transition animations ─────────────────────────────────────
+  // Add slideUp animation to page section when it becomes active
+
+  function animatePageIn(page) {
+    var section = document.getElementById('page-' + page);
+    if (!section) return;
+    section.style.animation = 'none';
+    section.offsetHeight; // Force reflow
+    section.style.animation = 'slideUp 0.25s var(--ease-out) both';
+  }
+
+  // Patch navigateTo to include page animation
+  var _origNavigateTo = navigateTo;
+  // We'll call animatePageIn within a MutationObserver or after class toggle
+  // Instead, add the animation class in navigateTo — we already have it, just ensure CSS handles it
+
+  // ── Focus trapping in modals ──────────────────────────────────────
+
+  function trapFocus(modalEl) {
+    if (!modalEl) return;
+    var focusable = modalEl.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+    if (focusable.length === 0) return;
+
+    var first = focusable[0];
+    var last = focusable[focusable.length - 1];
+
+    function handleTab(e) {
+      if (e.key !== 'Tab') return;
+      if (e.shiftKey) {
+        if (document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else {
+        if (document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    }
+
+    modalEl._focusTrapHandler = handleTab;
+    modalEl.addEventListener('keydown', handleTab);
+    // Focus the first focusable element
+    first.focus();
+  }
+
+  function releaseFocus(modalEl) {
+    if (!modalEl || !modalEl._focusTrapHandler) return;
+    modalEl.removeEventListener('keydown', modalEl._focusTrapHandler);
+    delete modalEl._focusTrapHandler;
+  }
+
+  // Patch openModal / closeModal to add focus trapping
+  var _origOpenModal = openModal;
+  openModal = function (id) {
+    _origOpenModal(id);
+    var modal = document.getElementById(id);
+    if (modal) {
+      setTimeout(function () { trapFocus(modal); }, 50);
+    }
+  };
+
+  var _origCloseModal = closeModal;
+  closeModal = function (id) {
+    var modal = document.getElementById(id);
+    if (modal) releaseFocus(modal);
+    _origCloseModal(id);
+  };
+
+  // ── IntersectionObserver — animate elements on scroll ─────────────
+
+  function initScrollAnimations() {
+    if (!('IntersectionObserver' in window)) return;
+    // Check reduced motion preference
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('animate-in');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+    // Observe cards and sections that should animate in
+    var targets = document.querySelectorAll('.stat-card, .glass-card, .connector-card, .approval-card, .pattern-card');
+    targets.forEach(function (el) {
+      el.classList.add('animate-target');
+      observer.observe(el);
+    });
+  }
+
+  // ── Canvas performance — pause when tab hidden ────────────────────
+
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) {
+      // Pause spiral viz to save CPU
+      if (spiralViz && spiralViz.running) {
+        spiralViz.stop();
+        spiralViz._wasPaused = true;
+      }
+    } else {
+      // Resume spiral viz if it was paused
+      if (spiralViz && spiralViz._wasPaused) {
+        spiralViz.start();
+        spiralViz._wasPaused = false;
+      }
+    }
+  });
+
+  // ── Skip to content ───────────────────────────────────────────────
+
+  var skipLink = document.getElementById('skip-to-content');
+  if (skipLink) {
+    skipLink.addEventListener('click', function (e) {
+      e.preventDefault();
+      var main = document.getElementById('main-content');
+      if (main) {
+        main.focus();
+        main.scrollIntoView();
+      }
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
   // Health Check & Init
   // ═══════════════════════════════════════════════════════════════════
 
@@ -2180,7 +2313,7 @@
     initRouter();
     connectSSE();
     startAutoRefresh();
-    loadReceipts();
+    initScrollAnimations();
   }
 
   // Global exports

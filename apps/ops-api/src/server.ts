@@ -63,9 +63,35 @@ import { xTwitterRoutes } from './routes/x-twitter';
 import { sparkRoutes } from './routes/spark';
 import { connectorRoutes } from './routes/connectors';
 import { receiptRoutes } from './routes/receipts';
+import { slackRoutes } from './routes/slack';
+import { notionRoutes } from './routes/notion';
+import { authRoutes } from './routes/auth';
 import { createRateLimiter } from './middleware/rate-limit';
+import { setJwtVerifier, setUserLookup } from './middleware/auth';
+import { verifyToken } from '@ai-operations/ops-auth';
 
 const log = createLogger('ops-api');
+
+// ── Wire up auth providers ──────────────────────────────────────────────────
+
+const JWT_SECRET = process.env.JWT_SECRET || process.env.OPS_API_KEY || 'ai-ops-dev-jwt-secret';
+
+// JWT verifier — validates eyJ... tokens
+setJwtVerifier((token: string) => {
+  try {
+    const payload = verifyToken(token, JWT_SECRET);
+    return { sub: payload.sub, role: payload.role as string };
+  } catch {
+    return null;
+  }
+});
+
+// Multi-user API key lookup — resolves aops_ keys from UserStore
+setUserLookup(async (apiKey: string) => {
+  const user = stores.users.getByApiKey(apiKey);
+  if (!user) return null;
+  return { id: user.id, role: user.role };
+});
 
 export { stores };
 
@@ -109,6 +135,9 @@ const routes: Route[] = [
   ...sparkRoutes,
   ...connectorRoutes,
   ...receiptRoutes,
+  ...slackRoutes,
+  ...notionRoutes,
+  ...authRoutes,
 ];
 
 /**

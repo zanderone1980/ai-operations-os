@@ -14,6 +14,8 @@ export { ApprovalStore } from './approval-store';
 export type { ApprovalFilter } from './approval-store';
 export { UserStore } from './user-store';
 export type { User, CreateUserInput } from './user-store';
+export { CredentialStore } from './credential-store';
+export type { StoredCredential } from './credential-store';
 export { SparkStore } from './spark-store';
 export type { SparkEpisodeFilter, SparkPredictionFilter, SparkInsightFilter, SparkMemoryTokenFilter, SparkMemoryEdgeFilter } from './spark-store';
 
@@ -22,6 +24,7 @@ import { TaskStore } from './task-store';
 import { WorkflowStore } from './workflow-store';
 import { ApprovalStore } from './approval-store';
 import { UserStore } from './user-store';
+import { CredentialStore } from './credential-store';
 import { SparkStore } from './spark-store';
 
 export interface Stores {
@@ -29,6 +32,7 @@ export interface Stores {
   workflows: WorkflowStore;
   approvals: ApprovalStore;
   users: UserStore;
+  credentials: CredentialStore;
   spark: SparkStore;
   db: Database;
 }
@@ -45,6 +49,7 @@ export function createStores(dbPath?: string): Stores {
     workflows: new WorkflowStore(db.db),
     approvals: new ApprovalStore(db.db),
     users: new UserStore(db.db),
+    credentials: new CredentialStore(db.db),
     spark: new SparkStore(db.db),
     db,
   };

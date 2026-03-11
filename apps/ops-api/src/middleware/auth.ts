@@ -1,10 +1,11 @@
 /**
- * Auth Middleware — Multi-user API key authentication.
+ * Auth Middleware — Multi-mode authentication.
  *
- * Three modes:
- *   1. Dev mode  — OPS_API_KEY not set → all requests allowed
- *   2. Single-user — OPS_API_KEY set → simple bearer token
- *   3. Multi-user — aops_ prefixed keys → lookup via UserStore
+ * Four modes (checked in order):
+ *   1. Dev mode    — OPS_API_KEY not set → all requests allowed
+ *   2. JWT token   — eyJ... prefixed → verify JWT signature
+ *   3. Multi-user  — aops_ prefixed keys → lookup via UserStore
+ *   4. Single-user — OPS_API_KEY set → simple bearer token
  */
 
 import type * as http from 'http';
@@ -22,10 +23,19 @@ export interface AuthContext {
 // Dependency injection for multi-user lookup
 let userLookup: ((apiKey: string) => Promise<{ id: string; role: UserRole } | null>) | null = null;
 
+// Dependency injection for JWT verification
+let jwtVerifier: ((token: string) => { sub: string; role?: string } | null) | null = null;
+
 export function setUserLookup(
   fn: (apiKey: string) => Promise<{ id: string; role: UserRole } | null>,
 ): void {
   userLookup = fn;
+}
+
+export function setJwtVerifier(
+  fn: (token: string) => { sub: string; role?: string } | null,
+): void {
+  jwtVerifier = fn;
 }
 
 /**
@@ -33,7 +43,7 @@ export function setUserLookup(
  */
 export async function authenticate(req: http.IncomingMessage): Promise<AuthContext> {
   // Dev mode — no auth required
-  if (!SINGLE_USER_KEY && !userLookup) {
+  if (!SINGLE_USER_KEY && !userLookup && !jwtVerifier) {
     return { authenticated: true, userId: 'dev-user', role: 'admin' };
   }
 
@@ -43,6 +53,19 @@ export async function authenticate(req: http.IncomingMessage): Promise<AuthConte
   }
 
   const token = header.slice(7);
+
+  // JWT: eyJ... prefixed tokens (base64url-encoded JSON header)
+  if (token.startsWith('eyJ') && jwtVerifier) {
+    const payload = jwtVerifier(token);
+    if (payload) {
+      return {
+        authenticated: true,
+        userId: payload.sub,
+        role: (payload.role as UserRole) || 'operator',
+      };
+    }
+    return { authenticated: false };
+  }
 
   // Multi-user: aops_ prefixed keys
   if (token.startsWith('aops_') && userLookup) {

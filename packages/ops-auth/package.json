@@ -1,0 +1,42 @@
+{
+  "name": "@ai-operations/ops-auth",
+  "version": "0.1.0",
+  "description": "Authentication and credential vault for AI Operations OS — JWT, password hashing, AES-256-GCM encryption (zero external dependencies)",
+  "private": false,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zanderone1980/ai-operations-os.git",
+    "directory": "packages/ops-auth"
+  },
+  "bugs": {
+    "url": "https://github.com/zanderone1980/ai-operations-os/issues"
+  },
+  "author": "Alex Pinkevich <alex@zanderpinkdesign.com>",
+  "license": "MIT",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org",
+    "access": "public"
+  },
+  "keywords": [
+    "ai-ops",
+    "authentication",
+    "jwt",
+    "vault",
+    "encryption"
+  ]
+}

@@ -335,6 +335,25 @@ export class Database {
 
       CREATE INDEX IF NOT EXISTS idx_spark_memory_topic_index_topic
         ON spark_memory_topic_index(topic);
+
+      -- ── Credential Vault ─────────────────────────────────────
+
+      CREATE TABLE IF NOT EXISTS credentials_vault (
+        id TEXT PRIMARY KEY,
+        connector TEXT NOT NULL,
+        key TEXT NOT NULL,
+        encrypted_value TEXT NOT NULL,
+        user_id TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_credentials_vault_connector
+        ON credentials_vault(connector);
+      CREATE INDEX IF NOT EXISTS idx_credentials_vault_user_id
+        ON credentials_vault(user_id);
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_credentials_vault_connector_key_user
+        ON credentials_vault(connector, key, user_id);
     `);
   }
 

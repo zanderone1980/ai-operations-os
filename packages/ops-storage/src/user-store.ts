@@ -17,6 +17,7 @@ export interface User {
   email: string;
   name: string;
   apiKey: string;
+  passwordHash?: string;
   role: 'admin' | 'operator' | 'viewer';
   createdAt: string;
   lastLoginAt?: string;
@@ -26,6 +27,7 @@ export interface User {
 export type CreateUserInput = {
   email: string;
   name: string;
+  passwordHash?: string;
   role?: 'admin' | 'operator' | 'viewer';
   settings?: Record<string, unknown>;
 };
@@ -40,6 +42,7 @@ export const USERS_TABLE_SQL = `
     email TEXT NOT NULL UNIQUE,
     name TEXT NOT NULL,
     api_key TEXT NOT NULL UNIQUE,
+    password_hash TEXT,
     role TEXT NOT NULL DEFAULT 'operator',
     created_at TEXT NOT NULL,
     last_login_at TEXT,
@@ -74,6 +77,7 @@ export class UserStore {
       email: input.email,
       name: input.name,
       apiKey: UserStore.generateApiKey(),
+      passwordHash: input.passwordHash,
       role: input.role ?? 'operator',
       createdAt: new Date().toISOString(),
       settings: input.settings ?? {},
@@ -81,20 +85,28 @@ export class UserStore {
 
     this.db
       .prepare(
-        `INSERT INTO users (id, email, name, api_key, role, created_at, settings)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO users (id, email, name, api_key, password_hash, role, created_at, settings)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         user.id,
         user.email,
         user.name,
         user.apiKey,
+        user.passwordHash ?? null,
         user.role,
         user.createdAt,
         JSON.stringify(user.settings),
       );
 
     return user;
+  }
+
+  /** Update a user's password hash. */
+  setPasswordHash(id: string, passwordHash: string): void {
+    this.db
+      .prepare('UPDATE users SET password_hash = ? WHERE id = ?')
+      .run(passwordHash, id);
   }
 
   /** Look up a user by API key. Returns undefined if not found. */
@@ -193,6 +205,7 @@ export class UserStore {
       email: row.email as string,
       name: row.name as string,
       apiKey: row.api_key as string,
+      passwordHash: (row.password_hash as string) || undefined,
       role: row.role as 'admin' | 'operator' | 'viewer',
       createdAt: row.created_at as string,
       lastLoginAt: (row.last_login_at as string) || undefined,

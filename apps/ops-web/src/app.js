@@ -54,9 +54,9 @@
   // Page name map for topbar title
   var PAGE_TITLES = {
     dashboard: 'Dashboard',
-    'spark-chat': 'SPARK Chat',
-    memory: 'Memory Spiral',
-    tasks: 'Tasks & Approvals',
+    'spark-chat': 'SPARK',
+    memory: 'Memory',
+    tasks: 'Tasks',
     connectors: 'Connectors',
   };
 
@@ -918,8 +918,11 @@
     var msgDiv = document.createElement('div');
     msgDiv.className = 'chat-msg ' + role;
 
-    var avatarText = role === 'user' ? 'Y' : 'S';
-    var avatar = '<div class="chat-msg-avatar">' + avatarText + '</div>';
+    var avatarContent = role === 'user' ? 'Y' :
+      '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;">' +
+      '<path d="M16 4 A12 12 0 1 1 4 16 A6 6 0 0 1 16 16" stroke-width="2.5"/>' +
+      '<circle cx="16" cy="16" r="1.5" fill="currentColor" stroke="none"/></svg>';
+    var avatar = '<div class="chat-msg-avatar">' + avatarContent + '</div>';
 
     var body = '<div class="chat-msg-body">' +
       '<div class="chat-msg-content">' + escapeHtml(text) + '</div>';
@@ -976,7 +979,7 @@
     typingDiv.className = 'chat-msg spark';
     typingDiv.id = 'spark-typing';
     typingDiv.innerHTML =
-      '<div class="chat-msg-avatar">S</div>' +
+      '<div class="chat-msg-avatar"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><path d="M16 4 A12 12 0 1 1 4 16 A6 6 0 0 1 16 16" stroke-width="2.5"/><circle cx="16" cy="16" r="1.5" fill="currentColor" stroke="none"/></svg></div>' +
       '<div class="chat-msg-body"><div class="chat-msg-content animate-pulse" style="min-width:60px;">...</div></div>';
     chatMessages.appendChild(typingDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;

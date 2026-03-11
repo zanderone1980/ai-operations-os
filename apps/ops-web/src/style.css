@@ -1,30 +1,8 @@
 /* ═══════════════════════════════════════════════════════════════════════════
- * AI Operations OS — Design System
+ * SPARK — Design System
  *
- * Aesthetic: Apple × SpaceX — ultra-clean dark-first, glass morphism,
- * precise typography, generous whitespace, smooth transitions.
- *
- * Architecture:
- *   1. Theme variables (dark-first + light override)
- *   2. Root design tokens
- *   3. Reset & base
- *   4. Typography
- *   5. Layout (sidebar + main + topbar)
- *   6. Glass cards
- *   7. Buttons
- *   8. Form elements
- *   9. Page: Dashboard
- *  10. Page: SPARK Chat
- *  11. Page: Memory
- *  12. Page: Tasks
- *  13. Page: Connectors
- *  14. Modals
- *  15. Toast notifications
- *  16. Login overlay
- *  17. Skeleton loading
- *  18. Animations / keyframes
- *  19. Responsive breakpoints
- *  20. Reduced motion
+ * Less is more. Dark-first, matte surfaces, precise typography,
+ * generous whitespace, no unnecessary decoration.
  * ═══════════════════════════════════════════════════════════════════════════ */
 
 
@@ -365,19 +343,17 @@ h4 { font-size: var(--text-md); font-weight: 600; }
 }
 
 .sidebar-logo-icon {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   flex-shrink: 0;
-  background: linear-gradient(135deg, var(--accent), var(--accent-end));
-  border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
+  color: var(--accent);
 }
 .sidebar-logo-icon svg {
-  width: 14px;
-  height: 14px;
-  color: white;
+  width: 28px;
+  height: 28px;
 }
 
 .sidebar-logo-text {
@@ -427,10 +403,10 @@ h4 { font-size: var(--text-md); font-weight: 600; }
   left: 0;
   top: 50%;
   transform: translateY(-50%);
-  width: 3px;
+  width: 2px;
   height: 0;
-  background: linear-gradient(to bottom, var(--accent), var(--accent-end));
-  border-radius: 0 2px 2px 0;
+  background: var(--accent);
+  border-radius: 0 1px 1px 0;
   transition: height var(--t-fast);
 }
 
@@ -586,7 +562,6 @@ h4 { font-size: var(--text-md); font-weight: 600; }
 }
 .topbar-status-dot.connected {
   background: var(--green);
-  box-shadow: 0 0 6px var(--green);
 }
 
 .topbar-right {
@@ -671,17 +646,14 @@ h4 { font-size: var(--text-md); font-weight: 600; }
 
 .glass-card {
   background: var(--surface);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: var(--sp-6);
-  transition: all var(--t-fast);
+  transition: border-color var(--t-fast);
 }
 
 .glass-card:hover {
   border-color: var(--border-hover);
-  box-shadow: var(--shadow-md);
 }
 
 .glass-card-sm {
@@ -693,13 +665,11 @@ h4 { font-size: var(--text-md); font-weight: 600; }
   cursor: pointer;
 }
 .glass-card-interactive:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-lg);
+  border-color: var(--accent);
 }
 
 .glass-card-accent {
   border-color: var(--border-accent);
-  box-shadow: var(--shadow-glow);
 }
 
 /* Card header */
@@ -775,14 +745,12 @@ h4 { font-size: var(--text-md); font-weight: 600; }
 }
 
 .btn-accent {
-  background: linear-gradient(135deg, var(--accent), var(--accent-end));
+  background: var(--accent);
   color: white;
   border-color: transparent;
-  box-shadow: var(--shadow-sm);
 }
 .btn-accent:hover {
-  background: linear-gradient(135deg, var(--accent-hover), var(--accent-end));
-  box-shadow: var(--shadow-md), 0 0 20px var(--accent-glow);
+  background: var(--accent-hover);
   border-color: transparent;
 }
 
@@ -953,28 +921,13 @@ h4 { font-size: var(--text-md); font-weight: 600; }
 
 .stat-card {
   background: var(--surface);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   padding: var(--sp-5) var(--sp-6);
-  transition: all var(--t-fast);
-  position: relative;
-  overflow: hidden;
+  transition: border-color var(--t-fast);
 }
-.stat-card::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, var(--accent), transparent);
-  opacity: 0;
-  transition: opacity var(--t-fast);
-}
-.stat-card:hover::after {
-  opacity: 1;
+.stat-card:hover {
+  border-color: var(--border-hover);
 }
 
 .stat-value {
@@ -1029,19 +982,10 @@ h4 { font-size: var(--text-md); font-weight: 600; }
   gap: var(--sp-3);
 }
 .emotional-dot {
-  width: 12px;
-  height: 12px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  position: relative;
   flex-shrink: 0;
-}
-.emotional-dot::after {
-  content: '';
-  position: absolute;
-  inset: -4px;
-  border-radius: 50%;
-  border: 2px solid currentColor;
-  opacity: 0.3;
 }
 .emotional-dot.positive { background: var(--green); color: var(--green); }
 .emotional-dot.negative { background: var(--red); color: var(--red); }
@@ -1088,7 +1032,7 @@ h4 { font-size: var(--text-md); font-weight: 600; }
 }
 .personality-trait-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--accent), var(--accent-end));
+  background: var(--accent);
   border-radius: var(--radius-full);
   transition: width var(--t-slow);
 }
@@ -1237,19 +1181,17 @@ h4 { font-size: var(--text-md); font-weight: 600; }
   padding: var(--sp-16);
 }
 .chat-welcome-icon {
-  width: 64px;
-  height: 64px;
-  border-radius: var(--radius-xl);
-  background: linear-gradient(135deg, var(--accent-subtle), rgba(139, 92, 246, 0.12));
+  width: 56px;
+  height: 56px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: var(--sp-2);
+  margin-bottom: var(--sp-4);
+  color: var(--accent);
 }
 .chat-welcome-icon svg {
-  width: 32px;
-  height: 32px;
-  color: var(--accent);
+  width: 56px;
+  height: 56px;
 }
 .chat-welcome-title {
   font-size: var(--text-xl);
@@ -1285,7 +1227,7 @@ h4 { font-size: var(--text-md); font-weight: 600; }
   font-weight: 700;
 }
 .chat-msg.spark .chat-msg-avatar {
-  background: linear-gradient(135deg, var(--accent), var(--accent-end));
+  background: var(--accent);
   color: white;
 }
 .chat-msg.user .chat-msg-avatar {
@@ -1311,7 +1253,7 @@ h4 { font-size: var(--text-md); font-weight: 600; }
   color: var(--text-primary);
 }
 .chat-msg.user .chat-msg-content {
-  background: linear-gradient(135deg, var(--accent), var(--accent-end));
+  background: var(--accent);
   color: white;
   border: none;
 }
@@ -1467,19 +1409,18 @@ h4 { font-size: var(--text-md); font-weight: 600; }
   width: 42px;
   height: 42px;
   border-radius: var(--radius-md);
-  background: linear-gradient(135deg, var(--accent), var(--accent-end));
+  background: var(--accent);
   border: none;
   color: white;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all var(--t-fast);
+  transition: background var(--t-fast);
   flex-shrink: 0;
 }
 .chat-send-btn:hover {
-  box-shadow: 0 0 20px var(--accent-glow);
-  transform: scale(1.05);
+  background: var(--accent-hover);
 }
 .chat-send-btn:disabled {
   opacity: 0.4;
@@ -1598,10 +1539,8 @@ h4 { font-size: var(--text-md); font-weight: 600; }
   max-height: calc(100% - var(--sp-8));
   overflow-y: auto;
   background: var(--surface-solid);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   padding: var(--sp-5);
   display: none;
   animation: fadeIn 0.2s var(--ease-out);
@@ -1719,21 +1658,17 @@ h4 { font-size: var(--text-md); font-weight: 600; }
 
 .task-card {
   background: var(--surface);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   padding: var(--sp-4) var(--sp-5);
   cursor: pointer;
-  transition: all var(--t-fast);
+  transition: border-color var(--t-fast);
   display: flex;
   align-items: center;
   gap: var(--sp-4);
 }
 .task-card:hover {
   border-color: var(--border-hover);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
 }
 
 .task-source-icon {
@@ -1814,14 +1749,10 @@ h4 { font-size: var(--text-md); font-weight: 600; }
 /* Approval cards */
 .approval-card {
   background: var(--surface);
-  backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   padding: var(--sp-5);
-  transition: all var(--t-fast);
-}
-.approval-card:hover {
-  border-color: var(--border-hover);
+  transition: border-color var(--t-fast);
 }
 
 .approval-card-header {
@@ -1905,19 +1836,15 @@ h4 { font-size: var(--text-md); font-weight: 600; }
 
 .connector-card {
   background: var(--surface);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   padding: var(--sp-6);
-  transition: all var(--t-fast);
+  transition: border-color var(--t-fast);
   display: flex;
   flex-direction: column;
 }
 .connector-card:hover {
   border-color: var(--border-hover);
-  box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
 }
 .connector-card.connected {
   border-color: rgba(34, 197, 94, 0.2);
@@ -2163,26 +2090,38 @@ h4 { font-size: var(--text-md); font-weight: 600; }
 }
 
 .login-card {
-  background: var(--surface);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
+  background: transparent;
+  border: none;
   padding: var(--sp-12) var(--sp-10);
   width: 100%;
-  max-width: 400px;
+  max-width: 360px;
   text-align: center;
+}
+
+.login-logo {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto var(--sp-6);
+  color: var(--accent);
+}
+.login-logo svg {
+  width: 100%;
+  height: 100%;
 }
 
 .login-card h2 {
   font-size: var(--text-2xl);
-  margin-bottom: var(--sp-2);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  margin-bottom: var(--sp-1);
 }
 
 .login-subtitle {
-  color: var(--text-secondary);
-  font-size: var(--text-md);
-  margin-bottom: var(--sp-8);
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  margin-bottom: var(--sp-10);
 }
 
 .login-card .form-group {
@@ -2197,18 +2136,19 @@ h4 { font-size: var(--text-md); font-weight: 600; }
 .login-btn {
   width: 100%;
   padding: var(--sp-3) var(--sp-6);
-  background: linear-gradient(135deg, var(--accent), var(--accent-end));
+  background: var(--accent);
   color: white;
   border: none;
-  border-radius: var(--radius-md);
-  font-size: var(--text-md);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
   font-weight: 600;
   font-family: var(--font-body);
   cursor: pointer;
-  transition: all var(--t-fast);
+  transition: background var(--t-fast);
+  margin-top: var(--sp-2);
 }
 .login-btn:hover {
-  box-shadow: 0 0 24px var(--accent-glow);
+  background: var(--accent-hover);
 }
 
 .login-error {
@@ -2537,16 +2477,6 @@ h4 { font-size: var(--text-md); font-weight: 600; }
     transition-duration: 0.01ms !important;
   }
 
-  .glass-card-interactive:hover {
-    transform: none;
-  }
-  .task-card:hover,
-  .connector-card:hover {
-    transform: none;
-  }
-  .chat-send-btn:hover {
-    transform: none;
-  }
   .btn:active {
     transform: none;
   }

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="AI Operations OS — Self-Perpetuating Adaptive Reasoning Kernel">
-  <title>AI Operations OS</title>
+  <title>SPARK</title>
 
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -21,11 +21,14 @@
   <!-- ═══ Login Overlay ══════════════════════════════════════════════ -->
   <div class="login-overlay" id="login-overlay">
     <div class="login-card">
-      <div class="sidebar-logo-icon" style="width:40px;height:40px;margin:0 auto var(--sp-4);border-radius:var(--radius-md);">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+      <div class="login-logo">
+        <svg class="spark-logo-lg" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M16 4 A12 12 0 1 1 4 16 A6 6 0 0 1 16 16" stroke-width="1.5"/>
+          <circle cx="16" cy="16" r="1.5" fill="currentColor" stroke="none"/>
+        </svg>
       </div>
-      <h2>AI Operations OS</h2>
-      <p class="login-subtitle">Sign in to your dashboard</p>
+      <h2>SPARK</h2>
+      <p class="login-subtitle">Self-Perpetuating Adaptive Reasoning Kernel</p>
       <form id="login-form">
         <div class="form-group">
           <label class="form-label" for="login-email">Email</label>
@@ -58,9 +61,9 @@
       <!-- Logo -->
       <div class="sidebar-logo" id="sidebar-toggle" title="Toggle sidebar" role="button" tabindex="0" aria-label="Toggle sidebar">
         <div class="sidebar-logo-icon">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-            <circle cx="12" cy="12" r="3"/>
-            <path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/>
+          <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 4 A12 12 0 1 1 4 16 A6 6 0 0 1 16 16" stroke-width="2"/>
+            <circle cx="16" cy="16" r="1.5" fill="currentColor" stroke="none"/>
           </svg>
         </div>
         <span class="sidebar-logo-text">SPARK</span>
@@ -118,7 +121,7 @@
           <h1 class="topbar-title" id="topbar-title">Dashboard</h1>
           <div class="topbar-status" id="topbar-status">
             <span class="topbar-status-dot" id="status-dot"></span>
-            <span id="status-text">Connecting...</span>
+            <span id="status-text"></span>
           </div>
         </div>
         <div class="topbar-right">
@@ -177,8 +180,7 @@
 
               <!-- Awareness Beliefs -->
               <div class="section-header">
-                <h3 class="section-title">System Awareness</h3>
-                <p class="section-desc">What SPARK believes about each category — trust level and narrative self-assessment.</p>
+                <h3 class="section-title">Awareness</h3>
               </div>
               <div id="spark-alerts-container"></div>
               <div id="beliefs-grid" class="beliefs-grid">
@@ -187,8 +189,7 @@
 
               <!-- Learning Insights -->
               <div class="section-header mt-6">
-                <h3 class="section-title">Learning Insights</h3>
-                <p class="section-desc">Detected patterns — streaks, oscillations, convergence, anomalies.</p>
+                <h3 class="section-title">Insights</h3>
               </div>
               <div id="insights-list" class="insight-list">
                 <div class="empty-state">No insights yet</div>
@@ -267,15 +268,13 @@
               <!-- Welcome state -->
               <div class="chat-welcome" id="chat-welcome">
                 <div class="chat-welcome-icon">
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <circle cx="12" cy="12" r="10"/>
-                    <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
-                    <line x1="9" y1="9" x2="9.01" y2="9"/>
-                    <line x1="15" y1="9" x2="15.01" y2="9"/>
+                  <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M16 4 A12 12 0 1 1 4 16 A6 6 0 0 1 16 16" stroke-width="1.5"/>
+                    <circle cx="16" cy="16" r="1.5" fill="currentColor" stroke="none"/>
                   </svg>
                 </div>
-                <h2 class="chat-welcome-title">Talk to SPARK</h2>
-                <p class="chat-welcome-subtitle">Ask about learning patterns, predictions, cross-connector insights, or just say hello.</p>
+                <h2 class="chat-welcome-title">SPARK</h2>
+                <p class="chat-welcome-subtitle">Ask anything. Learning patterns, predictions, insights.</p>
               </div>
             </div>
 
@@ -305,8 +304,7 @@
         <section id="page-memory" class="page-section" aria-label="Memory Spiral">
           <div class="memory-header">
             <div>
-              <h2>Memory Spiral</h2>
-              <p class="section-desc mt-2">Force-directed graph of SPARK's memory tokens and their connections.</p>
+              <h2>Memory</h2>
             </div>
             <div class="flex-center gap-3">
               <button class="btn btn-sm" id="memory-maintenance-btn">Run Maintenance</button>
@@ -449,7 +447,6 @@
           <div class="flex-between mb-6">
             <div>
               <h2>Connectors</h2>
-              <p class="section-desc mt-2">Integration status and cross-connector patterns.</p>
             </div>
             <button class="btn btn-sm" id="refresh-connectors-btn">Refresh</button>
           </div>
@@ -462,7 +459,6 @@
           <div class="patterns-section">
             <div class="section-header">
               <h3 class="section-title">Cross-Connector Patterns</h3>
-              <p class="section-desc">Patterns SPARK detected across multiple data sources.</p>
             </div>
             <div id="patterns-list">
               <div class="empty-state" style="padding:var(--sp-6);">No patterns detected yet</div>

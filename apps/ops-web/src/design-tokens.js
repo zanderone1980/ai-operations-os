@@ -168,11 +168,14 @@ var DesignTokens = (function () {
     ctx.lineCap = 'round';
     ctx.stroke();
 
-    // Fill under curve
+    // Fill under curve with gradient fade
     ctx.lineTo(padding + (data.length - 1) * stepX, padding + drawH);
     ctx.lineTo(padding, padding + drawH);
     ctx.closePath();
-    ctx.fillStyle = fillColor;
+    var grad = ctx.createLinearGradient(0, padding, 0, padding + drawH);
+    grad.addColorStop(0, fillColor);
+    grad.addColorStop(1, 'transparent');
+    ctx.fillStyle = grad;
     ctx.fill();
   }
 
@@ -231,11 +234,8 @@ var DesignTokens = (function () {
     }
     ctx.closePath();
 
-    // Fill with accent gradient
-    var grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-    grad.addColorStop(0, 'rgba(99, 102, 241, 0.25)');
-    grad.addColorStop(1, 'rgba(139, 92, 246, 0.08)');
-    ctx.fillStyle = grad;
+    // Fill with subtle accent
+    ctx.fillStyle = 'rgba(99, 102, 241, 0.1)';
     ctx.fill();
 
     // Stroke

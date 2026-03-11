@@ -19,6 +19,7 @@ import type {
 import { EssenceExtractor } from './essence-extractor';
 import {
   MAX_GRAPH_DEPTH,
+  INITIAL_GRAPH_DEPTH,
   MAX_CONTEXT_TOKENS,
   TIER_WEIGHTS,
 } from './spiral-constants';
@@ -42,7 +43,7 @@ export class ContextReconstructor {
     categories?: SparkCategory[];
   }): ReconstructedContext {
     const maxTokens = options?.maxTokens ?? MAX_CONTEXT_TOKENS;
-    const maxDepth = options?.maxDepth ?? MAX_GRAPH_DEPTH;
+    const requestedDepth = options?.maxDepth ?? MAX_GRAPH_DEPTH;
 
     // Extract essence from the query
     const queryEssence = this.extractor.extract(query, {
@@ -59,9 +60,15 @@ export class ContextReconstructor {
       return this.emptyContext();
     }
 
-    // Walk the graph from seed tokens (BFS)
+    // ── Adaptive depth: start shallow, expand if too few tokens ──
     const seedIds = seedTokens.map(t => t.id);
-    const reached = this.walkGraph(seedIds, maxDepth);
+    const initialDepth = Math.min(INITIAL_GRAPH_DEPTH, requestedDepth);
+    let reached = this.walkGraph(seedIds, initialDepth);
+
+    // If less than half of maxTokens found at initial depth, expand
+    if (reached.size < Math.floor(maxTokens / 2) && initialDepth < requestedDepth) {
+      reached = this.walkGraph(seedIds, requestedDepth);
+    }
 
     // Score all reached tokens
     const scored: Array<{ token: MemoryToken; score: number; depth: number }> = [];
@@ -183,19 +190,45 @@ export class ContextReconstructor {
     return topicSimilarity * token.strength * tierWeight * depthPenalty;
   }
 
+  /**
+   * Weighted cosine similarity using TF-IDF from topic index.
+   * Rare shared topics score higher than common ones.
+   */
   private computeTopicSimilarity(a: Essence, b: Essence): number {
     if (a.topics.length === 0 || b.topics.length === 0) return 0;
 
-    const setA = new Set(a.topics);
-    const setB = new Set(b.topics);
-    let intersection = 0;
-    for (const topic of setA) {
-      if (setB.has(topic)) intersection++;
-    }
-    if (intersection === 0) return 0;
+    const allTopics = [...new Set([...a.topics, ...b.topics])];
+    const totalDocs = Math.max(1, this.store.getTopicDocumentCount());
+    const dfs = this.store.getDocumentFrequencies(allTopics);
 
-    const union = new Set([...setA, ...setB]).size;
-    return intersection / union;
+    const weightsA = new Map<string, number>();
+    const weightsB = new Map<string, number>();
+
+    for (const topic of a.topics) {
+      const df = dfs.get(topic) ?? 0;
+      const idf = Math.log(totalDocs / (1 + df));
+      weightsA.set(topic, Math.max(idf, 0.1));
+    }
+    for (const topic of b.topics) {
+      const df = dfs.get(topic) ?? 0;
+      const idf = Math.log(totalDocs / (1 + df));
+      weightsB.set(topic, Math.max(idf, 0.1));
+    }
+
+    let dotProduct = 0;
+    let normA = 0;
+    let normB = 0;
+
+    for (const topic of allTopics) {
+      const wa = weightsA.get(topic) ?? 0;
+      const wb = weightsB.get(topic) ?? 0;
+      dotProduct += wa * wb;
+      normA += wa * wa;
+      normB += wb * wb;
+    }
+
+    if (normA === 0 || normB === 0) return 0;
+    return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
   }
 
   private computeOverallSentiment(tokens: MemoryToken[]): SentimentValence {

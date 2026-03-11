@@ -184,25 +184,50 @@ export class SpiralLoop {
   }
 
   /**
-   * Compute cosine similarity between two essence topic vectors.
+   * Compute weighted cosine similarity between two essence topic vectors.
+   * Topics are weighted by TF-IDF scores from the topic index, so rare
+   * shared terms score higher than common ones ("the" matching "the"
+   * counts less than "email" matching "email").
    */
   computeTopicSimilarity(a: Essence, b: Essence): number {
     if (a.topics.length === 0 || b.topics.length === 0) return 0;
 
-    const setA = new Set(a.topics);
-    const setB = new Set(b.topics);
+    // Gather all unique topics and their TF-IDF weights
+    const allTopics = [...new Set([...a.topics, ...b.topics])];
+    const totalDocs = Math.max(1, this.store.getTopicDocumentCount());
+    const dfs = this.store.getDocumentFrequencies(allTopics);
 
-    // Count intersection
-    let intersection = 0;
-    for (const topic of setA) {
-      if (setB.has(topic)) intersection++;
+    // Build weighted vectors
+    const weightsA = new Map<string, number>();
+    const weightsB = new Map<string, number>();
+
+    for (const topic of a.topics) {
+      const df = dfs.get(topic) ?? 0;
+      const idf = Math.log(totalDocs / (1 + df));
+      weightsA.set(topic, Math.max(idf, 0.1));
+    }
+    for (const topic of b.topics) {
+      const df = dfs.get(topic) ?? 0;
+      const idf = Math.log(totalDocs / (1 + df));
+      weightsB.set(topic, Math.max(idf, 0.1));
     }
 
-    if (intersection === 0) return 0;
+    // Cosine similarity: Σ(w_a · w_b) / (||w_a|| · ||w_b||)
+    let dotProduct = 0;
+    let normA = 0;
+    let normB = 0;
 
-    // Jaccard similarity (simpler than cosine for binary vectors)
-    const union = new Set([...setA, ...setB]).size;
-    return intersection / union;
+    for (const topic of allTopics) {
+      const wa = weightsA.get(topic) ?? 0;
+      const wb = weightsB.get(topic) ?? 0;
+      dotProduct += wa * wb;
+      normA += wa * wa;
+      normB += wb * wb;
+    }
+
+    if (normA === 0 || normB === 0) return 0;
+
+    return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
   }
 
   // ── Private ────────────────────────────────────────────────────

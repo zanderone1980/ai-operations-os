@@ -370,14 +370,17 @@ export class EssenceExtractor {
       tf.set(token, (tf.get(token) ?? 0) + 1);
     }
 
-    // Document frequency approximation from topic index
+    // Real document frequency from topic index
     const totalDocs = Math.max(1, this.store.getTopicDocumentCount());
+    const uniqueTerms = Array.from(tf.keys());
+    const dfs = this.store.getDocumentFrequencies(uniqueTerms);
 
     const tfIdf = new Map<string, number>();
     for (const [term, count] of tf) {
       const termFreq = count / tokens.length;
-      // Approximate IDF using total doc count; for new terms, assume df=1
-      const idf = Math.log(totalDocs / (1 + 1)); // Simplified: assume df=1 for speed
+      const df = dfs.get(term) ?? 0;
+      // Real IDF: log(totalDocs / (1 + df))
+      const idf = Math.log(totalDocs / (1 + df));
       tfIdf.set(term, termFreq * Math.max(idf, 0.1));
     }
 

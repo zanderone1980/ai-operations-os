@@ -55,7 +55,10 @@ export const COMPRESSED_TIER_MS = 7 * 24 * 60 * 60 * 1000;
 // ── Context Reconstruction ──────────────────────────────────────
 
 /** Maximum graph walk depth during context reconstruction. */
-export const MAX_GRAPH_DEPTH = 3;
+export const MAX_GRAPH_DEPTH = 5;
+
+/** Initial (shallow) graph depth — expand if too few tokens found. */
+export const INITIAL_GRAPH_DEPTH = 3;
 
 /** Maximum tokens used for context reconstruction. */
 export const MAX_CONTEXT_TOKENS = 15;

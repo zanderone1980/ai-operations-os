@@ -960,6 +960,38 @@ export class SparkStore {
     return row?.count ?? 0;
   }
 
+  /**
+   * Get the document frequency for a specific term (number of tokens containing it).
+   * Used for real TF-IDF calculation: idf = log(totalDocs / (1 + df))
+   */
+  getDocumentFrequency(term: string): number {
+    const row = this.db.prepare(
+      'SELECT COUNT(DISTINCT token_id) as count FROM spark_memory_topic_index WHERE topic = ?'
+    ).get(term) as any;
+    return row?.count ?? 0;
+  }
+
+  /**
+   * Batch document frequency lookup for multiple terms.
+   * Returns a map from term → document frequency.
+   */
+  getDocumentFrequencies(terms: string[]): Map<string, number> {
+    if (terms.length === 0) return new Map();
+    const result = new Map<string, number>();
+    const placeholders = terms.map(() => '?').join(', ');
+    const rows = this.db.prepare(
+      `SELECT topic, COUNT(DISTINCT token_id) as count FROM spark_memory_topic_index WHERE topic IN (${placeholders}) GROUP BY topic`
+    ).all(...terms) as any[];
+    for (const row of rows) {
+      result.set(row.topic, row.count);
+    }
+    // Fill in zero for terms not found
+    for (const term of terms) {
+      if (!result.has(term)) result.set(term, 0);
+    }
+    return result;
+  }
+
   // ── Row Mappers ─────────────────────────────────────────────
 
   private rowToMemoryToken(row: any): MemoryToken {

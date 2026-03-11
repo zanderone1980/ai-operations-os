@@ -194,7 +194,7 @@
     // Page-specific loading
     if (page === 'dashboard') loadDashboard();
     else if (page === 'spark-chat') loadSparkChat();
-    else if (page === 'tasks') { loadTasks(); loadApprovals(); }
+    else if (page === 'tasks') { loadTasks(); loadApprovals(); loadWorkflows(); loadReceipts(); }
     else if (page === 'connectors') loadConnectors();
     else if (page === 'memory') loadMemoryPage();
   }
@@ -1108,6 +1108,17 @@
     });
   }
 
+  // Source-specific icons
+  var SOURCE_ICONS = {
+    email: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 4l-10 8L2 4"/></svg>',
+    calendar: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
+    social: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>',
+    store: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>',
+    manual: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
+    slack: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="13" y="2" width="3" height="8" rx="1.5"/><rect x="8" y="14" width="3" height="8" rx="1.5"/></svg>',
+    notion: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2z"/><line x1="8" y1="9" x2="16" y2="9"/></svg>',
+  };
+
   function renderFilteredTasks() {
     var list = document.getElementById('task-list');
     if (!list) return;
@@ -1123,17 +1134,29 @@
       return true;
     });
 
+    // Sort: pending/queued first, then running, then by date desc
+    var statusOrder = { pending: 0, queued: 1, running: 2, completed: 3, failed: 4 };
+    filtered.sort(function (a, b) {
+      var sa = statusOrder[a.status] !== undefined ? statusOrder[a.status] : 5;
+      var sb = statusOrder[b.status] !== undefined ? statusOrder[b.status] : 5;
+      if (sa !== sb) return sa - sb;
+      return (b.createdAt || '').localeCompare(a.createdAt || '');
+    });
+
+    // Update task count display
+    var taskCountEl = document.getElementById('task-count-label');
+    if (taskCountEl) taskCountEl.textContent = filtered.length + ' of ' + cachedTasks.length + ' tasks';
+
     if (filtered.length === 0) {
       list.innerHTML = '<div class="empty-state">' + (cachedTasks.length === 0 ? 'No tasks yet' : 'No tasks match filters') + '</div>';
       return;
     }
 
     list.innerHTML = filtered.map(function (t) {
-      var sourceIcon = t.source || 'manual';
+      var sourceKey = (t.source || 'manual').toLowerCase();
+      var icon = SOURCE_ICONS[sourceKey] || SOURCE_ICONS.manual;
       return '<div class="task-card" data-id="' + escapeHtml(t.id || '') + '" onclick="App.showTaskDetail(this)">' +
-        '<div class="task-source-icon ' + escapeHtml(sourceIcon) + '">' +
-          '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>' +
-        '</div>' +
+        '<div class="task-source-icon ' + escapeHtml(sourceKey) + '">' + icon + '</div>' +
         '<div class="task-info">' +
           '<div class="task-title">' + escapeHtml(t.title) + '</div>' +
           '<div class="task-subtitle">' + escapeHtml(t.source || '') + ' \u00b7 ' + escapeHtml(t.intent || '') + ' \u00b7 ' + formatTime(t.createdAt) + '</div>' +
@@ -1625,12 +1648,24 @@
   // ═══════════════════════════════════════════════════════════════════
 
   var CONNECTOR_DEFS = [
-    { id: 'gmail',    name: 'Gmail',    iconClass: 'gmail',    keys: ['gmail', 'email'] },
-    { id: 'calendar', name: 'Calendar', iconClass: 'calendar', keys: ['calendar', 'gcal'] },
-    { id: 'x',        name: 'X',        iconClass: 'x',        keys: ['x', 'twitter'] },
-    { id: 'shopify',  name: 'Shopify',  iconClass: 'shopify',  keys: ['shopify', 'store'] },
-    { id: 'slack',    name: 'Slack',    iconClass: 'slack',    keys: ['slack'] },
-    { id: 'notion',   name: 'Notion',   iconClass: 'notion',   keys: ['notion'] },
+    { id: 'gmail',    name: 'Gmail',    iconClass: 'gmail',    keys: ['gmail', 'email'],
+      desc: 'Email ingestion and reply drafting',
+      icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 4l-10 8L2 4"/></svg>' },
+    { id: 'calendar', name: 'Calendar', iconClass: 'calendar', keys: ['calendar', 'gcal'],
+      desc: 'Event scheduling and conflict detection',
+      icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>' },
+    { id: 'x',        name: 'X',        iconClass: 'x',        keys: ['x', 'twitter'],
+      desc: 'Social monitoring and content publishing',
+      icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>' },
+    { id: 'shopify',  name: 'Shopify',  iconClass: 'shopify',  keys: ['shopify', 'store'],
+      desc: 'Order management and inventory alerts',
+      icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>' },
+    { id: 'slack',    name: 'Slack',    iconClass: 'slack',    keys: ['slack'],
+      desc: 'Workspace messages and channel monitoring',
+      icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="13" y="2" width="3" height="8" rx="1.5"/><rect x="8" y="14" width="3" height="8" rx="1.5"/><rect x="2" y="8" width="8" height="3" rx="1.5"/><rect x="14" y="13" width="8" height="3" rx="1.5"/></svg>' },
+    { id: 'notion',   name: 'Notion',   iconClass: 'notion',   keys: ['notion'],
+      desc: 'Knowledge base and document tracking',
+      icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2z"/><line x1="8" y1="9" x2="16" y2="9"/><line x1="8" y1="13" x2="14" y2="13"/></svg>' },
   ];
 
   function loadConnectors() {
@@ -1651,18 +1686,21 @@
         var isActive = found && (found.configured !== false && found.enabled !== false);
         var statusDot = isActive ? 'active' : 'inactive';
         var statusLabel = isActive ? 'Connected' : 'Not connected';
+        var lastActivity = found && found.lastActivity ? formatTime(found.lastActivity) : 'Never';
 
-        return '<div class="connector-card">' +
+        return '<div class="connector-card ' + (isActive ? 'connected' : '') + '">' +
           '<div class="connector-card-header">' +
-            '<div class="connector-icon ' + def.iconClass + '">' +
-              '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>' +
-            '</div>' +
+            '<div class="connector-icon ' + def.iconClass + '">' + def.icon + '</div>' +
             '<div>' +
               '<div class="connector-name">' + escapeHtml(def.name) + '</div>' +
               '<div class="connector-status-label"><span class="dot ' + statusDot + '"></span> ' + statusLabel + '</div>' +
             '</div>' +
           '</div>' +
-          (found ? '<div class="connector-stat-row"><span>Tasks processed</span><span>' + (found.taskCount || 0) + '</span></div>' : '') +
+          '<div class="connector-desc">' + escapeHtml(def.desc) + '</div>' +
+          '<div class="connector-stats">' +
+            '<div class="connector-stat-row"><span>Tasks processed</span><span>' + (found ? (found.taskCount || 0) : '—') + '</span></div>' +
+            '<div class="connector-stat-row"><span>Last activity</span><span>' + lastActivity + '</span></div>' +
+          '</div>' +
         '</div>';
       }).join('');
 

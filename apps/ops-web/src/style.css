@@ -1903,10 +1903,27 @@ h4 { font-size: var(--text-md); font-weight: 600; }
   border-radius: var(--radius-lg);
   padding: var(--sp-6);
   transition: all var(--t-fast);
+  display: flex;
+  flex-direction: column;
 }
 .connector-card:hover {
   border-color: var(--border-hover);
   box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+.connector-card.connected {
+  border-color: rgba(34, 197, 94, 0.2);
+}
+.connector-desc {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin-bottom: var(--sp-4);
+  line-height: 1.5;
+}
+.connector-stats {
+  margin-top: auto;
+  border-top: 1px solid var(--border);
+  padding-top: var(--sp-3);
 }
 
 .connector-card-header {

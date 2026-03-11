@@ -42,6 +42,8 @@ describe('TaskSchema', () => {
       'calendar',
       'social',
       'store',
+      'slack',
+      'notion',
       'manual',
     ]);
   });

@@ -16,6 +16,8 @@ export { GmailConnector } from './gmail';
 export { CalendarConnector } from './calendar';
 export { XTwitterConnector } from './x-twitter';
 export { ShopifyConnector } from './shopify';
+export { SlackConnector } from './slack';
+export { NotionConnector } from './notion';
 
 // Registry
 export { ConnectorRegistry } from './registry';

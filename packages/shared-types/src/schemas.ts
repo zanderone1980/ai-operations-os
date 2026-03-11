@@ -35,7 +35,7 @@ export const TaskSchema = {
     },
     source: {
       type: 'string' as const,
-      enum: ['email', 'calendar', 'social', 'store', 'manual'],
+      enum: ['email', 'calendar', 'social', 'store', 'slack', 'notion', 'manual'],
       description: 'Where this task originated',
     },
     sourceId: {

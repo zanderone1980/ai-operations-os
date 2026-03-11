@@ -17,7 +17,7 @@ import { DEFAULT_POLICY } from '@ai-operations/shared-types';
 import { runPipeline as runPipelineFn, defaultBuildWorkflow } from '@ai-operations/ops-worker';
 import { LLMIntentClassifier } from '@ai-operations/ops-core';
 import { RuleEngine } from '@ai-operations/ops-policy';
-import { ConnectorRegistry, GmailConnector, CalendarConnector, XTwitterConnector, ShopifyConnector } from '@ai-operations/ops-connectors';
+import { ConnectorRegistry, GmailConnector, CalendarConnector, XTwitterConnector, ShopifyConnector, SlackConnector, NotionConnector } from '@ai-operations/ops-connectors';
 import { Predictor, OutcomeTracker, LearningCore, WeightManager } from '@ai-operations/spark-engine';
 import { evaluateAction } from '../middleware/cord-gate';
 import { requestApproval, waitForDecision } from './approvals';
@@ -36,6 +36,8 @@ registry.register(new GmailConnector());
 registry.register(new CalendarConnector());
 registry.register(new XTwitterConnector());
 registry.register(new ShopifyConnector());
+registry.register(new SlackConnector());
+registry.register(new NotionConnector());
 
 // SPARK singletons — predict/measure/learn cycle
 const sparkWeightManager = new WeightManager(stores.spark);

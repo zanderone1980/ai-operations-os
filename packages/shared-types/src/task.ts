@@ -7,7 +7,7 @@ import { randomUUID } from './uuid';
  * becomes a Task. This is the lingua franca of the AI Operations OS.
  */
 
-export type TaskSource = 'email' | 'calendar' | 'social' | 'store' | 'manual';
+export type TaskSource = 'email' | 'calendar' | 'social' | 'store' | 'slack' | 'notion' | 'manual';
 
 export type TaskIntent =
   | 'reply'

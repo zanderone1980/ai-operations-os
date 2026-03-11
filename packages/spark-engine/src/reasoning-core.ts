@@ -68,6 +68,8 @@ const QUERY_KEYWORDS: Array<{ intent: SparkQueryIntent; keywords: string[] }> = 
   { intent: 'introspect', keywords: ['uncertain', 'confident', 'know', 'believe', 'trust', 'sure', 'doubt'] },
   { intent: 'history', keywords: ['learned', 'recent', 'changed', 'history', 'past', 'trend', 'progress'] },
   { intent: 'configure', keywords: ['cautious', 'strict', 'lenient', 'adjust', 'change weight', 'more careful', 'less strict'] },
+  { intent: 'diagnose', keywords: ['diagnose', 'wrong', 'fail', 'error', 'problem', 'issue', 'broke', 'why did', 'trouble', 'broken'] },
+  { intent: 'compare', keywords: ['compare', 'versus', 'vs', 'difference', 'better', 'worse', 'differ'] },
 ];
 
 // ── Category Detection ─────────────────────────────────────────────
@@ -549,6 +551,42 @@ export class ReasoningCore {
         return 'I adjust my own weights based on outcomes — that\'s my core learning loop. You can influence me by approving or denying operations. If you consistently approve a category, I\'ll become less cautious. If you deny, I\'ll become more cautious. You can also manually adjust weights via POST /api/spark/rollback.';
       }
 
+      case 'diagnose': {
+        const failureStep = steps.find(s => s.ruleId === 'diagnose-failures');
+        if (failureStep) {
+          const breakdown = failureStep.evidence?.breakdown as Record<string, number> | undefined;
+          if (breakdown && Object.keys(breakdown).length > 0) {
+            const parts = Object.entries(breakdown)
+              .sort(([, a], [, b]) => b - a)
+              .map(([cat, count]) => `${cat} (${count})`);
+            return `I've identified ${failureStep.evidence?.failureCount ?? 0} prediction adjustments. Breakdown by category: ${parts.join(', ')}. ${failureStep.description}`;
+          }
+          return failureStep.description;
+        }
+        return state.totalEpisodes === 0
+          ? 'No learning episodes yet — nothing to diagnose. Start processing events and I\'ll track accuracy.'
+          : 'All predictions have been accurate so far — no issues to diagnose.';
+      }
+
+      case 'compare': {
+        const compareStep = steps.find(s => s.ruleId === 'compare-categories');
+        if (compareStep && compareStep.evidence?.comparison) {
+          const comp = compareStep.evidence.comparison as Record<string, Record<string, unknown>>;
+          const cats = Object.keys(comp);
+          if (cats.length >= 2) {
+            const lines = cats.map(cat => {
+              const c = comp[cat];
+              return `${cat}: weight=${c.weight}, trust=${c.trust}, episodes=${c.episodes}, trend=${c.trend}`;
+            });
+            const epiA = Number(comp[cats[0]].episodes || 0);
+            const epiB = Number(comp[cats[1]].episodes || 0);
+            const moreConfident = epiA > epiB ? cats[0] : epiB > epiA ? cats[1] : 'neither';
+            return `Comparing ${cats[0]} vs ${cats[1]}:\n${lines.join('\n')}\nI'm more confident about: ${moreConfident} (based on episode count).`;
+          }
+        }
+        return 'I need at least two categories to compare. Try: "Compare communication vs financial"';
+      }
+
       default: {
         const totalEp = state.totalEpisodes;
         if (totalEp === 0) {
@@ -604,6 +642,18 @@ export class ReasoningCore {
       case 'history':
         suggestions.push('What are you uncertain about?');
         suggestions.push('What connections do you see?');
+        break;
+
+      case 'diagnose':
+        suggestions.push('Compare communication vs financial');
+        suggestions.push('What have you learned recently?');
+        suggestions.push('How are you doing overall?');
+        break;
+
+      case 'compare':
+        suggestions.push('What went wrong recently?');
+        suggestions.push('What are you uncertain about?');
+        suggestions.push('How are you doing overall?');
         break;
 
       default:
@@ -769,10 +819,94 @@ export class ReasoningCore {
         },
       },
 
+      // ── DiagnoseFailuresRule ───────────────────────────────
+      {
+        id: 'diagnose-failures',
+        intents: ['diagnose'] as SparkQueryIntent[],
+        evaluate: (ctx): ReasoningStep | null => {
+          const episodes = ctx.recentEpisodes;
+          const failures = episodes.filter(e =>
+            e.adjustmentDirection === 'increase' || e.adjustmentDirection === 'decrease',
+          );
+          if (failures.length === 0) {
+            return {
+              ruleId: 'diagnose-failures',
+              description: 'No adjustment episodes found — all predictions have been accurate.',
+              evidence: { totalEpisodes: episodes.length },
+              confidence: 0.8,
+            };
+          }
+          const failureCats = [...new Set(failures.map(e => e.category))];
+          const catCounts: Record<string, number> = {};
+          for (const f of failures) {
+            catCounts[f.category] = (catCounts[f.category] || 0) + 1;
+          }
+          const worstCat = Object.entries(catCounts).sort(([, a], [, b]) => b - a)[0];
+          return {
+            ruleId: 'diagnose-failures',
+            description: `${failures.length} adjustment episodes across [${failureCats.join(', ')}]. Most affected: ${worstCat[0]} (${worstCat[1]} adjustments).`,
+            evidence: {
+              categories: failureCats,
+              failureCount: failures.length,
+              breakdown: catCounts,
+            },
+            confidence: 0.85,
+          };
+        },
+      },
+
+      // ── CompareCategoriesRule ──────────────────────────────
+      {
+        id: 'compare-categories',
+        intents: ['compare'] as SparkQueryIntent[],
+        evaluate: (ctx): ReasoningStep | null => {
+          const cats = detectCategories(ctx.query);
+          if (cats.length < 2) {
+            // Try to pick the two most active categories
+            const beliefs = ctx.awarenessReport.beliefs || {};
+            const sorted = Object.entries(beliefs)
+              .sort(([, a], [, b]) => b.evidence.episodeCount - a.evidence.episodeCount);
+            if (sorted.length >= 2) {
+              cats.length = 0;
+              cats.push(sorted[0][0] as SparkCategory, sorted[1][0] as SparkCategory);
+            } else {
+              return null;
+            }
+          }
+          const [catA, catB] = cats;
+          const beliefA = ctx.awarenessReport.beliefs?.[catA];
+          const beliefB = ctx.awarenessReport.beliefs?.[catB];
+          const weightA = this.store.getWeight(catA);
+          const weightB = this.store.getWeight(catB);
+          return {
+            ruleId: 'compare-categories',
+            description: `Comparing ${catA} vs ${catB}.`,
+            evidence: {
+              categories: [catA, catB],
+              comparison: {
+                [catA]: {
+                  weight: weightA?.currentWeight?.toFixed(4) ?? '1.0000',
+                  trust: beliefA?.trustLevel ?? 'unknown',
+                  episodes: beliefA?.evidence.episodeCount ?? 0,
+                  trend: beliefA?.evidence.recentTrend ?? 'none',
+                },
+                [catB]: {
+                  weight: weightB?.currentWeight?.toFixed(4) ?? '1.0000',
+                  trust: beliefB?.trustLevel ?? 'unknown',
+                  episodes: beliefB?.evidence.episodeCount ?? 0,
+                  trend: beliefB?.evidence.recentTrend ?? 'none',
+                },
+              },
+            },
+            confidence: 0.8,
+          };
+        },
+      },
+
       // ── AlertEscalationRule (fires on any intent) ───────────
       {
         id: 'alert-escalation',
-        intents: ['status', 'explain', 'predict', 'recommend', 'cross-connector', 'introspect', 'history', 'configure', 'general'] as SparkQueryIntent[],
+        intents: ['status', 'explain', 'predict', 'recommend', 'cross-connector', 'introspect', 'history', 'configure', 'diagnose', 'compare', 'general'] as SparkQueryIntent[],
         evaluate: (ctx): ReasoningStep | null => {
           const alerts = ctx.awarenessReport.alerts;
           const hasAlerts = alerts.oscillating.length > 0

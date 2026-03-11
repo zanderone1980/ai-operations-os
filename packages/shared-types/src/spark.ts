@@ -300,6 +300,8 @@ export type SparkQueryIntent =
   | 'introspect'
   | 'history'
   | 'configure'
+  | 'diagnose'
+  | 'compare'
   | 'general';
 
 /** A single reasoning step SPARK took to arrive at a response. */
@@ -315,6 +317,8 @@ export interface ReasoningStep {
     episodeIds?: string[];
     insightIds?: string[];
     beliefs?: Partial<Record<SparkCategory, TrustLevel>>;
+    /** Additional evidence fields for specific rules (diagnose breakdown, compare comparison, etc.) */
+    [key: string]: unknown;
   };
   /** Confidence in this reasoning step (0.0-1.0). */
   confidence: number;

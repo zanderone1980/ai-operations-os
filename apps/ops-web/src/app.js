@@ -165,8 +165,14 @@
 
   function navigateTo(page) {
     if (!page || page === currentPage) return;
+    var previousPage = currentPage;
     currentPage = page;
     window.location.hash = '#/' + page;
+
+    // Cleanup when leaving memory page
+    if (previousPage === 'memory' && page !== 'memory' && spiralViz) {
+      spiralViz.stop();
+    }
 
     // Update sidebar active state
     navItems.forEach(function (item) {
@@ -1871,10 +1877,14 @@
   }
 
   // ═══════════════════════════════════════════════════════════════════
-  // 15. Memory Page (placeholder — filled in Feature 6)
+  // 15. Memory Spiral Visualization
   // ═══════════════════════════════════════════════════════════════════
 
+  var spiralViz = null;
+  var activeTypeFilters = []; // empty = all
+
   function loadMemoryPage() {
+    // Load stats
     api.get('/api/spark/memory/stats').then(function (data) {
       if (!data) return;
       var el;
@@ -1883,8 +1893,182 @@
       el = document.getElementById('memory-active-count'); if (el) el.textContent = data.activeTokens || 0;
       el = document.getElementById('memory-archived-count'); if (el) el.textContent = data.archivedTokens || 0;
     });
+
+    // Load graph and start visualization
+    loadMemoryGraph();
   }
 
+  function loadMemoryGraph() {
+    api.get('/api/spark/memory/graph').then(function (data) {
+      if (!data) return;
+      initSpiralViz();
+      spiralViz.loadData(data);
+    });
+  }
+
+  function initSpiralViz() {
+    if (spiralViz) return; // Already initialized
+
+    var canvas = document.getElementById('memory-canvas');
+    if (!canvas) return;
+
+    spiralViz = new SpiralViz(canvas, {
+      onSelectToken: function (node) {
+        showMemoryDetail(node);
+      },
+      onDeselectToken: function () {
+        hideMemoryDetail();
+      },
+    });
+  }
+
+  function destroySpiralViz() {
+    if (spiralViz) {
+      spiralViz.destroy();
+      spiralViz = null;
+    }
+    hideMemoryDetail();
+  }
+
+  // ── Memory detail panel ───────────────────────────────────────────
+
+  function showMemoryDetail(node) {
+    var panel = document.getElementById('memory-detail-panel');
+    var title = document.getElementById('memory-detail-title');
+    var content = document.getElementById('memory-detail-content');
+    if (!panel || !content) return;
+
+    title.textContent = capitalize(node.type) + ' Token';
+
+    var sentimentColor = node.sentiment === 'positive' ? 'var(--green)' :
+                         node.sentiment === 'negative' ? 'var(--red)' :
+                         node.sentiment === 'mixed' ? 'var(--yellow)' : 'var(--text-muted)';
+
+    var html = '';
+
+    // Gist
+    if (node.gist) {
+      html += '<div class="memory-detail-gist">' + escapeHtml(node.gist) + '</div>';
+    }
+
+    // Properties
+    html += '<div class="memory-detail-row"><span class="label">Type</span><span class="value">' + escapeHtml(node.type) + '</span></div>';
+    html += '<div class="memory-detail-row"><span class="label">Tier</span><span class="value">' + escapeHtml(node.tier) + '</span></div>';
+    html += '<div class="memory-detail-row"><span class="label">Strength</span><span class="value">' + (node.strength * 100).toFixed(1) + '%</span></div>';
+    html += '<div class="memory-detail-row"><span class="label">Spiral Count</span><span class="value">' + node.spiralCount + '</span></div>';
+    html += '<div class="memory-detail-row"><span class="label">Sentiment</span><span class="value" style="color:' + sentimentColor + '">' + escapeHtml(node.sentiment) + '</span></div>';
+
+    if (node.createdAt) {
+      html += '<div class="memory-detail-row"><span class="label">Created</span><span class="value">' + formatTime(node.createdAt) + '</span></div>';
+    }
+
+    // Topics
+    if (node.topics && node.topics.length > 0) {
+      html += '<div class="memory-detail-topics">';
+      for (var i = 0; i < node.topics.length; i++) {
+        html += '<span class="memory-detail-topic-tag">' + escapeHtml(node.topics[i]) + '</span>';
+      }
+      html += '</div>';
+    }
+
+    // Connected nodes
+    if (spiralViz) {
+      var connected = spiralViz._getConnectedNodes(node);
+      if (connected.length > 0) {
+        html += '<div class="memory-detail-connections">';
+        html += '<h5>Connections (' + connected.length + ')</h5>';
+        var max = Math.min(connected.length, 8);
+        for (var j = 0; j < max; j++) {
+          var cn = connected[j];
+          html += '<div class="memory-detail-connection-item">';
+          html += '<span style="color:' + (spiralViz._resolveTypeColor(cn.type, DesignTokens.colors())) + '">&bull;</span> ';
+          html += escapeHtml(cn.gist || cn.type);
+          html += '</div>';
+        }
+        if (connected.length > max) {
+          html += '<div class="memory-detail-connection-item" style="color:var(--text-muted)">+' + (connected.length - max) + ' more</div>';
+        }
+        html += '</div>';
+      }
+    }
+
+    content.innerHTML = html;
+    panel.classList.add('visible');
+  }
+
+  function hideMemoryDetail() {
+    var panel = document.getElementById('memory-detail-panel');
+    if (panel) panel.classList.remove('visible');
+  }
+
+  // ── Memory filter chips ───────────────────────────────────────────
+
+  var memoryFiltersEl = document.getElementById('memory-filters');
+  if (memoryFiltersEl) {
+    memoryFiltersEl.addEventListener('click', function (e) {
+      var chip = e.target.closest('.memory-filter-chip');
+      if (!chip) return;
+
+      var type = chip.getAttribute('data-type');
+
+      if (type === 'all') {
+        // Select "All", deselect others
+        activeTypeFilters = [];
+        var chips = memoryFiltersEl.querySelectorAll('.memory-filter-chip');
+        for (var i = 0; i < chips.length; i++) {
+          chips[i].classList.remove('active');
+        }
+        chip.classList.add('active');
+      } else {
+        // Toggle this type
+        var allChip = memoryFiltersEl.querySelector('[data-type="all"]');
+        if (allChip) allChip.classList.remove('active');
+
+        var idx = activeTypeFilters.indexOf(type);
+        if (idx >= 0) {
+          activeTypeFilters.splice(idx, 1);
+          chip.classList.remove('active');
+        } else {
+          activeTypeFilters.push(type);
+          chip.classList.add('active');
+        }
+
+        // If no specific filters, revert to "All"
+        if (activeTypeFilters.length === 0 && allChip) {
+          allChip.classList.add('active');
+        }
+      }
+
+      if (spiralViz) {
+        spiralViz.setTypeFilter(activeTypeFilters.length > 0 ? activeTypeFilters : null);
+      }
+    });
+  }
+
+  // Strength slider
+  var strengthSlider = document.getElementById('memory-strength-slider');
+  var strengthValue = document.getElementById('memory-strength-value');
+  if (strengthSlider) {
+    strengthSlider.addEventListener('input', function () {
+      var val = parseInt(strengthSlider.value, 10);
+      if (strengthValue) strengthValue.textContent = val + '%';
+      if (spiralViz) spiralViz.setMinStrength(val / 100);
+    });
+  }
+
+  // ── Memory controls ──────────────────────────────────────────────
+
+  var memoryZoomInBtn = document.getElementById('memory-zoom-in');
+  var memoryZoomOutBtn = document.getElementById('memory-zoom-out');
+  var memoryResetViewBtn = document.getElementById('memory-reset-view');
+  var memoryDetailCloseBtn = document.getElementById('memory-detail-close');
+
+  if (memoryZoomInBtn) memoryZoomInBtn.addEventListener('click', function () { if (spiralViz) spiralViz.zoomIn(); });
+  if (memoryZoomOutBtn) memoryZoomOutBtn.addEventListener('click', function () { if (spiralViz) spiralViz.zoomOut(); });
+  if (memoryResetViewBtn) memoryResetViewBtn.addEventListener('click', function () { if (spiralViz) spiralViz.resetView(); });
+  if (memoryDetailCloseBtn) memoryDetailCloseBtn.addEventListener('click', hideMemoryDetail);
+
+  // Maintenance button
   var memoryMaintenanceBtn = document.getElementById('memory-maintenance-btn');
   if (memoryMaintenanceBtn) {
     memoryMaintenanceBtn.addEventListener('click', function () {
@@ -1895,9 +2079,13 @@
     });
   }
 
+  // Refresh button
   var memoryRefreshBtn = document.getElementById('memory-refresh-btn');
   if (memoryRefreshBtn) {
-    memoryRefreshBtn.addEventListener('click', loadMemoryPage);
+    memoryRefreshBtn.addEventListener('click', function () {
+      destroySpiralViz();
+      loadMemoryPage();
+    });
   }
 
   // ═══════════════════════════════════════════════════════════════════

@@ -8,6 +8,9 @@ import {
   approvalDecisionSchema,
   workflowCreateSchema,
   pipelineSimulateSchema,
+  sparkChatSchema,
+  webhookGenericSchema,
+  connectorExecuteSchema,
 } from '../middleware/validate';
 import type { ValidationSchema } from '../middleware/validate';
 
@@ -275,5 +278,130 @@ describe('pipelineSimulateSchema', () => {
     if (!result.ok) {
       expect(result.error).toMatch(/must be one of/i);
     }
+  });
+
+  test('slack source accepted', () => {
+    const result = validate({ source: 'slack', title: 'Slack pipeline' });
+    expect(result.ok).toBe(true);
+  });
+
+  test('notion source accepted', () => {
+    const result = validate({ source: 'notion', title: 'Notion pipeline' });
+    expect(result.ok).toBe(true);
+  });
+});
+
+// ── New Schemas ────────────────────────────────────────────────────────────
+
+describe('sparkChatSchema', () => {
+  const validate = validateBody(sparkChatSchema);
+
+  test('valid chat message passes', () => {
+    const result = validate({ message: 'What are the current weights?' });
+    expect(result.ok).toBe(true);
+  });
+
+  test('valid chat with conversationId passes', () => {
+    const result = validate({ message: 'Hello', conversationId: 'conv-123' });
+    expect(result.ok).toBe(true);
+  });
+
+  test('missing message rejected', () => {
+    const result = validate({});
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toMatch(/missing required field.*message/i);
+    }
+  });
+
+  test('non-string message rejected', () => {
+    const result = validate({ message: 12345 });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toMatch(/must be of type string/i);
+    }
+  });
+
+  test('message exceeding 10000 chars rejected', () => {
+    const result = validate({ message: 'x'.repeat(10001) });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toMatch(/exceeds maximum length of 10000/i);
+    }
+  });
+});
+
+describe('webhookGenericSchema', () => {
+  const validate = validateBody(webhookGenericSchema);
+
+  test('valid webhook body passes', () => {
+    const result = validate({ title: 'External event', source: 'manual' });
+    expect(result.ok).toBe(true);
+  });
+
+  test('valid with slack source passes', () => {
+    const result = validate({ title: 'Slack event', source: 'slack' });
+    expect(result.ok).toBe(true);
+  });
+
+  test('missing title rejected', () => {
+    const result = validate({ source: 'email' });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toMatch(/missing required field.*title/i);
+    }
+  });
+
+  test('invalid source enum rejected', () => {
+    const result = validate({ title: 'Test', source: 'telegram' });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toMatch(/must be one of/i);
+    }
+  });
+});
+
+describe('connectorExecuteSchema', () => {
+  const validate = validateBody(connectorExecuteSchema);
+
+  test('valid execute body passes', () => {
+    const result = validate({ operation: 'read', input: { id: '123' } });
+    expect(result.ok).toBe(true);
+  });
+
+  test('operation only passes (input is optional)', () => {
+    const result = validate({ operation: 'list' });
+    expect(result.ok).toBe(true);
+  });
+
+  test('missing operation rejected', () => {
+    const result = validate({ input: {} });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toMatch(/missing required field.*operation/i);
+    }
+  });
+});
+
+describe('taskCreateSchema — extended sources', () => {
+  const validate = validateBody(taskCreateSchema);
+
+  test('slack source accepted', () => {
+    const result = validate({ source: 'slack', title: 'Slack task' });
+    expect(result.ok).toBe(true);
+  });
+
+  test('notion source accepted', () => {
+    const result = validate({ source: 'notion', title: 'Notion task' });
+    expect(result.ok).toBe(true);
+  });
+});
+
+describe('approvalDecisionSchema — modified decision', () => {
+  const validate = validateBody(approvalDecisionSchema);
+
+  test('modified decision accepted', () => {
+    const result = validate({ decision: 'modified' });
+    expect(result.ok).toBe(true);
   });
 });

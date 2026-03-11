@@ -13,6 +13,7 @@ import { createTask } from '@ai-operations/shared-types';
 import { pathToRoute, sendJson, sendError } from '../server';
 import type { Route } from '../server';
 import { stores } from '../storage';
+import { validateBody, taskCreateSchema } from '../middleware/validate';
 
 // ── Route handlers ───────────────────────────────────────────────────────────
 
@@ -58,8 +59,9 @@ async function getTask(ctx: any): Promise<void> {
 async function createTaskHandler(ctx: any): Promise<void> {
   const { res, body } = ctx;
 
-  if (!body.source || !body.title) {
-    sendError(res, 400, 'Missing required fields: source, title');
+  const validation = validateBody(taskCreateSchema)(body);
+  if (!validation.ok) {
+    sendError(res, 400, validation.error);
     return;
   }
 

@@ -13,6 +13,7 @@ import { pathToRoute, sendJson, sendError } from '../server';
 import type { Route } from '../server';
 import { stores } from '../storage';
 import { resolvePendingApproval } from '../middleware/spark-lifecycle';
+import { validateBody, approvalDecisionSchema } from '../middleware/validate';
 import type * as http from 'http';
 
 // SSE subscribers for real-time updates
@@ -83,11 +84,13 @@ async function decideApproval(ctx: any): Promise<void> {
     return;
   }
 
-  const decision = body.decision as ApprovalDecision;
-  if (!decision || !['approved', 'denied', 'modified'].includes(decision)) {
-    sendError(res, 400, 'Invalid decision. Must be: approved, denied, or modified');
+  const validation = validateBody(approvalDecisionSchema)(body);
+  if (!validation.ok) {
+    sendError(res, 400, validation.error);
     return;
   }
+
+  const decision = body.decision as ApprovalDecision;
 
   stores.approvals.decide(
     params.id,

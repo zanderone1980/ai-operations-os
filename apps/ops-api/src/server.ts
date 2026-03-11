@@ -226,8 +226,21 @@ export function sendJson(res: http.ServerResponse, status: number, data: unknown
   res.end(body);
 }
 
-export function sendError(res: http.ServerResponse, status: number, message: string): void {
-  sendJson(res, status, { error: message });
+/** Map HTTP status codes to structured error codes. */
+function statusToCode(status: number): string {
+  switch (status) {
+    case 400: return 'VALIDATION_ERROR';
+    case 401: return 'AUTH_REQUIRED';
+    case 403: return 'FORBIDDEN';
+    case 404: return 'NOT_FOUND';
+    case 413: return 'PAYLOAD_TOO_LARGE';
+    case 429: return 'RATE_LIMITED';
+    default: return 'INTERNAL_ERROR';
+  }
+}
+
+export function sendError(res: http.ServerResponse, status: number, message: string, code?: string): void {
+  sendJson(res, status, { error: message, code: code || statusToCode(status) });
 }
 
 // ── Rate Limiter ─────────────────────────────────────────────────────────────

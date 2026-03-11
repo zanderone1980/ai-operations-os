@@ -19,6 +19,7 @@ import { pathToRoute, sendJson, sendError } from '../server';
 import type { Route } from '../server';
 import { stores } from '../storage';
 import { WeightManager, AwarenessCore, MemoryCore, SparkOrchestrator } from '@ai-operations/spark-engine';
+import { validateBody, sparkChatSchema } from '../middleware/validate';
 import { ALL_CATEGORIES } from '@ai-operations/spark-engine';
 
 // ── Singletons ────────────────────────────────────────────────────────────────
@@ -238,11 +239,13 @@ async function getInsights(ctx: any): Promise<void> {
 async function chat(ctx: any): Promise<void> {
   const { res, body } = ctx;
 
-  const message = body.message as string;
-  if (!message || typeof message !== 'string') {
-    sendError(res, 400, 'Missing required field: message');
+  const validation = validateBody(sparkChatSchema)(body);
+  if (!validation.ok) {
+    sendError(res, 400, validation.error);
     return;
   }
+
+  const message = body.message as string;
 
   const conversationId = (body.conversationId as string) || undefined;
 

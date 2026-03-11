@@ -102,7 +102,7 @@ export const taskCreateSchema: ValidationSchema = {
   source: {
     type: 'string',
     required: true,
-    enum: ['email', 'calendar', 'social', 'store', 'manual'],
+    enum: ['email', 'calendar', 'social', 'store', 'slack', 'notion', 'manual'],
   },
   title: {
     type: 'string',
@@ -133,7 +133,7 @@ export const approvalDecisionSchema: ValidationSchema = {
   decision: {
     type: 'string',
     required: true,
-    enum: ['approved', 'denied'],
+    enum: ['approved', 'denied', 'modified'],
   },
   decidedBy: {
     type: 'string',
@@ -166,10 +166,55 @@ export const pipelineSimulateSchema: ValidationSchema = {
   source: {
     type: 'string',
     required: true,
-    enum: ['email', 'calendar', 'social', 'store', 'manual'],
+    enum: ['email', 'calendar', 'social', 'store', 'slack', 'notion', 'manual'],
   },
   title: {
     type: 'string',
     required: true,
+  },
+};
+
+/**
+ * SPARK chat — POST /api/spark/chat
+ */
+export const sparkChatSchema: ValidationSchema = {
+  message: {
+    type: 'string',
+    required: true,
+    maxLength: 10000,
+  },
+  conversationId: {
+    type: 'string',
+    required: false,
+  },
+};
+
+/**
+ * Generic webhook — POST /api/webhooks/generic
+ */
+export const webhookGenericSchema: ValidationSchema = {
+  title: {
+    type: 'string',
+    required: true,
+    maxLength: 500,
+  },
+  source: {
+    type: 'string',
+    required: false,
+    enum: ['email', 'calendar', 'social', 'store', 'slack', 'notion', 'manual'],
+  },
+};
+
+/**
+ * Connector execute — POST /api/connectors/:name/execute
+ */
+export const connectorExecuteSchema: ValidationSchema = {
+  operation: {
+    type: 'string',
+    required: true,
+  },
+  input: {
+    type: 'object',
+    required: false,
   },
 };

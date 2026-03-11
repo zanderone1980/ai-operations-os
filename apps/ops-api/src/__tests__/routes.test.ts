@@ -151,7 +151,7 @@ describe('Task Routes', () => {
     });
     expect(status).toBe(400);
     expect(data).toHaveProperty('error');
-    expect(data.error).toMatch(/missing required fields/i);
+    expect(data.error).toMatch(/missing required field/i);
   });
 
   test('GET /api/tasks returns task list', async () => {
@@ -260,7 +260,7 @@ describe('Approval Routes', () => {
     });
     expect(status).toBe(400);
     expect(data).toHaveProperty('error');
-    expect(data.error).toMatch(/invalid decision/i);
+    expect(data.error).toMatch(/must be one of/i);
   });
 
   test('POST /api/approvals/:id/decide on nonexistent approval returns 404', async () => {
@@ -444,7 +444,7 @@ describe('Workflow Routes', () => {
     });
     expect(status).toBe(400);
     expect(data).toHaveProperty('error');
-    expect(data.error).toMatch(/missing required fields/i);
+    expect(data.error).toMatch(/missing required field/i);
   });
 
   test('GET /api/workflows returns workflow run list', async () => {
@@ -597,7 +597,7 @@ describe('SPARK Chat — failure cases', () => {
     });
     expect(status).toBe(400);
     expect(data).toHaveProperty('error');
-    expect(data.error).toMatch(/missing.*message/i);
+    expect(data.error).toMatch(/must be of type string/i);
   });
 
   test('POST /api/spark/chat with valid message returns 200 with response, reasoning, suggestions', async () => {

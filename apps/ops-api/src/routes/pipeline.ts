@@ -24,6 +24,7 @@ import { requestApproval, waitForDecision } from './approvals';
 import { pathToRoute, sendJson, sendError } from '../server';
 import type { Route } from '../server';
 import { stores } from '../storage';
+import { validateBody, pipelineSimulateSchema } from '../middleware/validate';
 
 // ── Singletons ────────────────────────────────────────────────────────────────
 
@@ -181,14 +182,15 @@ async function handleRunPipeline(ctx: any): Promise<void> {
 async function simulatePipeline(ctx: any): Promise<void> {
   const { res, body } = ctx;
 
+  const validation = validateBody(pipelineSimulateSchema)(body);
+  if (!validation.ok) {
+    sendError(res, 400, validation.error);
+    return;
+  }
+
   const source = body.source as TaskSource;
   const title = (body.title as string) || (body.subject as string) || 'Untitled task';
   const bodyText = (body.body as string) || '';
-
-  if (!source) {
-    sendError(res, 400, 'Missing required field: source');
-    return;
-  }
 
   // Simulate intent classification
   const text = `${title} ${bodyText}`.toLowerCase();

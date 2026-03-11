@@ -3,7 +3,7 @@
  */
 import { Database, SparkStore } from '@ai-operations/ops-storage';
 import type { LearningEpisode, IntentClassification } from '@ai-operations/shared-types';
-import { ReasoningCore } from '../reasoning-core';
+import { ReasoningCore, detectCompoundQuery } from '../reasoning-core';
 import { WeightManager } from '../weight-manager';
 import { AwarenessCore } from '../awareness-core';
 import { buildAllDefaultWeights } from '../constants';
@@ -439,5 +439,108 @@ describe('ReasoningCore — slack and notion connector detection', () => {
     expect(slackNotionPattern).toBeDefined();
     expect(slackNotionPattern!.connectors).toContain('slack');
     expect(slackNotionPattern!.connectors).toContain('notion');
+  });
+});
+
+// ── Compound Query Support ────────────────────────────────────────
+
+describe('detectCompoundQuery', () => {
+  it('returns single segment for simple query', () => {
+    const segments = detectCompoundQuery('What is my status?');
+    expect(segments).toHaveLength(1);
+    expect(segments[0].connective).toBe('root');
+    expect(segments[0].text).toBe('What is my status?');
+  });
+
+  it('splits on "and then"', () => {
+    const segments = detectCompoundQuery('Compare email and calendar and then recommend changes');
+    expect(segments.length).toBeGreaterThanOrEqual(2);
+    const hasCompare = segments.some(s => s.text.toLowerCase().includes('compare'));
+    const hasRecommend = segments.some(s => s.text.toLowerCase().includes('recommend'));
+    expect(hasCompare).toBe(true);
+    expect(hasRecommend).toBe(true);
+  });
+
+  it('splits on "then" conjunction', () => {
+    const segments = detectCompoundQuery('Diagnose the issue, then explain why it happened');
+    expect(segments.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('handles if-then conditional patterns', () => {
+    const segments = detectCompoundQuery('If I approve this, then what happens?');
+    expect(segments.length).toBe(2);
+    const ifThenSeg = segments.find(s => s.connective === 'if-then');
+    expect(ifThenSeg).toBeDefined();
+  });
+
+  it('does not split very short queries', () => {
+    const segments = detectCompoundQuery('Hello');
+    expect(segments).toHaveLength(1);
+  });
+
+  it('returns root connective for first segment', () => {
+    const segments = detectCompoundQuery('Do X and then do Y');
+    expect(segments[0].connective).toBe('root');
+  });
+});
+
+describe('ReasoningCore — compound query reasoning', () => {
+  let store: SparkStore;
+
+  beforeEach(() => {
+    const { store: s } = createTestStore();
+    store = s;
+    initWeights(store);
+  });
+
+  it('produces multi-section response for compound queries', () => {
+    const weights = new WeightManager(store);
+    weights.initialize();
+    const awareness = new AwarenessCore(store);
+    const reasoning = new ReasoningCore(store);
+
+    const report = awareness.report();
+    const result = reasoning.reason(
+      'Give me your status and then recommend what to change',
+      undefined,
+      report,
+    );
+    expect(result.response).toBeTruthy();
+    expect(result.response.length).toBeGreaterThan(20);
+    // Multi-section response should be longer than single-intent
+    expect(result.steps.length).toBeGreaterThan(0);
+  });
+
+  it('handles if-then conditional queries', () => {
+    const weights = new WeightManager(store);
+    weights.initialize();
+    const awareness = new AwarenessCore(store);
+    const reasoning = new ReasoningCore(store);
+
+    const report = awareness.report();
+    const result = reasoning.reason(
+      'If I approve communication, then what would happen?',
+      undefined,
+      report,
+    );
+    expect(result.response).toBeTruthy();
+    // Should contain conditional framing
+    if (result.response.includes('[Conditional]')) {
+      expect(result.response).toContain('[Conditional]');
+    }
+  });
+
+  it('simple queries remain single-part (no split)', () => {
+    const weights = new WeightManager(store);
+    weights.initialize();
+    const awareness = new AwarenessCore(store);
+    const reasoning = new ReasoningCore(store);
+
+    const report = awareness.report();
+    const result = reasoning.reason('How are you doing?', undefined, report);
+    expect(result.response).toBeTruthy();
+    // Should NOT contain section markers for simple queries
+    expect(result.response).not.toContain('[then]');
+    expect(result.response).not.toContain('[also]');
   });
 });

@@ -58,6 +58,80 @@ interface InternalReasoningContext {
   reconstructedContext?: ReconstructedContext;
 }
 
+/** A segment of a compound query. */
+export interface CompoundSegment {
+  text: string;
+  connective: 'and' | 'then' | 'also' | 'plus' | 'if-then' | 'root';
+}
+
+// ── Compound Query Detection ──────────────────────────────────────
+
+const COMPOUND_PATTERNS: Array<{ regex: RegExp; connective: CompoundSegment['connective'] }> = [
+  { regex: /\b(?:and\s+then|after\s+that|then\s+also)\b/i, connective: 'then' },
+  { regex: /\bif\b(.+?)\bthen\b/i, connective: 'if-then' },
+  { regex: /\b(?:,\s*and\s+also|,\s*also|also)\b/i, connective: 'also' },
+  { regex: /\b(?:,\s*then|then)\b/i, connective: 'then' },
+  { regex: /\b(?:,\s*plus|plus)\b/i, connective: 'plus' },
+];
+
+/**
+ * Detect whether a query is compound (multi-part) and split into segments.
+ * Simple queries return a single segment with connective 'root'.
+ */
+export function detectCompoundQuery(query: string): CompoundSegment[] {
+  const trimmed = query.trim();
+  if (!trimmed) return [{ text: trimmed, connective: 'root' }];
+
+  // Try if-then first (special structure)
+  const ifThenMatch = trimmed.match(/^(.+?)\bif\b\s+(.+?)\s*,?\s*\bthen\b\s+(.+)$/i);
+  if (ifThenMatch) {
+    const prefix = ifThenMatch[1].trim();
+    const condition = ifThenMatch[2].trim();
+    const consequence = ifThenMatch[3].trim();
+    const segments: CompoundSegment[] = [];
+    if (prefix.length > 0) {
+      segments.push({ text: prefix, connective: 'root' });
+    }
+    segments.push({ text: condition, connective: 'root' });
+    segments.push({ text: consequence, connective: 'if-then' });
+    return segments;
+  }
+
+  // Standalone if-then at start of query
+  const standaloneIfThen = trimmed.match(/^if\b\s+(.+?)\s*,?\s*\bthen\b\s+(.+)$/i);
+  if (standaloneIfThen) {
+    return [
+      { text: standaloneIfThen[1].trim(), connective: 'root' },
+      { text: standaloneIfThen[2].trim(), connective: 'if-then' },
+    ];
+  }
+
+  // Try splitting on conjunctions (and then, then, also, plus)
+  const splitPattern = /\b(?:and\s+then|after\s+that|then\s+also)\b|(?:,\s*(?:then|also|plus)\b)|(?:\bthen\b|\balso\b|\bplus\b)/i;
+  const parts = trimmed.split(splitPattern).map(p => p.trim()).filter(p => p.length > 3);
+
+  if (parts.length <= 1) {
+    return [{ text: trimmed, connective: 'root' }];
+  }
+
+  // Build segments: first is root, rest get inferred connective
+  return parts.map((text, i) => {
+    if (i === 0) return { text, connective: 'root' as const };
+    // Find which connective preceded this part
+    const matchBefore = trimmed.slice(0, trimmed.indexOf(text)).match(
+      /\b(and\s+then|after\s+that|then\s+also|then|also|plus)\b\s*$/i
+    );
+    let connective: CompoundSegment['connective'] = 'then';
+    if (matchBefore) {
+      const matched = matchBefore[1].toLowerCase();
+      if (matched === 'also' || matched === 'then also') connective = 'also';
+      else if (matched === 'plus') connective = 'plus';
+      else connective = 'then';
+    }
+    return { text, connective };
+  });
+}
+
 // ── Query Intent Keywords ──────────────────────────────────────────
 
 const QUERY_KEYWORDS: Array<{ intent: SparkQueryIntent; keywords: string[] }> = [
@@ -183,39 +257,94 @@ export class ReasoningCore {
       this.feedbackIntegrator.onConversationTurn(userTurn);
     }
 
-    // Assemble context
+    // ── Compound query handling ──
+    const segments = detectCompoundQuery(query);
+    const isCompound = segments.length > 1;
+
+    // Assemble context from the full query
     const context = this.assembleContext(query, queryIntent, conversationHistory, awarenessReport);
 
-    // Run matching rules — for ambiguous queries, also run the alternative intent's rules
-    const steps: ReasoningStep[] = [];
-    const intentsToCover = new Set<SparkQueryIntent>([queryIntent]);
-    if (classification.ambiguous && classification.alternatives.length > 0) {
-      intentsToCover.add(classification.alternatives[0].intent);
-    }
+    let response: string;
+    let steps: ReasoningStep[];
+    let suggestions: string[];
 
-    for (const rule of this.rules) {
-      const matchesPrimary = rule.intents.includes(queryIntent) || rule.intents.includes('general');
-      const matchesAlternative = classification.ambiguous
-        && classification.alternatives.length > 0
-        && rule.intents.includes(classification.alternatives[0].intent);
-      if (matchesPrimary || matchesAlternative) {
-        const step = rule.evaluate(context);
-        if (step) steps.push(step);
+    if (isCompound) {
+      // Process each segment independently, accumulate results
+      const sectionResponses: string[] = [];
+      const allSteps: ReasoningStep[] = [];
+      const allSuggestions: string[] = [];
+
+      for (const segment of segments) {
+        const segCls = this.classifyQueryIntent(segment.text);
+        const segIntent = segCls.intent;
+
+        // Assemble context for the sub-query (reuses shared data)
+        const segContext: InternalReasoningContext = {
+          ...context,
+          query: segment.text,
+          queryIntent: segIntent,
+        };
+
+        // Run matching rules for this segment's intent
+        const segSteps: ReasoningStep[] = [];
+        for (const rule of this.rules) {
+          if (rule.intents.includes(segIntent) || rule.intents.includes('general')) {
+            const step = rule.evaluate(segContext);
+            if (step) segSteps.push(step);
+          }
+        }
+
+        allSteps.push(...segSteps);
+
+        const segResponse = this.composeResponse(segIntent, segSteps, segContext);
+
+        // For if-then segments, prefix with conditional framing
+        if (segment.connective === 'if-then') {
+          sectionResponses.push(`[Conditional] ${segResponse}`);
+        } else if (segment.connective !== 'root') {
+          sectionResponses.push(`[${segment.connective}] ${segResponse}`);
+        } else {
+          sectionResponses.push(segResponse);
+        }
+
+        allSuggestions.push(...this.generateSuggestions(segIntent, segSteps, segContext));
       }
-    }
 
-    // Compose response — prepend disambiguation for ambiguous intents
-    let response = this.composeResponse(queryIntent, steps, context);
-    if (classification.ambiguous && classification.alternatives.length > 0) {
-      const altIntent = classification.alternatives[0].intent;
-      const altResponse = this.composeResponse(altIntent, steps, context);
-      // Only prepend alternative perspective if it differs meaningfully
-      if (altResponse !== response && altResponse.length > 20) {
-        response = `[Primary interpretation: ${queryIntent}] ${response}\n\n[Also considering: ${altIntent}] ${altResponse}`;
+      response = sectionResponses.join('\n\n');
+      steps = allSteps;
+      // Deduplicate suggestions
+      suggestions = [...new Set(allSuggestions)].slice(0, 3);
+    } else {
+      // Single-intent query (original path)
+      steps = [];
+      const intentsToCover = new Set<SparkQueryIntent>([queryIntent]);
+      if (classification.ambiguous && classification.alternatives.length > 0) {
+        intentsToCover.add(classification.alternatives[0].intent);
       }
-    }
 
-    const suggestions = this.generateSuggestions(queryIntent, steps, context);
+      for (const rule of this.rules) {
+        const matchesPrimary = rule.intents.includes(queryIntent) || rule.intents.includes('general');
+        const matchesAlternative = classification.ambiguous
+          && classification.alternatives.length > 0
+          && rule.intents.includes(classification.alternatives[0].intent);
+        if (matchesPrimary || matchesAlternative) {
+          const step = rule.evaluate(context);
+          if (step) steps.push(step);
+        }
+      }
+
+      // Compose response — prepend disambiguation for ambiguous intents
+      response = this.composeResponse(queryIntent, steps, context);
+      if (classification.ambiguous && classification.alternatives.length > 0) {
+        const altIntent = classification.alternatives[0].intent;
+        const altResponse = this.composeResponse(altIntent, steps, context);
+        if (altResponse !== response && altResponse.length > 20) {
+          response = `[Primary interpretation: ${queryIntent}] ${response}\n\n[Also considering: ${altIntent}] ${altResponse}`;
+        }
+      }
+
+      suggestions = this.generateSuggestions(queryIntent, steps, context);
+    }
 
     const result: ReasoningResult = {
       id: randomUUID(),

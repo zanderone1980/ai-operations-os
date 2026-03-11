@@ -304,6 +304,18 @@ export type SparkQueryIntent =
   | 'compare'
   | 'general';
 
+/** Confidence-scored intent classification result. */
+export interface IntentClassification {
+  /** The best-matching intent. */
+  intent: SparkQueryIntent;
+  /** Confidence in the primary intent (0.0–1.0). */
+  confidence: number;
+  /** Other plausible intents, sorted by descending confidence. */
+  alternatives: Array<{ intent: SparkQueryIntent; confidence: number }>;
+  /** True if the second-best intent is within 80% of the best score. */
+  ambiguous: boolean;
+}
+
 /** A single reasoning step SPARK took to arrive at a response. */
 export interface ReasoningStep {
   /** Which rule or heuristic produced this step. */
@@ -330,6 +342,8 @@ export interface ReasoningResult {
   id: string;
   /** The query intent that was classified. */
   queryIntent: SparkQueryIntent;
+  /** Intent classification with confidence scoring. */
+  classification?: IntentClassification;
   /** Ordered list of reasoning steps. */
   steps: ReasoningStep[];
   /** The composed natural language response. */

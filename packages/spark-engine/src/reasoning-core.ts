@@ -21,6 +21,7 @@ import { randomUUID } from 'node:crypto';
 import type { SparkStore } from '@ai-operations/ops-storage';
 import type {
   SparkQueryIntent,
+  IntentClassification,
   ReasoningStep,
   ReasoningResult,
   ConversationTurn,
@@ -137,7 +138,8 @@ export class ReasoningCore {
     conversationId?: string,
     awarenessReport?: AwarenessReport,
   ): ReasoningResult {
-    const queryIntent = this.classifyQueryIntent(query);
+    const classification = this.classifyQueryIntent(query);
+    const queryIntent = classification.intent;
 
     // Load or create conversation
     const now = new Date().toISOString();
@@ -182,22 +184,41 @@ export class ReasoningCore {
     // Assemble context
     const context = this.assembleContext(query, queryIntent, conversationHistory, awarenessReport);
 
-    // Run matching rules
+    // Run matching rules — for ambiguous queries, also run the alternative intent's rules
     const steps: ReasoningStep[] = [];
+    const intentsToCover = new Set<SparkQueryIntent>([queryIntent]);
+    if (classification.ambiguous && classification.alternatives.length > 0) {
+      intentsToCover.add(classification.alternatives[0].intent);
+    }
+
     for (const rule of this.rules) {
-      if (rule.intents.includes(queryIntent) || rule.intents.includes('general')) {
+      const matchesPrimary = rule.intents.includes(queryIntent) || rule.intents.includes('general');
+      const matchesAlternative = classification.ambiguous
+        && classification.alternatives.length > 0
+        && rule.intents.includes(classification.alternatives[0].intent);
+      if (matchesPrimary || matchesAlternative) {
         const step = rule.evaluate(context);
         if (step) steps.push(step);
       }
     }
 
-    // Compose response
-    const response = this.composeResponse(queryIntent, steps, context);
+    // Compose response — prepend disambiguation for ambiguous intents
+    let response = this.composeResponse(queryIntent, steps, context);
+    if (classification.ambiguous && classification.alternatives.length > 0) {
+      const altIntent = classification.alternatives[0].intent;
+      const altResponse = this.composeResponse(altIntent, steps, context);
+      // Only prepend alternative perspective if it differs meaningfully
+      if (altResponse !== response && altResponse.length > 20) {
+        response = `[Primary interpretation: ${queryIntent}] ${response}\n\n[Also considering: ${altIntent}] ${altResponse}`;
+      }
+    }
+
     const suggestions = this.generateSuggestions(queryIntent, steps, context);
 
     const result: ReasoningResult = {
       id: randomUUID(),
       queryIntent,
+      classification,
       steps,
       response,
       suggestions,
@@ -227,26 +248,67 @@ export class ReasoningCore {
   }
 
   /**
-   * Classify query intent using keyword heuristics.
+   * Classify query intent using keyword heuristics with confidence scoring.
+   *
+   * Returns an IntentClassification with:
+   * - Normalized confidence (0–1) for the primary intent
+   * - Ranked alternatives with their own confidence scores
+   * - Ambiguity flag when second-best is within 80% of the top score
    */
-  classifyQueryIntent(query: string): SparkQueryIntent {
+  classifyQueryIntent(query: string): IntentClassification {
     const lower = query.toLowerCase();
 
-    let bestIntent: SparkQueryIntent = 'general';
-    let bestScore = 0;
-
+    // Score every intent
+    const scores: Array<{ intent: SparkQueryIntent; rawScore: number }> = [];
     for (const { intent, keywords } of QUERY_KEYWORDS) {
       let score = 0;
       for (const kw of keywords) {
-        if (lower.includes(kw)) score += kw.length; // Longer match = higher confidence
+        if (lower.includes(kw)) score += kw.length;
       }
-      if (score > bestScore) {
-        bestScore = score;
-        bestIntent = intent;
-      }
+      scores.push({ intent, rawScore: score });
     }
 
-    return bestIntent;
+    // Sort descending by raw score
+    scores.sort((a, b) => b.rawScore - a.rawScore);
+
+    const totalScore = scores.reduce((sum, s) => sum + s.rawScore, 0);
+
+    // If nothing matched, return 'general' with low confidence
+    if (totalScore === 0) {
+      return {
+        intent: 'general',
+        confidence: 0.1,
+        alternatives: [],
+        ambiguous: false,
+      };
+    }
+
+    // Normalize scores to 0–1 confidence values
+    const normalized = scores
+      .filter(s => s.rawScore > 0)
+      .map(s => ({
+        intent: s.intent,
+        confidence: parseFloat((s.rawScore / totalScore).toFixed(4)),
+      }));
+
+    const best = normalized[0];
+
+    // Determine ambiguity: second-best is within 80% of best score
+    const ambiguous = normalized.length >= 2
+      && normalized[1].confidence >= best.confidence * 0.8;
+
+    // Cap confidence: even a perfect single-intent match shouldn't be 1.0
+    // Scale by how dominant the top score is relative to total
+    const cappedConfidence = parseFloat(
+      Math.min(0.95, best.confidence + 0.1).toFixed(4),
+    );
+
+    return {
+      intent: best.intent,
+      confidence: cappedConfidence,
+      alternatives: normalized.slice(1),
+      ambiguous,
+    };
   }
 
   /**

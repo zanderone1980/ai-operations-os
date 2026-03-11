@@ -18,7 +18,10 @@ import {
   REINFORCE_RATE,
   DECAY_RATE,
   PASSIVE_DECAY_PER_DAY,
+  TOKEN_DECAY_RATE,
   EDGE_REINFORCE_RATE,
+  EDGE_DECAY_RATE,
+  EDGE_PRUNE_THRESHOLD,
   MIN_SIMILARITY_THRESHOLD,
   MAX_CONNECTIONS_PER_PASS,
   ARCHIVE_STRENGTH_THRESHOLD,
@@ -35,6 +38,9 @@ export interface SpiralMaintenanceResult {
   tokensDecayed: number;
   tokensArchived: number;
   tiersUpdated: number;
+  edgesDecayed: number;
+  edgesPruned: number;
+  tokensMerged: number;
 }
 
 export class SpiralLoop {
@@ -116,24 +122,30 @@ export class SpiralLoop {
 
   /**
    * Run a background maintenance spiral.
-   * Applies passive decay, tier updates, and archival.
+   * Applies exponential token decay, exponential edge decay + pruning,
+   * auto-merge of similar same-type tokens, tier updates, and archival.
    */
   maintenancePass(): SpiralMaintenanceResult {
     const result: SpiralMaintenanceResult = {
       tokensDecayed: 0,
       tokensArchived: 0,
       tiersUpdated: 0,
+      edgesDecayed: 0,
+      edgesPruned: 0,
+      tokensMerged: 0,
     };
 
     const now = new Date();
     const nowIso = now.toISOString();
     const activeTokens = this.store.listMemoryTokens({ excludeArchived: true, limit: 1000 });
 
+    // ── Token decay (exponential) ──
     for (const token of activeTokens) {
       const daysSinceSpiral = (now.getTime() - new Date(token.lastSpiralAt).getTime()) / (24 * 60 * 60 * 1000);
 
       if (daysSinceSpiral > 0.01) { // More than ~15 minutes
-        const decayFactor = 1 - PASSIVE_DECAY_PER_DAY * daysSinceSpiral;
+        // Exponential decay: strength *= exp(-TOKEN_DECAY_RATE * days)
+        const decayFactor = Math.exp(-TOKEN_DECAY_RATE * daysSinceSpiral);
         const newStrength = Math.max(0, token.strength * decayFactor);
 
         if (newStrength < ARCHIVE_STRENGTH_THRESHOLD) {
@@ -146,7 +158,26 @@ export class SpiralLoop {
       }
     }
 
-    // Update tiers
+    // ── Edge decay (exponential) + pruning ──
+    const allEdges = this.store.listMemoryEdges({ limit: 5000 });
+    for (const edge of allEdges) {
+      const daysSinceReinforced = (now.getTime() - new Date(edge.lastReinforcedAt).getTime()) / (24 * 60 * 60 * 1000);
+      if (daysSinceReinforced > 0.01) {
+        const decayedWeight = edge.weight * Math.exp(-EDGE_DECAY_RATE * daysSinceReinforced);
+        if (decayedWeight < EDGE_PRUNE_THRESHOLD) {
+          this.store.deleteMemoryEdge(edge.id);
+          result.edgesPruned++;
+        } else {
+          this.store.reinforceEdge(edge.id, decayedWeight, edge.reinforceCount, edge.lastReinforcedAt);
+          result.edgesDecayed++;
+        }
+      }
+    }
+
+    // ── Auto-merge similar same-type tokens ──
+    result.tokensMerged = this.tokenManager.autoMerge(this);
+
+    // ── Update tiers ──
     result.tiersUpdated = this.tokenManager.updateTiers();
 
     return result;

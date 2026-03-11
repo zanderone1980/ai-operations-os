@@ -17,6 +17,18 @@ export const PASSIVE_DECAY_PER_DAY = 0.02;
 /** How fast edge weights grow on reinforcement. */
 export const EDGE_REINFORCE_RATE = 0.1;
 
+/** Exponential edge decay rate per day (edges lose relevance over time). */
+export const EDGE_DECAY_RATE = 0.05;
+
+/** Edge weight threshold below which edges are pruned during maintenance. */
+export const EDGE_PRUNE_THRESHOLD = 0.05;
+
+/** Exponential token decay rate per day (replaces linear PASSIVE_DECAY_PER_DAY). */
+export const TOKEN_DECAY_RATE = 0.03;
+
+/** Minimum topic similarity for auto-merge candidates (same-type tokens). */
+export const AUTO_MERGE_SIMILARITY_THRESHOLD = 0.8;
+
 /** Minimum topic similarity to trigger reinforcement. */
 export const MIN_SIMILARITY_THRESHOLD = 0.2;
 

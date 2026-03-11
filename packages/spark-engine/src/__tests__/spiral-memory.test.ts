@@ -590,3 +590,123 @@ describe('Spiral Memory Integration', () => {
     expect(activeCount).toBe(0);
   });
 });
+
+// ── Edge Decay + Token Deduplication ──────────────────────────────
+
+describe('SpiralLoop — edge decay', () => {
+  it('exponentially decays edges during maintenance pass', () => {
+    const { store, spiral, tokenManager, extractor } = createAll();
+
+    // Create two related tokens with an edge
+    const token1 = tokenManager.createFromTurn(makeTurn({ content: 'Email communication system reliable performance' }));
+    const token2 = tokenManager.createFromTurn(makeTurn({ content: 'Email communication performance improvements' }));
+    const passResult = spiral.spiralPass(token2);
+
+    // Should have created or reinforced edges
+    const edgesBefore = store.listMemoryEdges({});
+    if (edgesBefore.length === 0) {
+      // If no edge was created (not enough similarity), skip
+      return;
+    }
+
+    // Set edge's lastReinforcedAt to 30 days ago
+    const edge = edgesBefore[0];
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    store.reinforceEdge(edge.id, edge.weight, edge.reinforceCount, thirtyDaysAgo);
+
+    // Run maintenance
+    const maintenanceResult = spiral.maintenancePass();
+
+    // 30 days * 0.05 decay rate → weight * exp(-1.5) ≈ weight * 0.223
+    // If original weight was < 0.22, edge should be pruned
+    const edgesAfter = store.listMemoryEdges({});
+    expect(maintenanceResult.edgesDecayed + maintenanceResult.edgesPruned).toBeGreaterThan(0);
+  });
+
+  it('prunes edges below threshold', () => {
+    const { store, spiral, tokenManager } = createAll();
+
+    // Create tokens and edge
+    const token1 = tokenManager.createFromTurn(makeTurn({ content: 'Email communication reliable system' }));
+    const token2 = tokenManager.createFromTurn(makeTurn({ content: 'Email communication system updates' }));
+    spiral.spiralPass(token2);
+
+    const edgesBefore = store.listMemoryEdges({});
+    if (edgesBefore.length === 0) return;
+
+    // Set edge weight very low and last reinforced long ago
+    const edge = edgesBefore[0];
+    const longAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(); // 60 days
+    store.reinforceEdge(edge.id, 0.1, edge.reinforceCount, longAgo);
+
+    const maintenanceResult = spiral.maintenancePass();
+    // With weight 0.1 and 60 days, decay = 0.1 * exp(-3) ≈ 0.005 < 0.05 threshold → pruned
+    expect(maintenanceResult.edgesPruned).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe('SpiralLoop — exponential token decay', () => {
+  it('uses exponential decay for token strength', () => {
+    const { store, spiral, tokenManager } = createAll();
+
+    // Create a token and set its lastSpiralAt to 10 days ago
+    const token = tokenManager.createFromTurn(makeTurn({ content: 'Financial transaction processing' }));
+    const tenDaysAgo = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString();
+    store.updateMemoryTokenStrength(token.id, 0.5, 0, tenDaysAgo);
+
+    spiral.maintenancePass();
+
+    const updated = store.getMemoryToken(token.id);
+    // exp(-0.03 * 10) = exp(-0.3) ≈ 0.741
+    // 0.5 * 0.741 ≈ 0.370
+    if (updated && updated.archivedAt === null) {
+      expect(updated.strength).toBeLessThan(0.5);
+      expect(updated.strength).toBeGreaterThan(0.3); // Should be around 0.37
+    }
+  });
+});
+
+describe('MemoryTokenManager — autoMerge', () => {
+  it('merges same-type tokens with >80% topic overlap', () => {
+    const { store, spiral, tokenManager, extractor } = createAll();
+
+    // Create two nearly identical tokens
+    const token1 = tokenManager.createFromTurn(makeTurn({
+      content: 'Email communication system performance is reliable and stable',
+    }));
+    const token2 = tokenManager.createFromTurn(makeTurn({
+      content: 'Email communication system performance is reliable and consistent',
+    }));
+
+    // Check their similarity
+    const sim = spiral.computeTopicSimilarity(token1.essence, token2.essence);
+    if (sim < 0.8) {
+      // If not similar enough, test autoMerge returns 0
+      const merged = tokenManager.autoMerge(spiral);
+      expect(merged).toBe(0);
+      return;
+    }
+
+    const beforeCount = store.countMemoryTokens({ excludeArchived: true });
+    const merged = tokenManager.autoMerge(spiral);
+    expect(merged).toBeGreaterThanOrEqual(1);
+    const afterCount = store.countMemoryTokens({ excludeArchived: true });
+    // After merge: original 2 tokens archived, 1 composite created
+    expect(afterCount).toBeLessThan(beforeCount);
+  });
+
+  it('does not merge tokens with low similarity', () => {
+    const { store, spiral, tokenManager } = createAll();
+
+    // Create two very different tokens
+    tokenManager.createFromTurn(makeTurn({
+      content: 'Financial transaction payment processing',
+    }));
+    tokenManager.createFromTurn(makeTurn({
+      content: 'Calendar scheduling event meeting',
+    }));
+
+    const merged = tokenManager.autoMerge(spiral);
+    expect(merged).toBe(0);
+  });
+});

@@ -910,6 +910,22 @@ export class SparkStore {
     return rows.map(r => this.rowToMemoryEdge(r));
   }
 
+  /**
+   * Delete a single memory edge by ID.
+   */
+  deleteMemoryEdge(id: string): void {
+    this.db.prepare('DELETE FROM spark_memory_edges WHERE id = ?').run(id);
+  }
+
+  /**
+   * Prune all edges below a weight threshold.
+   * Returns the number of edges pruned.
+   */
+  pruneEdgesBelow(minWeight: number): number {
+    const result = this.db.prepare('DELETE FROM spark_memory_edges WHERE weight < ?').run(minWeight);
+    return result.changes;
+  }
+
   // ═══════════════════════════════════════════════════════════════
   // Topic Index
   // ═══════════════════════════════════════════════════════════════

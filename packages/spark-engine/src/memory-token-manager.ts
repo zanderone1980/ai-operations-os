@@ -22,6 +22,7 @@ import { EssenceExtractor } from './essence-extractor';
 import {
   INITIAL_TOKEN_STRENGTH,
   ARCHIVE_STRENGTH_THRESHOLD,
+  AUTO_MERGE_SIMILARITY_THRESHOLD,
   RAW_TIER_MS,
   RECENT_TIER_MS,
   COMPRESSED_TIER_MS,
@@ -230,6 +231,56 @@ export class MemoryTokenManager {
     this.store.saveMemoryToken(composite);
     this.updateTopicIndex(composite);
     return composite;
+  }
+
+  /**
+   * Auto-merge same-type tokens with >80% topic similarity.
+   * Uses the SpiralLoop's computeTopicSimilarity for consistency.
+   * Returns the number of tokens merged.
+   */
+  autoMerge(spiralLoop: { computeTopicSimilarity(a: Essence, b: Essence): number }): number {
+    const activeTokens = this.store.listMemoryTokens({ excludeArchived: true, limit: 500 });
+    if (activeTokens.length < 2) return 0;
+
+    // Group tokens by type
+    const byType = new Map<string, MemoryToken[]>();
+    for (const token of activeTokens) {
+      const group = byType.get(token.type) || [];
+      group.push(token);
+      byType.set(token.type, group);
+    }
+
+    let mergedCount = 0;
+    const alreadyMerged = new Set<string>();
+
+    for (const [_type, tokens] of byType) {
+      if (tokens.length < 2) continue;
+
+      for (let i = 0; i < tokens.length; i++) {
+        if (alreadyMerged.has(tokens[i].id)) continue;
+
+        for (let j = i + 1; j < tokens.length; j++) {
+          if (alreadyMerged.has(tokens[j].id)) continue;
+
+          const similarity = spiralLoop.computeTopicSimilarity(
+            tokens[i].essence,
+            tokens[j].essence,
+          );
+
+          if (similarity >= AUTO_MERGE_SIMILARITY_THRESHOLD) {
+            const merged = this.merge([tokens[i].id, tokens[j].id]);
+            if (merged) {
+              alreadyMerged.add(tokens[i].id);
+              alreadyMerged.add(tokens[j].id);
+              mergedCount++;
+              break; // Move to next i — this token is now merged
+            }
+          }
+        }
+      }
+    }
+
+    return mergedCount;
   }
 
   /**

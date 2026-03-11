@@ -38,6 +38,7 @@ import type {
 } from '@ai-operations/shared-types';
 import type { ContextReconstructor } from './context-reconstructor';
 import type { FeedbackIntegrator } from './feedback-integrator';
+import type { EmotionalStateEngine } from './emotional-state';
 
 // ── Internal Types ─────────────────────────────────────────────────
 
@@ -191,6 +192,7 @@ export class ReasoningCore {
   private readonly rules: ReasoningRule[];
   private reconstructor?: ContextReconstructor;
   private feedbackIntegrator?: FeedbackIntegrator;
+  private emotionalState?: EmotionalStateEngine;
 
   constructor(store: SparkStore) {
     this.store = store;
@@ -204,6 +206,14 @@ export class ReasoningCore {
   setSpiralMemory(reconstructor: ContextReconstructor, feedbackIntegrator: FeedbackIntegrator): void {
     this.reconstructor = reconstructor;
     this.feedbackIntegrator = feedbackIntegrator;
+  }
+
+  /**
+   * Inject emotional state engine for affect-aware responses.
+   * Called by SparkOrchestrator after construction.
+   */
+  setEmotionalState(engine: EmotionalStateEngine): void {
+    this.emotionalState = engine;
   }
 
   /**
@@ -639,7 +649,11 @@ export class ReasoningCore {
         }
         const alertCount = report.alerts.oscillating.length + report.alerts.lowConfidence.length;
         if (alertCount > 0) {
-          msg += `I have ${alertCount} alert${alertCount !== 1 ? 's' : ''} to flag.`;
+          msg += `I have ${alertCount} alert${alertCount !== 1 ? 's' : ''} to flag. `;
+        }
+        // Emotional state context
+        if (this.emotionalState) {
+          msg += this.emotionalState.getSummary();
         }
         return msg.trim();
       }
@@ -745,7 +759,11 @@ export class ReasoningCore {
         }
         const volatileAlerts = report.alerts.oscillating;
         if (volatileAlerts.length > 0) {
-          msg += `Warning: ${volatileAlerts.join(', ')} ${volatileAlerts.length === 1 ? 'is' : 'are'} showing oscillating behavior.`;
+          msg += `Warning: ${volatileAlerts.join(', ')} ${volatileAlerts.length === 1 ? 'is' : 'are'} showing oscillating behavior. `;
+        }
+        // Emotional state context
+        if (this.emotionalState) {
+          msg += this.emotionalState.getSummary();
         }
         return msg.trim();
       }

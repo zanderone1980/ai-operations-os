@@ -336,6 +336,19 @@ export class Database {
       CREATE INDEX IF NOT EXISTS idx_spark_memory_topic_index_topic
         ON spark_memory_topic_index(topic);
 
+      -- ── SPARK Emotional State ────────────────────────────────
+
+      CREATE TABLE IF NOT EXISTS spark_emotional_state (
+        id TEXT PRIMARY KEY DEFAULT 'singleton',
+        valence REAL NOT NULL DEFAULT 0.0,
+        momentum TEXT NOT NULL DEFAULT 'stable',
+        volatility REAL NOT NULL DEFAULT 0.0,
+        high_emotion_count INTEGER NOT NULL DEFAULT 0,
+        valence_history_json TEXT NOT NULL DEFAULT '[]',
+        high_emotion_token_ids_json TEXT NOT NULL DEFAULT '[]',
+        last_updated_at TEXT NOT NULL
+      );
+
       -- ── Audit Log ────────────────────────────────────────────
 
       CREATE TABLE IF NOT EXISTS audit_log (

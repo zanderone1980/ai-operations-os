@@ -37,6 +37,9 @@ export { AwarenessCore } from './awareness-core';
 export { ReasoningCore } from './reasoning-core';
 export { SparkOrchestrator } from './orchestrator';
 
+// ── Emotional State ─────────────────────────────────────────────
+export { EmotionalStateEngine } from './emotional-state';
+
 // ── Spiral Memory ───────────────────────────────────────────────
 export { EssenceExtractor } from './essence-extractor';
 export { MemoryTokenManager } from './memory-token-manager';

@@ -57,6 +57,8 @@ export type {
   Conversation,
   CrossConnectorContext,
   CrossConnectorPattern,
+  EmotionalMomentum,
+  EmotionalState,
   SentimentValence,
   MemoryTokenType,
   CompressionTier,

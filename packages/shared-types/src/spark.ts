@@ -409,6 +409,25 @@ export interface CrossConnectorPattern {
   confidence: number;
 }
 
+// ── Emotional State ────────────────────────────────────────────
+
+/** Emotional momentum direction. */
+export type EmotionalMomentum = 'improving' | 'declining' | 'stable';
+
+/** Current emotional state snapshot — the system's affective baseline. */
+export interface EmotionalState {
+  /** Running valence average (-1.0 to 1.0). Negative = negative affect, positive = positive affect. */
+  valence: number;
+  /** Direction of emotional trend. */
+  momentum: EmotionalMomentum;
+  /** Variance in recent sentiment (0.0 to 1.0). High = emotionally turbulent. */
+  volatility: number;
+  /** Count of high-emotion events tracked in the current window. */
+  highEmotionCount: number;
+  /** ISO 8601 timestamp of last emotional state update. */
+  lastUpdatedAt: string;
+}
+
 // ── Spiral Memory ──────────────────────────────────────────────
 
 /** Sentiment valence for an essence extraction. */

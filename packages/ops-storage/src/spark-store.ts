@@ -992,6 +992,57 @@ export class SparkStore {
     return result;
   }
 
+  // ═══════════════════════════════════════════════════════════════
+  // Emotional State
+  // ═══════════════════════════════════════════════════════════════
+
+  saveEmotionalState(state: {
+    valence: number;
+    momentum: string;
+    volatility: number;
+    highEmotionCount: number;
+    valenceHistory: number[];
+    highEmotionTokenIds: string[];
+    lastUpdatedAt: string;
+  }): void {
+    this.db.prepare(`
+      INSERT OR REPLACE INTO spark_emotional_state
+        (id, valence, momentum, volatility, high_emotion_count, valence_history_json, high_emotion_token_ids_json, last_updated_at)
+      VALUES
+        ('singleton', @valence, @momentum, @volatility, @highEmotionCount, @valenceHistoryJson, @highEmotionTokenIdsJson, @lastUpdatedAt)
+    `).run({
+      valence: state.valence,
+      momentum: state.momentum,
+      volatility: state.volatility,
+      highEmotionCount: state.highEmotionCount,
+      valenceHistoryJson: JSON.stringify(state.valenceHistory),
+      highEmotionTokenIdsJson: JSON.stringify(state.highEmotionTokenIds),
+      lastUpdatedAt: state.lastUpdatedAt,
+    });
+  }
+
+  getEmotionalState(): {
+    valence: number;
+    momentum: string;
+    volatility: number;
+    highEmotionCount: number;
+    valenceHistory: number[];
+    highEmotionTokenIds: string[];
+    lastUpdatedAt: string;
+  } | null {
+    const row = this.db.prepare('SELECT * FROM spark_emotional_state WHERE id = ?').get('singleton') as any;
+    if (!row) return null;
+    return {
+      valence: row.valence,
+      momentum: row.momentum,
+      volatility: row.volatility,
+      highEmotionCount: row.high_emotion_count,
+      valenceHistory: JSON.parse(row.valence_history_json || '[]'),
+      highEmotionTokenIds: JSON.parse(row.high_emotion_token_ids_json || '[]'),
+      lastUpdatedAt: row.last_updated_at,
+    };
+  }
+
   // ── Row Mappers ─────────────────────────────────────────────
 
   private rowToMemoryToken(row: any): MemoryToken {

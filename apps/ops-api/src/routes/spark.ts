@@ -193,8 +193,20 @@ async function getAwareness(ctx: any): Promise<void> {
 
   weightManager.initialize();
   const report = awarenessCore.report();
+  const emotionalState = orchestrator.emotionalState.getState();
 
-  sendJson(res, 200, report);
+  sendJson(res, 200, {
+    ...report,
+    emotionalState,
+  });
+}
+
+/** Get current emotional state */
+async function getEmotionalState(ctx: any): Promise<void> {
+  const { res } = ctx;
+  const state = orchestrator.emotionalState.getState();
+  const summary = orchestrator.emotionalState.getSummary();
+  sendJson(res, 200, { ...state, summary });
 }
 
 /** Get current beliefs per category */
@@ -412,6 +424,7 @@ export const sparkRoutes: Route[] = [
   pathToRoute('POST', '/api/spark/rollback', rollbackSnapshot),
   pathToRoute('GET', '/api/spark/snapshots', listSnapshots),
   pathToRoute('GET', '/api/spark/awareness', getAwareness),
+  pathToRoute('GET', '/api/spark/emotional-state', getEmotionalState),
   pathToRoute('GET', '/api/spark/beliefs', getBeliefs),
   pathToRoute('GET', '/api/spark/insights', getInsights),
   pathToRoute('POST', '/api/spark/chat', chat),

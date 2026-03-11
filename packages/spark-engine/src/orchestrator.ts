@@ -25,6 +25,7 @@ import { MemoryTokenManager } from './memory-token-manager';
 import { SpiralLoop } from './spiral-loop';
 import { ContextReconstructor } from './context-reconstructor';
 import { FeedbackIntegrator } from './feedback-integrator';
+import { EmotionalStateEngine } from './emotional-state';
 
 // ── SparkOrchestrator ───────────────────────────────────────────
 
@@ -96,6 +97,9 @@ export class SparkOrchestrator {
   /** Feedback integration engine. */
   public readonly feedbackIntegrator: FeedbackIntegrator;
 
+  /** Emotional state engine — SPARK's affective baseline. */
+  public readonly emotionalState: EmotionalStateEngine;
+
   /**
    * @param store - SparkStore instance shared across all engines.
    */
@@ -108,15 +112,19 @@ export class SparkOrchestrator {
     this.awareness = new AwarenessCore(store);
     this.reasoning = new ReasoningCore(store);
 
+    // Emotional State engine
+    this.emotionalState = new EmotionalStateEngine(store);
+
     // Spiral Memory engines
     this.essenceExtractor = new EssenceExtractor(store);
     this.tokenManager = new MemoryTokenManager(store, this.essenceExtractor);
-    this.spiral = new SpiralLoop(store, this.tokenManager, this.essenceExtractor);
+    this.spiral = new SpiralLoop(store, this.tokenManager, this.essenceExtractor, this.emotionalState);
     this.reconstructor = new ContextReconstructor(store, this.essenceExtractor);
-    this.feedbackIntegrator = new FeedbackIntegrator(store, this.tokenManager, this.spiral);
+    this.feedbackIntegrator = new FeedbackIntegrator(store, this.tokenManager, this.spiral, this.emotionalState);
 
     // Wire spiral memory into reasoning core
     this.reasoning.setSpiralMemory(this.reconstructor, this.feedbackIntegrator);
+    this.reasoning.setEmotionalState(this.emotionalState);
   }
 
   /**

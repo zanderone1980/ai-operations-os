@@ -82,6 +82,23 @@ export const MIN_WORD_LENGTH = 3;
 /** Maximum gist length in characters. */
 export const GIST_MAX_LENGTH = 120;
 
+// ── Emotional State ─────────────────────────────────────────────
+
+/** EMA smoothing factor for emotional valence updates. Higher = more reactive. */
+export const EMOTIONAL_EMA_ALPHA = 0.3;
+
+/** Number of recent valence readings kept for momentum/volatility. */
+export const EMOTIONAL_RING_BUFFER_SIZE = 10;
+
+/** Sentiment intensity above which a token is flagged as high-emotion. */
+export const EMOTIONAL_HIGH_INTENSITY_THRESHOLD = 0.7;
+
+/** Strength multiplier applied to high-emotion tokens during spiral pass. */
+export const EMOTIONAL_BOOST_MULTIPLIER = 1.15;
+
+/** Volatility threshold above which the system is considered emotionally turbulent. */
+export const EMOTIONAL_VOLATILITY_HIGH = 0.3;
+
 // ── Stop Words ──────────────────────────────────────────────────
 
 export const STOP_WORDS: ReadonlySet<string> = new Set([

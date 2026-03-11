@@ -25,7 +25,9 @@ import {
   MIN_SIMILARITY_THRESHOLD,
   MAX_CONNECTIONS_PER_PASS,
   ARCHIVE_STRENGTH_THRESHOLD,
+  EMOTIONAL_BOOST_MULTIPLIER,
 } from './spiral-constants';
+import type { EmotionalStateEngine } from './emotional-state';
 
 export interface SpiralPassResult {
   tokensReinforced: number;
@@ -47,11 +49,18 @@ export class SpiralLoop {
   private readonly store: SparkStore;
   private readonly tokenManager: MemoryTokenManager;
   private readonly extractor: EssenceExtractor;
+  private emotionalState: EmotionalStateEngine | null;
 
-  constructor(store: SparkStore, tokenManager: MemoryTokenManager, extractor: EssenceExtractor) {
+  constructor(store: SparkStore, tokenManager: MemoryTokenManager, extractor: EssenceExtractor, emotionalState?: EmotionalStateEngine) {
     this.store = store;
     this.tokenManager = tokenManager;
     this.extractor = extractor;
+    this.emotionalState = emotionalState ?? null;
+  }
+
+  /** Set or update the emotional state engine reference. */
+  setEmotionalState(engine: EmotionalStateEngine): void {
+    this.emotionalState = engine;
   }
 
   /**
@@ -255,7 +264,13 @@ export class SpiralLoop {
 
   private reinforceToken(token: MemoryToken, matchScore: number, now: string): void {
     // strength += REINFORCE_RATE * (1 - strength) * matchScore
-    const boost = REINFORCE_RATE * (1 - token.strength) * matchScore;
+    let boost = REINFORCE_RATE * (1 - token.strength) * matchScore;
+
+    // Emotional boost: high-emotion tokens get extra reinforcement
+    if (this.emotionalState && this.emotionalState.isHighEmotion(token.id)) {
+      boost *= EMOTIONAL_BOOST_MULTIPLIER;
+    }
+
     const newStrength = Math.min(1.0, token.strength + boost);
     this.store.updateMemoryTokenStrength(token.id, newStrength, token.spiralCount + 1, now);
   }

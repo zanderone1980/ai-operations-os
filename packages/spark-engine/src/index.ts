@@ -40,6 +40,9 @@ export { SparkOrchestrator } from './orchestrator';
 // ── Emotional State ─────────────────────────────────────────────
 export { EmotionalStateEngine } from './emotional-state';
 
+// ── Self-Reflection ────────────────────────────────────────────
+export { SelfReflectionEngine } from './self-reflection';
+
 // ── Spiral Memory ───────────────────────────────────────────────
 export { EssenceExtractor } from './essence-extractor';
 export { MemoryTokenManager } from './memory-token-manager';

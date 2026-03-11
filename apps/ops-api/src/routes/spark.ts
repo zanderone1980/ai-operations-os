@@ -407,7 +407,33 @@ async function reconstructMemory(ctx: any): Promise<void> {
 async function maintenancePass(ctx: any): Promise<void> {
   const { res } = ctx;
   const result = orchestrator.spiral.maintenancePass();
+
+  // Tick reflection engine's maintenance counter and auto-reflect if due
+  orchestrator.reflection.tickMaintenance();
+  let reflectionTriggered = false;
+  if (orchestrator.reflection.shouldAutoReflect()) {
+    orchestrator.reflection.reflect();
+    reflectionTriggered = true;
+  }
+
+  sendJson(res, 200, { ...result, reflectionTriggered });
+}
+
+// ── Reflection Routes ────────────────────────────────────────────────────────
+
+/** POST /api/spark/reflect — Trigger manual self-reflection. */
+async function triggerReflection(ctx: any): Promise<void> {
+  const { res } = ctx;
+  const result = orchestrator.reflection.reflect();
   sendJson(res, 200, result);
+}
+
+/** GET /api/spark/reflections — List past reflections. */
+async function listReflections(ctx: any): Promise<void> {
+  const { res, query } = ctx;
+  const limit = parseInt(query.limit || '20', 10);
+  const reflections = stores.spark.listReflections(limit);
+  sendJson(res, 200, { reflections, total: reflections.length });
 }
 
 // ── Export routes ────────────────────────────────────────────────────────────
@@ -439,4 +465,7 @@ export const sparkRoutes: Route[] = [
   pathToRoute('GET', '/api/spark/memory/stats', getMemoryStats),
   pathToRoute('POST', '/api/spark/memory/reconstruct', reconstructMemory),
   pathToRoute('POST', '/api/spark/memory/maintenance', maintenancePass),
+  // Reflection
+  pathToRoute('POST', '/api/spark/reflect', triggerReflection),
+  pathToRoute('GET', '/api/spark/reflections', listReflections),
 ];

@@ -302,6 +302,7 @@ export type SparkQueryIntent =
   | 'configure'
   | 'diagnose'
   | 'compare'
+  | 'reflect'
   | 'general';
 
 /** Confidence-scored intent classification result. */
@@ -428,6 +429,55 @@ export interface EmotionalState {
   lastUpdatedAt: string;
 }
 
+// ── Self-Reflection ────────────────────────────────────────────
+
+/** A blind spot detected during self-reflection. */
+export interface BlindSpot {
+  /** The category with insufficient coverage. */
+  category: SparkCategory;
+  /** Number of learning episodes in this category. */
+  episodeCount: number;
+  /** Current confidence level. */
+  confidence: number;
+  /** Human-readable description of the blind spot. */
+  narrative: string;
+}
+
+/** Growth direction assessment. */
+export type GrowthDirection = 'growing' | 'stagnating' | 'regressing';
+
+/** Growth assessment comparing current vs. previous reflection. */
+export interface GrowthAssessment {
+  /** Overall growth direction. */
+  direction: GrowthDirection;
+  /** Categories that improved since last reflection. */
+  categoriesImproved: SparkCategory[];
+  /** Categories that declined since last reflection. */
+  categoriesDeclined: SparkCategory[];
+  /** Net improvement score (-1.0 to 1.0). */
+  overallDelta: number;
+  /** Human-readable growth narrative. */
+  narrative: string;
+}
+
+/** Result of a self-reflection cycle. */
+export interface ReflectionResult {
+  /** Unique reflection identifier (UUID v4). */
+  id: string;
+  /** Detected blind spots (categories with low coverage). */
+  blindSpots: BlindSpot[];
+  /** Growth assessment vs. last reflection. */
+  growth: GrowthAssessment;
+  /** Emotional context summary at time of reflection. */
+  emotionalSummary: string;
+  /** Generated internal narrative about the learning process. */
+  internalNarrative: string;
+  /** ID of the memory token created for this reflection (if any). */
+  tokenId: string | null;
+  /** ISO 8601 timestamp. */
+  createdAt: string;
+}
+
 // ── Spiral Memory ──────────────────────────────────────────────
 
 /** Sentiment valence for an essence extraction. */
@@ -440,7 +490,8 @@ export type MemoryTokenType =
   | 'insight'
   | 'belief'
   | 'cross-connector'
-  | 'composite';
+  | 'composite'
+  | 'reflection';
 
 /** Compression tier — controls detail level based on age. */
 export type CompressionTier = 'raw' | 'recent' | 'compressed' | 'archival';

@@ -99,6 +99,20 @@ export const EMOTIONAL_BOOST_MULTIPLIER = 1.15;
 /** Volatility threshold above which the system is considered emotionally turbulent. */
 export const EMOTIONAL_VOLATILITY_HIGH = 0.3;
 
+// ── Self-Reflection ─────────────────────────────────────────────
+
+/** Minimum hours between automatic reflections. */
+export const REFLECTION_INTERVAL_HOURS = 24;
+
+/** Minimum maintenance passes before auto-reflect triggers. */
+export const REFLECTION_MIN_MAINTENANCE_PASSES = 10;
+
+/** Categories with fewer than this many episodes are blind spots. */
+export const BLIND_SPOT_MAX_EPISODES = 3;
+
+/** Categories with confidence below this threshold are blind spots. */
+export const BLIND_SPOT_MAX_CONFIDENCE = 0.4;
+
 // ── Stop Words ──────────────────────────────────────────────────
 
 export const STOP_WORDS: ReadonlySet<string> = new Set([

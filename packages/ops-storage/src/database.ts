@@ -349,6 +349,21 @@ export class Database {
         last_updated_at TEXT NOT NULL
       );
 
+      -- ── SPARK Self-Reflections ───────────────────────────────
+
+      CREATE TABLE IF NOT EXISTS spark_reflections (
+        id TEXT PRIMARY KEY,
+        blind_spots_json TEXT NOT NULL DEFAULT '[]',
+        growth_json TEXT NOT NULL DEFAULT '{}',
+        emotional_summary TEXT NOT NULL DEFAULT '',
+        internal_narrative TEXT NOT NULL DEFAULT '',
+        token_id TEXT,
+        created_at TEXT NOT NULL
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_spark_reflections_created_at
+        ON spark_reflections(created_at);
+
       -- ── Audit Log ────────────────────────────────────────────
 
       CREATE TABLE IF NOT EXISTS audit_log (

@@ -17,6 +17,8 @@ import type {
   Insight,
   Belief,
   Essence,
+  BlindSpot,
+  GrowthAssessment,
 } from '@ai-operations/shared-types';
 import { EssenceExtractor } from './essence-extractor';
 import {
@@ -158,6 +160,48 @@ export class MemoryTokenManager {
       spiralCount: existing ? existing.spiralCount : 0,
       sourceId: belief.category,
       mergedFrom: existing ? [existing.id] : [],
+      createdAt: now,
+      lastSpiralAt: now,
+      archivedAt: null,
+    };
+
+    this.store.saveMemoryToken(token);
+    this.updateTopicIndex(token);
+    return token;
+  }
+
+  /**
+   * Create a memory token from a self-reflection result.
+   */
+  createFromReflection(reflection: {
+    blindSpots: BlindSpot[];
+    growth: GrowthAssessment;
+    narrative: string;
+  }): MemoryToken {
+    const blindSpotNames = reflection.blindSpots.map(bs => bs.category);
+    const growthCats = [
+      ...reflection.growth.categoriesImproved,
+      ...reflection.growth.categoriesDeclined,
+    ];
+    const text = `Self-reflection: ${reflection.growth.direction}. ` +
+      `Blind spots: ${blindSpotNames.length > 0 ? blindSpotNames.join(', ') : 'none'}. ` +
+      reflection.narrative;
+
+    const essence = this.extractor.extract(text, {
+      categories: [...new Set([...blindSpotNames, ...growthCats])] as any,
+    });
+
+    // Reflections start with higher strength — they are metacognitive summaries
+    const now = new Date().toISOString();
+    const token: MemoryToken = {
+      id: randomUUID(),
+      type: 'reflection',
+      tier: 'raw',
+      essence,
+      strength: 0.7,
+      spiralCount: 0,
+      sourceId: `reflection-${now}`,
+      mergedFrom: [],
       createdAt: now,
       lastSpiralAt: now,
       archivedAt: null,

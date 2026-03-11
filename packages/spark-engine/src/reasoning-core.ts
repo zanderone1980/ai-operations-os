@@ -39,6 +39,7 @@ import type {
 import type { ContextReconstructor } from './context-reconstructor';
 import type { FeedbackIntegrator } from './feedback-integrator';
 import type { EmotionalStateEngine } from './emotional-state';
+import type { SelfReflectionEngine } from './self-reflection';
 
 // ── Internal Types ─────────────────────────────────────────────────
 
@@ -146,6 +147,7 @@ const QUERY_KEYWORDS: Array<{ intent: SparkQueryIntent; keywords: string[] }> = 
   { intent: 'configure', keywords: ['cautious', 'strict', 'lenient', 'adjust', 'change weight', 'more careful', 'less strict'] },
   { intent: 'diagnose', keywords: ['diagnose', 'wrong', 'fail', 'error', 'problem', 'issue', 'broke', 'why did', 'trouble', 'broken'] },
   { intent: 'compare', keywords: ['compare', 'versus', 'vs', 'difference', 'better', 'worse', 'differ'] },
+  { intent: 'reflect', keywords: ['reflect', 'blind spot', 'blind spots', 'self-assessment', 'self assessment', 'what don\'t you know', 'growth', 'metacognition'] },
 ];
 
 // ── Category Detection ─────────────────────────────────────────────
@@ -193,6 +195,7 @@ export class ReasoningCore {
   private reconstructor?: ContextReconstructor;
   private feedbackIntegrator?: FeedbackIntegrator;
   private emotionalState?: EmotionalStateEngine;
+  private reflectionEngine?: SelfReflectionEngine;
 
   constructor(store: SparkStore) {
     this.store = store;
@@ -214,6 +217,14 @@ export class ReasoningCore {
    */
   setEmotionalState(engine: EmotionalStateEngine): void {
     this.emotionalState = engine;
+  }
+
+  /**
+   * Inject self-reflection engine for metacognitive responses.
+   * Called by SparkOrchestrator after construction.
+   */
+  setReflection(engine: SelfReflectionEngine): void {
+    this.reflectionEngine = engine;
   }
 
   /**
@@ -828,6 +839,22 @@ export class ReasoningCore {
         return 'I need at least two categories to compare. Try: "Compare communication vs financial"';
       }
 
+      case 'reflect': {
+        if (!this.reflectionEngine) {
+          return 'Self-reflection engine is not available.';
+        }
+        const reflection = this.reflectionEngine.reflect();
+        let msg = reflection.internalNarrative;
+        if (reflection.blindSpots.length > 0) {
+          msg += `\n\nBlind spots (${reflection.blindSpots.length}): `;
+          msg += reflection.blindSpots.map(bs =>
+            `${bs.category} — ${bs.narrative}`
+          ).join('; ');
+        }
+        msg += `\n\nGrowth: ${reflection.growth.direction}. ${reflection.growth.narrative}`;
+        return msg;
+      }
+
       default: {
         const totalEp = state.totalEpisodes;
         if (totalEp === 0) {
@@ -895,6 +922,12 @@ export class ReasoningCore {
         suggestions.push('What went wrong recently?');
         suggestions.push('What are you uncertain about?');
         suggestions.push('How are you doing overall?');
+        break;
+
+      case 'reflect':
+        suggestions.push('How are you doing?');
+        suggestions.push('What are you uncertain about?');
+        suggestions.push('What have you learned recently?');
         break;
 
       default:
@@ -1144,10 +1177,33 @@ export class ReasoningCore {
         },
       },
 
+      // ── ReflectionRule ──────────────────────────────────────
+      {
+        id: 'self-reflection',
+        intents: ['reflect'] as SparkQueryIntent[],
+        evaluate: (_ctx): ReasoningStep | null => {
+          if (!this.reflectionEngine) return null;
+          const latest = this.store.getLatestReflection();
+          return {
+            ruleId: 'self-reflection',
+            description: latest
+              ? `Last reflection: ${latest.createdAt}. Blind spots: ${latest.blindSpots.length}, Growth: ${latest.growth.direction}.`
+              : 'No previous reflections — this will be the first self-assessment.',
+            evidence: latest
+              ? {
+                  blindSpotCount: latest.blindSpots.length,
+                  direction: latest.growth.direction,
+                }
+              : {},
+            confidence: 0.9,
+          };
+        },
+      },
+
       // ── AlertEscalationRule (fires on any intent) ───────────
       {
         id: 'alert-escalation',
-        intents: ['status', 'explain', 'predict', 'recommend', 'cross-connector', 'introspect', 'history', 'configure', 'diagnose', 'compare', 'general'] as SparkQueryIntent[],
+        intents: ['status', 'explain', 'predict', 'recommend', 'cross-connector', 'introspect', 'history', 'configure', 'diagnose', 'compare', 'reflect', 'general'] as SparkQueryIntent[],
         evaluate: (ctx): ReasoningStep | null => {
           const alerts = ctx.awarenessReport.alerts;
           const hasAlerts = alerts.oscillating.length > 0

@@ -23,6 +23,7 @@ import type {
   MemoryTokenType,
   CompressionTier,
   Essence,
+  ReflectionResult,
 } from '@ai-operations/shared-types';
 
 export interface SparkEpisodeFilter {
@@ -1040,6 +1041,53 @@ export class SparkStore {
       valenceHistory: JSON.parse(row.valence_history_json || '[]'),
       highEmotionTokenIds: JSON.parse(row.high_emotion_token_ids_json || '[]'),
       lastUpdatedAt: row.last_updated_at,
+    };
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // Reflections
+  // ═══════════════════════════════════════════════════════════════
+
+  saveReflection(reflection: ReflectionResult): void {
+    this.db.prepare(`
+      INSERT INTO spark_reflections
+        (id, blind_spots_json, growth_json, emotional_summary, internal_narrative, token_id, created_at)
+      VALUES
+        (@id, @blindSpotsJson, @growthJson, @emotionalSummary, @internalNarrative, @tokenId, @createdAt)
+    `).run({
+      id: reflection.id,
+      blindSpotsJson: JSON.stringify(reflection.blindSpots),
+      growthJson: JSON.stringify(reflection.growth),
+      emotionalSummary: reflection.emotionalSummary,
+      internalNarrative: reflection.internalNarrative,
+      tokenId: reflection.tokenId,
+      createdAt: reflection.createdAt,
+    });
+  }
+
+  getLatestReflection(): ReflectionResult | null {
+    const row = this.db.prepare(
+      'SELECT * FROM spark_reflections ORDER BY created_at DESC LIMIT 1'
+    ).get() as any;
+    return row ? this.rowToReflection(row) : null;
+  }
+
+  listReflections(limit = 20): ReflectionResult[] {
+    const rows = this.db.prepare(
+      'SELECT * FROM spark_reflections ORDER BY created_at DESC LIMIT ?'
+    ).all(limit) as any[];
+    return rows.map(r => this.rowToReflection(r));
+  }
+
+  private rowToReflection(row: any): ReflectionResult {
+    return {
+      id: row.id,
+      blindSpots: JSON.parse(row.blind_spots_json || '[]'),
+      growth: JSON.parse(row.growth_json || '{}'),
+      emotionalSummary: row.emotional_summary,
+      internalNarrative: row.internal_narrative,
+      tokenId: row.token_id ?? null,
+      createdAt: row.created_at,
     };
   }
 

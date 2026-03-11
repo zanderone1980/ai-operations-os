@@ -26,6 +26,7 @@ import { SpiralLoop } from './spiral-loop';
 import { ContextReconstructor } from './context-reconstructor';
 import { FeedbackIntegrator } from './feedback-integrator';
 import { EmotionalStateEngine } from './emotional-state';
+import { SelfReflectionEngine } from './self-reflection';
 
 // ── SparkOrchestrator ───────────────────────────────────────────
 
@@ -100,6 +101,9 @@ export class SparkOrchestrator {
   /** Emotional state engine — SPARK's affective baseline. */
   public readonly emotionalState: EmotionalStateEngine;
 
+  /** Self-reflection engine — metacognitive blind-spot & growth assessment. */
+  public readonly reflection: SelfReflectionEngine;
+
   /**
    * @param store - SparkStore instance shared across all engines.
    */
@@ -122,9 +126,18 @@ export class SparkOrchestrator {
     this.reconstructor = new ContextReconstructor(store, this.essenceExtractor);
     this.feedbackIntegrator = new FeedbackIntegrator(store, this.tokenManager, this.spiral, this.emotionalState);
 
+    // Self-Reflection engine
+    this.reflection = new SelfReflectionEngine(store);
+    this.reflection.setEngines({
+      tokenManager: this.tokenManager,
+      spiral: this.spiral,
+      emotionalState: this.emotionalState,
+    });
+
     // Wire spiral memory into reasoning core
     this.reasoning.setSpiralMemory(this.reconstructor, this.feedbackIntegrator);
     this.reasoning.setEmotionalState(this.emotionalState);
+    this.reasoning.setReflection(this.reflection);
   }
 
   /**

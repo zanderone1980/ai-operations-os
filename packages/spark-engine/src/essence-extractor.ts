@@ -57,6 +57,8 @@ const CONNECTOR_MARKERS: Record<string, string[]> = {
   'x-twitter': ['twitter', 'tweet', 'social', 'post'],
   calendar: ['calendar', 'event', 'meeting', 'schedule'],
   shopify: ['shopify', 'store', 'order', 'product'],
+  slack: ['slack', 'channel', 'workspace', 'dm', 'thread'],
+  notion: ['notion', 'page', 'database', 'wiki', 'doc'],
 };
 
 // ── EssenceExtractor ───────────────────────────────────────────

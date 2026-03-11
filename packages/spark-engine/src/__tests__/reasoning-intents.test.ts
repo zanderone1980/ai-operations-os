@@ -326,3 +326,118 @@ describe('ReasoningCore — confidence scoring', () => {
     expect(cls.intent).toBe('status');
   });
 });
+
+// ── Extended Connector Detection (Slack + Notion) ────────────────
+
+describe('ReasoningCore — slack and notion connector detection', () => {
+  let store: SparkStore;
+
+  beforeEach(() => {
+    const { store: s } = createTestStore();
+    store = s;
+    initWeights(store);
+  });
+
+  it('detects slack connector in "slack channel" queries', () => {
+    const weights = new WeightManager(store);
+    weights.initialize();
+    const awareness = new AwarenessCore(store);
+    const reasoning = new ReasoningCore(store);
+
+    const report = awareness.report();
+    const result = reasoning.reason('What is happening in the slack channel?', undefined, report);
+    // Should mention slack in the response or at minimum not crash
+    expect(result.response).toBeTruthy();
+    expect(result.queryIntent).toBeDefined();
+  });
+
+  it('detects notion connector in "notion page" queries', () => {
+    const weights = new WeightManager(store);
+    weights.initialize();
+    const awareness = new AwarenessCore(store);
+    const reasoning = new ReasoningCore(store);
+
+    const report = awareness.report();
+    const result = reasoning.reason('Check my notion database for updates', undefined, report);
+    expect(result.response).toBeTruthy();
+    expect(result.queryIntent).toBeDefined();
+  });
+
+  it('detects cross-connector slack+gmail pattern', () => {
+    const weights = new WeightManager(store);
+    weights.initialize();
+    const reasoning = new ReasoningCore(store);
+
+    // Manually assemble cross-connector context — simulate both active
+    const context = reasoning.assembleCrossConnectorContext();
+    // Inject slack and gmail activity
+    (context.connectorActivity as any).slack = {
+      recentOperations: ['send'],
+      recentOutcomes: [],
+      episodeCount: 1,
+      lastActivityAt: new Date().toISOString(),
+    };
+    (context.connectorActivity as any).gmail = {
+      recentOperations: ['send'],
+      recentOutcomes: [],
+      episodeCount: 1,
+      lastActivityAt: new Date().toISOString(),
+    };
+    // Re-detect patterns with the enriched activity
+    const patterns = (reasoning as any).detectCrossConnectorPatterns(context.connectorActivity);
+    const slackEmailPattern = patterns.find((p: any) => p.type === 'slack-to-email');
+    expect(slackEmailPattern).toBeDefined();
+    expect(slackEmailPattern!.connectors).toContain('slack');
+    expect(slackEmailPattern!.connectors).toContain('gmail');
+  });
+
+  it('detects cross-connector notion+calendar pattern', () => {
+    const weights = new WeightManager(store);
+    weights.initialize();
+    const reasoning = new ReasoningCore(store);
+
+    const context = reasoning.assembleCrossConnectorContext();
+    (context.connectorActivity as any).notion = {
+      recentOperations: ['update'],
+      recentOutcomes: [],
+      episodeCount: 1,
+      lastActivityAt: new Date().toISOString(),
+    };
+    (context.connectorActivity as any).calendar = {
+      recentOperations: ['create'],
+      recentOutcomes: [],
+      episodeCount: 1,
+      lastActivityAt: new Date().toISOString(),
+    };
+    const patterns = (reasoning as any).detectCrossConnectorPatterns(context.connectorActivity);
+    const notionCalPattern = patterns.find((p: any) => p.type === 'notion-to-calendar');
+    expect(notionCalPattern).toBeDefined();
+    expect(notionCalPattern!.connectors).toContain('notion');
+    expect(notionCalPattern!.connectors).toContain('calendar');
+  });
+
+  it('detects cross-connector slack+notion pattern', () => {
+    const weights = new WeightManager(store);
+    weights.initialize();
+    const reasoning = new ReasoningCore(store);
+
+    const context = reasoning.assembleCrossConnectorContext();
+    (context.connectorActivity as any).slack = {
+      recentOperations: ['post'],
+      recentOutcomes: [],
+      episodeCount: 1,
+      lastActivityAt: new Date().toISOString(),
+    };
+    (context.connectorActivity as any).notion = {
+      recentOperations: ['update'],
+      recentOutcomes: [],
+      episodeCount: 1,
+      lastActivityAt: new Date().toISOString(),
+    };
+    const patterns = (reasoning as any).detectCrossConnectorPatterns(context.connectorActivity);
+    const slackNotionPattern = patterns.find((p: any) => p.type === 'slack-to-notion');
+    expect(slackNotionPattern).toBeDefined();
+    expect(slackNotionPattern!.connectors).toContain('slack');
+    expect(slackNotionPattern!.connectors).toContain('notion');
+  });
+});

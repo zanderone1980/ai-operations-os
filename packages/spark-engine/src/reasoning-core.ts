@@ -103,6 +103,8 @@ function detectConnectors(query: string): string[] {
   if (lower.includes('twitter') || lower.includes('x ') || lower.includes('tweet')) connectors.push('x-twitter');
   if (lower.includes('calendar') || lower.includes('event') || lower.includes('meeting')) connectors.push('calendar');
   if (lower.includes('shopify') || lower.includes('order') || lower.includes('store')) connectors.push('shopify');
+  if (lower.includes('slack') || lower.includes('channel') || lower.includes('workspace') || lower.includes('dm')) connectors.push('slack');
+  if (lower.includes('notion') || lower.includes('page') || lower.includes('database') || lower.includes('wiki')) connectors.push('notion');
   return connectors;
 }
 
@@ -436,6 +438,36 @@ export class ReasoningCore {
         description: 'Email and social media are both active — notifications from one may relate to actions on the other.',
         connectors: ['gmail', 'x-twitter'],
         confidence: 0.6,
+      });
+    }
+
+    // Slack-to-Email: unified communication routing
+    if (connectors.includes('slack') && connectors.includes('gmail')) {
+      patterns.push({
+        type: 'slack-to-email',
+        description: 'Slack and email are both active — messages from one channel could be routed or summarized to the other for unified communication.',
+        connectors: ['slack', 'gmail'],
+        confidence: 0.65,
+      });
+    }
+
+    // Notion-to-Calendar: deadline sync
+    if (connectors.includes('notion') && connectors.includes('calendar')) {
+      patterns.push({
+        type: 'notion-to-calendar',
+        description: 'Notion and calendar are both active — deadlines and milestones in Notion pages could be synced to calendar events automatically.',
+        connectors: ['notion', 'calendar'],
+        confidence: 0.6,
+      });
+    }
+
+    // Slack-to-Notion: knowledge capture
+    if (connectors.includes('slack') && connectors.includes('notion')) {
+      patterns.push({
+        type: 'slack-to-notion',
+        description: 'Slack and Notion are both active — important discussions and decisions from Slack channels could be captured as Notion knowledge base entries.',
+        connectors: ['slack', 'notion'],
+        confidence: 0.55,
       });
     }
 

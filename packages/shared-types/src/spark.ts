@@ -400,7 +400,7 @@ export interface CrossConnectorContext {
 /** A detected cross-connector pattern. */
 export interface CrossConnectorPattern {
   /** Pattern type identifier. */
-  type: 'email-to-calendar' | 'social-to-store' | 'email-to-social' | 'store-to-email' | 'general';
+  type: 'email-to-calendar' | 'social-to-store' | 'email-to-social' | 'store-to-email' | 'slack-to-email' | 'notion-to-calendar' | 'slack-to-notion' | 'general';
   /** Human-readable description. */
   description: string;
   /** Connectors involved. */

@@ -285,6 +285,85 @@ function demoReceiptChain(): void {
   console.log();
 }
 
+// ── SPARK Chat demonstration ─────────────────────────────────────────────────
+
+interface SparkChatResponse {
+  response: string;
+  reasoning: Array<{ ruleId: string; description: string }>;
+  suggestions: string[];
+  queryIntent: string;
+  conversationId: string;
+}
+
+async function demoSparkChat(apiUrl: string): Promise<void> {
+  console.log();
+  sectionHeader('SPARK — Self-Learning Engine');
+  console.log();
+
+  const questions = [
+    'How are you doing?',
+    'What have you learned recently?',
+    'What connections do you see?',
+  ];
+
+  let conversationId: string | undefined;
+
+  for (const question of questions) {
+    console.log(`  ${c.bold}${c.magenta}You:${c.reset} ${question}`);
+
+    try {
+      const body: Record<string, unknown> = { message: question };
+      if (conversationId) body.conversationId = conversationId;
+
+      const res = await fetch(`${apiUrl}/api/spark/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      if (!res.ok) {
+        console.log(`  ${c.red}ERROR${c.reset}: ${res.status}`);
+        continue;
+      }
+
+      const data = (await res.json()) as SparkChatResponse;
+      conversationId = data.conversationId;
+
+      console.log(`  ${c.bold}${c.cyan}SPARK:${c.reset} ${data.response}`);
+      console.log(
+        `  ${c.dim}intent=${data.queryIntent}  reasoning=${data.reasoning?.length || 0} steps  ` +
+          `suggestions=${data.suggestions?.length || 0}${c.reset}`,
+      );
+      console.log();
+    } catch (err) {
+      console.log(
+        `  ${c.red}ERROR${c.reset}: Could not reach SPARK — ${(err as Error).message}`,
+      );
+      console.log(
+        `  ${c.dim}SPARK chat requires a running API server.${c.reset}`,
+      );
+      return;
+    }
+  }
+
+  // Show spiral memory stats
+  try {
+    const res = await fetch(`${apiUrl}/api/spark/memory/stats`);
+    if (res.ok) {
+      const stats = (await res.json()) as Record<string, number>;
+      console.log(
+        `  ${c.bold}Spiral Memory:${c.reset}  ` +
+          `${c.green}${stats.activeTokens || 0}${c.reset} active tokens  ` +
+          `${c.blue}${stats.totalEdges || 0}${c.reset} edges  ` +
+          `${c.dim}${stats.archivedTokens || 0} archived${c.reset}`,
+      );
+      console.log();
+    }
+  } catch {
+    // Memory stats endpoint may not be available — skip silently
+  }
+}
+
 // ── Main ─────────────────────────────────────────────────────────────────────
 
 async function main(): Promise<void> {
@@ -316,6 +395,16 @@ async function main(): Promise<void> {
     body: 'Post about our new feature release on social media.',
   });
 
+  // ── Scenario 4: Order Refund ──
+  await runScenario(apiUrl, 'SCENARIO 4: Order Refund', {
+    source: 'shopify',
+    subject: 'Customer refund request #4821',
+    body: 'Customer wants to return order and ship back the item.',
+  });
+
+  // ── SPARK Interaction ──
+  await demoSparkChat(apiUrl);
+
   // ── Receipt Chain ──
   demoReceiptChain();
 
@@ -332,6 +421,7 @@ async function main(): Promise<void> {
   console.log(`    ${c.green}+${c.reset} Human-in-the-loop approval for risky operations`);
   console.log(`    ${c.green}+${c.reset} Cryptographic receipt chain with hash-linking`);
   console.log(`    ${c.green}+${c.reset} Independent chain verification`);
+  console.log(`    ${c.green}+${c.reset} SPARK self-learning engine with spiral memory`);
   console.log();
 }
 

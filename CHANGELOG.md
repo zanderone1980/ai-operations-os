@@ -65,15 +65,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dashboard is vanilla JS (framework migration planned)
 - No distributed tracing / correlation IDs yet
 
+## [0.2.0] - 2026-03-10
+
+### Added
+
+**SPARK Spiral Memory**
+- 5-layer essence-based memory architecture: EssenceExtractor, MemoryTokenManager, SpiralLoop, ContextReconstructor, FeedbackIntegrator
+- Algorithmic text → essence compression (TF-IDF topics, lexicon-based sentiment, pattern-matched relationships, decision point extraction)
+- Spiral reinforcement/weakening with passive decay — patterns that prove true get stronger, patterns that don't get weaker
+- Graph-walk context reconstruction replaces linear turn loading
+- Tiered token lifecycle: raw → recent → compressed → archival
+- 7 new API endpoints under `/api/spark/memory/`
+- 30+ new spiral memory tests
+
+**CORD Reasoning Layer**
+- Full CORD safety reasoning integration — 14-dimension scoring with explanation text
+- CORD score display in pipeline events
+
+**Publishing**
+- `@ai-operations/spark-engine` published to npm
+- `@ai-operations/cord-adapter` published to npm
+
+### Changed
+- Test count increased from 692 to 742 across 7 test suites
+- README updated with SPARK architecture documentation and demo SVG
+- Project structure documented as 12 packages (3 apps, 9 libraries)
+
 ## [Unreleased]
 
 ### Planned
 
-- Structured JSON logging with request tracing
-- Input validation middleware
-- API rate limiting
-- CLI tool (`ai-ops init`, `ai-ops demo`, `ai-ops receipts verify`)
-- Seed data / demo mode
-- Code coverage reporting
-- npm package publishing
-- Dashboard analytics, CORD explainer, receipt explorer
+- Quickstart demo mode (`npm run demo`)
+- Dashboard approval polish (CORD score display, approval history, pending badge)
+- SPARK diagnose and compare intents
+- Slack and Notion connectors
+- Auth + encrypted credential storage (JWT, scrypt, AES-256-GCM vault)

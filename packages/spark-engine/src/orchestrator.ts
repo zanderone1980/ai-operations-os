@@ -27,6 +27,7 @@ import { ContextReconstructor } from './context-reconstructor';
 import { FeedbackIntegrator } from './feedback-integrator';
 import { EmotionalStateEngine } from './emotional-state';
 import { SelfReflectionEngine } from './self-reflection';
+import { PersonalityEngine } from './personality-engine';
 
 // ── SparkOrchestrator ───────────────────────────────────────────
 
@@ -104,6 +105,9 @@ export class SparkOrchestrator {
   /** Self-reflection engine — metacognitive blind-spot & growth assessment. */
   public readonly reflection: SelfReflectionEngine;
 
+  /** Personality engine — evolving communication traits. */
+  public readonly personality: PersonalityEngine;
+
   /**
    * @param store - SparkStore instance shared across all engines.
    */
@@ -134,10 +138,14 @@ export class SparkOrchestrator {
       emotionalState: this.emotionalState,
     });
 
+    // Personality engine
+    this.personality = new PersonalityEngine(store);
+
     // Wire spiral memory into reasoning core
     this.reasoning.setSpiralMemory(this.reconstructor, this.feedbackIntegrator);
     this.reasoning.setEmotionalState(this.emotionalState);
     this.reasoning.setReflection(this.reflection);
+    this.reasoning.setPersonality(this.personality);
   }
 
   /**

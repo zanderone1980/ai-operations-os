@@ -63,6 +63,8 @@ export type {
   GrowthDirection,
   GrowthAssessment,
   ReflectionResult,
+  PersonalityProfile,
+  PersonalityContext,
   SentimentValence,
   MemoryTokenType,
   CompressionTier,

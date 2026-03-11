@@ -364,6 +364,17 @@ export class Database {
       CREATE INDEX IF NOT EXISTS idx_spark_reflections_created_at
         ON spark_reflections(created_at);
 
+      -- ── SPARK Personality ─────────────────────────────────────
+
+      CREATE TABLE IF NOT EXISTS spark_personality (
+        id TEXT PRIMARY KEY DEFAULT 'singleton',
+        curiosity REAL NOT NULL DEFAULT 0.5,
+        caution REAL NOT NULL DEFAULT 0.5,
+        warmth REAL NOT NULL DEFAULT 0.5,
+        directness REAL NOT NULL DEFAULT 0.5,
+        playfulness REAL NOT NULL DEFAULT 0.5
+      );
+
       -- ── Audit Log ────────────────────────────────────────────
 
       CREATE TABLE IF NOT EXISTS audit_log (

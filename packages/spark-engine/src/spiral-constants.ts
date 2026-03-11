@@ -113,6 +113,23 @@ export const BLIND_SPOT_MAX_EPISODES = 3;
 /** Categories with confidence below this threshold are blind spots. */
 export const BLIND_SPOT_MAX_CONFIDENCE = 0.4;
 
+// ── Personality ─────────────────────────────────────────────────
+
+/** Learning rate for personality trait evolution per interaction. */
+export const PERSONALITY_LEARNING_RATE = 0.02;
+
+/** Minimum value for any personality trait (prevents extremes). */
+export const PERSONALITY_TRAIT_MIN = 0.1;
+
+/** Maximum value for any personality trait (prevents extremes). */
+export const PERSONALITY_TRAIT_MAX = 0.9;
+
+/** Default starting value for all personality traits. */
+export const PERSONALITY_DEFAULT = 0.5;
+
+/** Number of recent trait deltas tracked for consistency scoring. */
+export const PERSONALITY_CONSISTENCY_WINDOW = 20;
+
 // ── Stop Words ──────────────────────────────────────────────────
 
 export const STOP_WORDS: ReadonlySet<string> = new Set([

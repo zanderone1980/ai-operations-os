@@ -24,6 +24,7 @@ import type {
   CompressionTier,
   Essence,
   ReflectionResult,
+  PersonalityProfile,
 } from '@ai-operations/shared-types';
 
 export interface SparkEpisodeFilter {
@@ -1088,6 +1089,39 @@ export class SparkStore {
       internalNarrative: row.internal_narrative,
       tokenId: row.token_id ?? null,
       createdAt: row.created_at,
+    };
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // Personality
+  // ═══════════════════════════════════════════════════════════════
+
+  savePersonality(profile: PersonalityProfile): void {
+    this.db.prepare(`
+      INSERT OR REPLACE INTO spark_personality
+        (id, curiosity, caution, warmth, directness, playfulness)
+      VALUES
+        ('singleton', @curiosity, @caution, @warmth, @directness, @playfulness)
+    `).run({
+      curiosity: profile.curiosity,
+      caution: profile.caution,
+      warmth: profile.warmth,
+      directness: profile.directness,
+      playfulness: profile.playfulness,
+    });
+  }
+
+  getPersonality(): PersonalityProfile | null {
+    const row = this.db.prepare(
+      'SELECT * FROM spark_personality WHERE id = ?'
+    ).get('singleton') as any;
+    if (!row) return null;
+    return {
+      curiosity: row.curiosity,
+      caution: row.caution,
+      warmth: row.warmth,
+      directness: row.directness,
+      playfulness: row.playfulness,
     };
   }
 

@@ -478,6 +478,36 @@ export interface ReflectionResult {
   createdAt: string;
 }
 
+// ── Personality ───────────────────────────────────────────────
+
+/** SPARK's evolving personality trait profile (0.0-1.0 per trait). */
+export interface PersonalityProfile {
+  /** Tendency to explore diverse topics and ask follow-up questions. */
+  curiosity: number;
+  /** Tendency to add caveats, qualifiers, and safety warnings. */
+  caution: number;
+  /** Tendency to use empathetic, warm, and supportive language. */
+  warmth: number;
+  /** Tendency to be concise, direct, and skip hedging. */
+  directness: number;
+  /** Tendency to use casual phrasing and light humour. */
+  playfulness: number;
+}
+
+/** Context passed to personality evolution. */
+export interface PersonalityContext {
+  /** Distinct topic count in the current interaction. */
+  topicDiversity: number;
+  /** Whether any SENTINEL-category operations are involved. */
+  hasSentinelCategories: boolean;
+  /** Current emotional valence (-1 to 1). */
+  emotionalValence: number;
+  /** Primary query intent. */
+  queryIntent: SparkQueryIntent;
+  /** Current emotional momentum. */
+  emotionalMomentum: EmotionalMomentum;
+}
+
 // ── Spiral Memory ──────────────────────────────────────────────
 
 /** Sentiment valence for an essence extraction. */

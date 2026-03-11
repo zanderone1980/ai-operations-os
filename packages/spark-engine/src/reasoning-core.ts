@@ -40,6 +40,7 @@ import type { ContextReconstructor } from './context-reconstructor';
 import type { FeedbackIntegrator } from './feedback-integrator';
 import type { EmotionalStateEngine } from './emotional-state';
 import type { SelfReflectionEngine } from './self-reflection';
+import type { PersonalityEngine } from './personality-engine';
 
 // ── Internal Types ─────────────────────────────────────────────────
 
@@ -196,6 +197,7 @@ export class ReasoningCore {
   private feedbackIntegrator?: FeedbackIntegrator;
   private emotionalState?: EmotionalStateEngine;
   private reflectionEngine?: SelfReflectionEngine;
+  private personalityEngine?: PersonalityEngine;
 
   constructor(store: SparkStore) {
     this.store = store;
@@ -225,6 +227,14 @@ export class ReasoningCore {
    */
   setReflection(engine: SelfReflectionEngine): void {
     this.reflectionEngine = engine;
+  }
+
+  /**
+   * Inject personality engine for response modulation + trait evolution.
+   * Called by SparkOrchestrator after construction.
+   */
+  setPersonality(engine: PersonalityEngine): void {
+    this.personalityEngine = engine;
   }
 
   /**
@@ -365,6 +375,29 @@ export class ReasoningCore {
       }
 
       suggestions = this.generateSuggestions(queryIntent, steps, context);
+    }
+
+    // ── Personality modulation + evolution ──
+    if (this.personalityEngine) {
+      response = this.personalityEngine.modulateResponse(response);
+
+      // Evolve traits based on this interaction
+      const topicDiversity = context.reconstructedContext
+        ? context.reconstructedContext.relevantTopics.length
+        : 0;
+
+      const cats = detectCategories(query);
+      const hasSentinel = cats.some(c =>
+        c === 'destructive' || c === 'financial'
+      );
+
+      this.personalityEngine.evolve({
+        topicDiversity,
+        hasSentinelCategories: hasSentinel,
+        emotionalValence: this.emotionalState?.getState().valence ?? 0,
+        queryIntent,
+        emotionalMomentum: this.emotionalState?.getState().momentum ?? 'stable',
+      });
     }
 
     const result: ReasoningResult = {

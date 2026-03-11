@@ -195,9 +195,12 @@ async function getAwareness(ctx: any): Promise<void> {
   const report = awarenessCore.report();
   const emotionalState = orchestrator.emotionalState.getState();
 
+  const personality = orchestrator.personality.getProfile();
+
   sendJson(res, 200, {
     ...report,
     emotionalState,
+    personality,
   });
 }
 
@@ -436,6 +439,17 @@ async function listReflections(ctx: any): Promise<void> {
   sendJson(res, 200, { reflections, total: reflections.length });
 }
 
+// ── Personality Routes ────────────────────────────────────────────────────────
+
+/** GET /api/spark/personality — Get current personality profile. */
+async function getPersonality(ctx: any): Promise<void> {
+  const { res } = ctx;
+  const profile = orchestrator.personality.getProfile();
+  const summary = orchestrator.personality.getSummary();
+  const consistency = orchestrator.personality.getConsistencyScore();
+  sendJson(res, 200, { ...profile, summary, consistency });
+}
+
 // ── Export routes ────────────────────────────────────────────────────────────
 
 export { weightManager };
@@ -468,4 +482,6 @@ export const sparkRoutes: Route[] = [
   // Reflection
   pathToRoute('POST', '/api/spark/reflect', triggerReflection),
   pathToRoute('GET', '/api/spark/reflections', listReflections),
+  // Personality
+  pathToRoute('GET', '/api/spark/personality', getPersonality),
 ];

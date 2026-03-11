@@ -43,6 +43,9 @@ export { EmotionalStateEngine } from './emotional-state';
 // ── Self-Reflection ────────────────────────────────────────────
 export { SelfReflectionEngine } from './self-reflection';
 
+// ── Personality ────────────────────────────────────────────────
+export { PersonalityEngine } from './personality-engine';
+
 // ── Spiral Memory ───────────────────────────────────────────────
 export { EssenceExtractor } from './essence-extractor';
 export { MemoryTokenManager } from './memory-token-manager';

@@ -7,6 +7,34 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <!-- Login Overlay -->
+  <div class="login-overlay" id="login-overlay">
+    <div class="login-card">
+      <h2>AI Operations OS</h2>
+      <p class="login-subtitle">Sign in to your dashboard</p>
+      <form id="login-form">
+        <div class="form-group">
+          <label for="login-email">Email</label>
+          <input type="email" id="login-email" placeholder="you@example.com" required>
+        </div>
+        <div class="form-group">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" placeholder="Password" required>
+        </div>
+        <div class="login-error" id="login-error"></div>
+        <button type="submit" class="login-btn" id="login-btn">Sign In</button>
+      </form>
+      <div class="login-footer">
+        <span>No account?</span>
+        <button type="button" class="login-link" id="register-toggle">Register</button>
+      </div>
+      <div class="login-dev-note" id="login-dev-note">
+        <strong>Dev mode:</strong> No authentication required.
+        <button type="button" class="login-link" onclick="document.getElementById('login-overlay').style.display='none'">Continue</button>
+      </div>
+    </div>
+  </div>
+
   <header>
     <div class="header-content">
       <div class="header-left">
@@ -66,7 +94,7 @@
 
   <nav class="tab-bar">
     <div class="tab-bar-inner">
-      <button class="tab active" data-tab="approvals">Approvals</button>
+      <button class="tab active" data-tab="approvals">Approvals <span class="tab-badge" id="approvals-badge"></span></button>
       <button class="tab" data-tab="tasks">Tasks</button>
       <button class="tab" data-tab="workflows">Workflows</button>
       <button class="tab" data-tab="activity">Activity</button>
@@ -84,6 +112,17 @@
       </div>
       <div id="approval-list" class="card-list">
         <div class="empty-state">No pending approvals</div>
+      </div>
+
+      <!-- Approval History -->
+      <div class="approval-history-section">
+        <div class="panel-header panel-header-sub">
+          <h3>Approval History</h3>
+          <button class="btn btn-sm btn-modify" id="toggle-history-btn">Show History</button>
+        </div>
+        <div id="approval-history-list" class="card-list hidden">
+          <div class="empty-state">No approval history</div>
+        </div>
       </div>
     </section>
 

@@ -111,6 +111,38 @@ async function decideApproval(ctx: any): Promise<void> {
   });
 }
 
+/** Get approval history (decided approvals) */
+async function getApprovalHistory(ctx: any): Promise<void> {
+  const { res, query } = ctx;
+  const limit = parseInt(query.limit || '50', 10);
+  const allApprovals = stores.approvals.listAll({});
+  const decided = allApprovals
+    .filter((a: Approval) => a.decision !== undefined)
+    .sort((a: Approval, b: Approval) => {
+      const aTime = a.decidedAt ? new Date(a.decidedAt).getTime() : 0;
+      const bTime = b.decidedAt ? new Date(b.decidedAt).getTime() : 0;
+      return bTime - aTime;
+    })
+    .slice(0, limit);
+
+  sendJson(res, 200, {
+    history: decided,
+    total: decided.length,
+  });
+}
+
+/** Get pending approval count */
+async function getApprovalCount(ctx: any): Promise<void> {
+  const { res } = ctx;
+  const pending = stores.approvals.countPending();
+  const allApprovals = stores.approvals.listAll({});
+  sendJson(res, 200, {
+    pending,
+    decided: allApprovals.filter((a: Approval) => a.decision !== undefined).length,
+    total: allApprovals.length,
+  });
+}
+
 /** SSE stream of new approval requests */
 async function streamApprovals(ctx: any): Promise<void> {
   const { res } = ctx;
@@ -169,6 +201,8 @@ export async function waitForDecision(
 
 export const approvalRoutes: Route[] = [
   pathToRoute('GET', '/api/approvals', listApprovals),
+  pathToRoute('GET', '/api/approvals/history', getApprovalHistory),
+  pathToRoute('GET', '/api/approvals/count', getApprovalCount),
   pathToRoute('GET', '/api/approvals/stream', streamApprovals),
   pathToRoute('GET', '/api/approvals/:id', getApproval),
   pathToRoute('POST', '/api/approvals/:id/decide', decideApproval),

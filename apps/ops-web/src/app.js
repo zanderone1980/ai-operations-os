@@ -31,6 +31,21 @@
   var statusBadge = document.getElementById('status-badge');
   var refreshInterval = null;
 
+  // ── Auth Token ──────────────────────────────────────────────────────
+  var authToken = localStorage.getItem('ops_auth_token') || '';
+  var authApiKey = localStorage.getItem('ops_auth_api_key') || '';
+
+  /** Get auth headers for API calls. */
+  function authHeaders() {
+    var headers = { 'Content-Type': 'application/json' };
+    if (authToken) {
+      headers['Authorization'] = 'Bearer ' + authToken;
+    } else if (authApiKey) {
+      headers['Authorization'] = 'Bearer ' + authApiKey;
+    }
+    return headers;
+  }
+
   // Cached data for stats & filtering
   var cachedTasks = [];
   var cachedApprovals = [];
@@ -175,6 +190,13 @@
     var pendingCount = cachedApprovals.filter(function (a) { return !a.decision; }).length;
     pendingEl.textContent = pendingCount;
 
+    // Update tab badge
+    var badge = document.getElementById('approvals-badge');
+    if (badge) {
+      badge.textContent = pendingCount > 0 ? pendingCount : '';
+      badge.style.display = pendingCount > 0 ? 'inline-flex' : 'none';
+    }
+
     var activeWf = cachedWorkflows.filter(function (w) {
       return w.state === 'running' || w.state === 'queued' || w.state === 'paused';
     }).length;
@@ -277,11 +299,20 @@
       list.innerHTML = cachedApprovals.map(function (a) {
         var riskClass = getRiskClass(a.risk);
         var previewText = a.preview || '';
+        var cordScore = a.cordScore || mapRiskToScore(a.risk);
+        var cordPct = Math.min(100, Math.round((cordScore / 99) * 100));
+        var cordColor = cordPct < 33 ? 'var(--green)' : cordPct < 66 ? 'var(--yellow)' : 'var(--red)';
 
         return '<div class="card approval-card risk-border-' + (a.risk || 'low') + '" data-id="' + a.id + '">' +
           '<div class="card-header">' +
             '<span class="card-title">' + escapeHtml(a.reason) + '</span>' +
             '<span class="risk-badge risk-' + (a.risk || 'low') + '">' + escapeHtml(a.risk || 'low') + '</span>' +
+          '</div>' +
+          '<div class="cord-score-meter">' +
+            '<div class="cord-meter-label">CORD Score: ' + cordScore + '/99</div>' +
+            '<div class="cord-meter-track">' +
+              '<div class="cord-meter-fill" style="width:' + cordPct + '%;background:' + cordColor + '"></div>' +
+            '</div>' +
           '</div>' +
           '<div class="approval-preview">' + escapeHtml(previewText) + '</div>' +
           '<div class="card-meta">' +
@@ -305,6 +336,61 @@
 
       updateStats();
     });
+  }
+
+  function loadApprovalHistory() {
+    var list = document.getElementById('approval-history-list');
+    if (!list) return;
+    list.innerHTML = renderSkeletonCards(2);
+
+    apiGet('/api/approvals/history?limit=20').then(function (data) {
+      if (!data || !data.history || data.history.length === 0) {
+        list.innerHTML = '<div class="empty-state">No approval history yet</div>';
+        return;
+      }
+
+      list.innerHTML = data.history.map(function (a) {
+        var cordScore = a.cordScore || mapRiskToScore(a.risk);
+        var cordPct = Math.min(100, Math.round((cordScore / 99) * 100));
+        var cordColor = cordPct < 33 ? 'var(--green)' : cordPct < 66 ? 'var(--yellow)' : 'var(--red)';
+        var decisionClass = a.decision === 'approved' ? 'approved' : 'denied';
+        var decisionIcon = a.decision === 'approved' ? '&#10003;' : '&#10005;';
+
+        return '<div class="card approval-card history-card">' +
+          '<div class="card-header">' +
+            '<span class="card-title">' + escapeHtml(a.reason || '') + '</span>' +
+            '<span class="risk-badge risk-' + (a.risk || 'low') + '">' + escapeHtml(a.risk || 'low') + '</span>' +
+          '</div>' +
+          '<div class="cord-score-meter">' +
+            '<div class="cord-meter-label">CORD: ' + cordScore + '/99</div>' +
+            '<div class="cord-meter-track">' +
+              '<div class="cord-meter-fill" style="width:' + cordPct + '%;background:' + cordColor + '"></div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="approval-decision decision-' + decisionClass + '">' +
+            '<span class="decision-icon">' + decisionIcon + '</span> ' +
+            escapeHtml(a.decision || '') +
+            (a.decidedBy ? ' by ' + escapeHtml(a.decidedBy) : '') +
+            (a.decidedAt ? ' <span class="decision-time">' + formatTime(a.decidedAt) + '</span>' : '') +
+          '</div>' +
+        '</div>';
+      }).join('');
+    });
+  }
+
+  function toggleApprovalHistory() {
+    var list = document.getElementById('approval-history-list');
+    var btn = document.getElementById('toggle-history-btn');
+    if (!list || !btn) return;
+
+    if (list.classList.contains('hidden')) {
+      list.classList.remove('hidden');
+      btn.textContent = 'Hide History';
+      loadApprovalHistory();
+    } else {
+      list.classList.add('hidden');
+      btn.textContent = 'Show History';
+    }
   }
 
   function getRiskClass(risk) {
@@ -385,6 +471,12 @@
   denyModal.addEventListener('click', function (e) {
     if (e.target === denyModal) cancelDeny();
   });
+
+  // ── Approval History Toggle ────────────────────────────────────────
+  var historyToggleBtn = document.getElementById('toggle-history-btn');
+  if (historyToggleBtn) {
+    historyToggleBtn.addEventListener('click', toggleApprovalHistory);
+  }
 
   // ── Tasks ──────────────────────────────────────────────────────────
 
@@ -2187,12 +2279,151 @@
   // Extend App exports
   window.App.sparkSuggest = sparkSuggest;
 
-  checkHealth();
-  loadApprovals();
-  loadTasks();
-  loadWorkflows();
-  loadConnectorStatus();
-  connectSSE();
-  startAutoRefresh();
-  loadReceipts();
+  // ── Login / Register ──────────────────────────────────────────────
+
+  var loginOverlay = document.getElementById('login-overlay');
+  var loginForm = document.getElementById('login-form');
+  var loginError = document.getElementById('login-error');
+  var loginBtn = document.getElementById('login-btn');
+  var loginEmail = document.getElementById('login-email');
+  var loginPassword = document.getElementById('login-password');
+  var registerToggle = document.getElementById('register-toggle');
+  var loginDevNote = document.getElementById('login-dev-note');
+  var isRegisterMode = false;
+
+  if (registerToggle) {
+    registerToggle.addEventListener('click', function () {
+      isRegisterMode = !isRegisterMode;
+      loginBtn.textContent = isRegisterMode ? 'Register' : 'Sign In';
+      registerToggle.textContent = isRegisterMode ? 'Sign In' : 'Register';
+      loginError.textContent = '';
+    });
+  }
+
+  if (loginForm) {
+    loginForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      loginError.textContent = '';
+      loginBtn.disabled = true;
+
+      var endpoint = isRegisterMode ? '/api/auth/register' : '/api/auth/login';
+      var payload = {
+        email: loginEmail.value.trim(),
+        password: loginPassword.value,
+      };
+
+      if (isRegisterMode) {
+        payload.name = payload.email.split('@')[0];
+      }
+
+      fetch(API_BASE + endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+          loginBtn.disabled = false;
+          if (data.error) {
+            loginError.textContent = data.error;
+            return;
+          }
+          if (data.token) {
+            authToken = data.token;
+            authApiKey = data.apiKey || '';
+            localStorage.setItem('ops_auth_token', authToken);
+            localStorage.setItem('ops_auth_api_key', authApiKey);
+            loginOverlay.style.display = 'none';
+            initDashboard();
+          }
+        })
+        .catch(function (err) {
+          loginBtn.disabled = false;
+          loginError.textContent = 'Connection error: ' + err.message;
+        });
+    });
+  }
+
+  /** Logout — clear tokens and show login. */
+  window.opsLogout = function () {
+    authToken = '';
+    authApiKey = '';
+    localStorage.removeItem('ops_auth_token');
+    localStorage.removeItem('ops_auth_api_key');
+    if (loginOverlay) loginOverlay.style.display = 'flex';
+  };
+
+  /** Check auth state on load and show/hide login. */
+  function checkAuthState() {
+    // First check if the API even requires auth (dev mode)
+    fetch(API_BASE + '/health')
+      .then(function (res) { return res.json(); })
+      .then(function () {
+        // Server is up. Try an authenticated request.
+        if (authToken || authApiKey) {
+          // We have a stored token — try it
+          fetch(API_BASE + '/api/auth/me', { headers: authHeaders() })
+            .then(function (res) {
+              if (res.status === 200) {
+                // Valid token — hide login, start dashboard
+                if (loginOverlay) loginOverlay.style.display = 'none';
+                initDashboard();
+              } else if (res.status === 401) {
+                // Token expired — clear and show login
+                localStorage.removeItem('ops_auth_token');
+                localStorage.removeItem('ops_auth_api_key');
+                authToken = '';
+                authApiKey = '';
+                if (loginOverlay) loginOverlay.style.display = 'flex';
+              } else {
+                // Might be dev mode (endpoint doesn't exist) — proceed
+                if (loginOverlay) loginOverlay.style.display = 'none';
+                initDashboard();
+              }
+            })
+            .catch(function () {
+              // Network error — try dashboard anyway
+              if (loginOverlay) loginOverlay.style.display = 'none';
+              initDashboard();
+            });
+        } else {
+          // No token — check if dev mode (unauthenticated request succeeds)
+          fetch(API_BASE + '/api/approvals/count')
+            .then(function (res) {
+              if (res.status === 200) {
+                // Dev mode — no auth needed
+                if (loginOverlay) loginOverlay.style.display = 'none';
+                if (loginDevNote) loginDevNote.classList.add('visible');
+                initDashboard();
+              } else {
+                // Auth required — show login
+                if (loginOverlay) loginOverlay.style.display = 'flex';
+              }
+            })
+            .catch(function () {
+              // Server down — show login for retry
+              if (loginOverlay) loginOverlay.style.display = 'flex';
+            });
+        }
+      })
+      .catch(function () {
+        // Server not reachable — show login
+        if (loginOverlay) loginOverlay.style.display = 'flex';
+        loginError.textContent = 'Cannot connect to server';
+      });
+  }
+
+  function initDashboard() {
+    checkHealth();
+    loadApprovals();
+    loadTasks();
+    loadWorkflows();
+    loadConnectorStatus();
+    connectSSE();
+    startAutoRefresh();
+    loadReceipts();
+  }
+
+  // Start auth check
+  checkAuthState();
 })();

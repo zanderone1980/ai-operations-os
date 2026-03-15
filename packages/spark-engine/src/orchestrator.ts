@@ -108,10 +108,14 @@ export class SparkOrchestrator {
   /** Personality engine — evolving communication traits. */
   public readonly personality: PersonalityEngine;
 
+  /** Store reference for direct outcome persistence. */
+  private readonly store: SparkStore;
+
   /**
    * @param store - SparkStore instance shared across all engines.
    */
   constructor(store: SparkStore) {
+    this.store = store;
     this.predictor = new Predictor(store);
     this.tracker = new OutcomeTracker(store);
     this.learner = new LearningCore(store);
@@ -164,6 +168,9 @@ export class SparkOrchestrator {
     prediction: Prediction,
     outcome: OutcomeSignal,
   ): { episode: LearningEpisode; insights: Insight[] } {
+    // Persist outcome to DB (was missing — outcomes were built but never saved)
+    try { this.store.saveOutcome(outcome); } catch { /* non-fatal */ }
+
     const episode = this.learner.learn(prediction, outcome);
     const insights = this.memory.consolidate(episode);
 

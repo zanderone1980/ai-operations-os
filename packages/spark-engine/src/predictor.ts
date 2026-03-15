@@ -18,24 +18,43 @@ import type { SparkStore } from '@ai-operations/ops-storage';
  * Mirrors the same mapping used in cord-adapter for consistency.
  */
 const OPERATION_CATEGORY_MAP: Record<string, SparkCategory> = {
+  // Communication — network requests, browser interactions, messaging
   send: 'communication',
   reply: 'communication',
   forward: 'communication',
+  navigate: 'communication',
+
+  // Publication — pushing code, deploying, posting content
   post: 'publication',
   tweet: 'publication',
+  publish: 'publication',
+
+  // Destructive — removing files, killing processes
   delete: 'destructive',
   remove: 'destructive',
   archive: 'destructive',
+
+  // Scheduling — calendar events, routines
   create_event: 'scheduling',
   update_event: 'scheduling',
   cancel_event: 'scheduling',
+
+  // Financial — payments, transfers
   refund: 'financial',
   charge: 'financial',
   transfer: 'financial',
+
+  // Readonly — reading, listing, searching
   read: 'readonly',
   list: 'readonly',
   search: 'readonly',
   get: 'readonly',
+
+  // General — writing, editing, executing (mapped explicitly to avoid confusion)
+  write: 'general',
+  edit: 'general',
+  create: 'general',
+  execute: 'general',
 };
 
 /**
